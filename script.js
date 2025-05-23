@@ -114,7 +114,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         let isInitialApiCallAfterObjectiveTest = false; // 객관식 테스트 후 첫 API 호출인지 여부
     let isFirstBotMessageDisplayed = false; // ★★★ 추가: 첫 봇 메시지 표시 여부 플래그 ★★★
     let showStage10EntryEmoticon = false; // ★★★ 추가: 10단계 첫 진입 시 이모티콘 표시 여부 플래그 ★★★
-
+    let isRequestingSyncTypeResult = false;
+    let syncTypeResultRetryCount = 0;
     let tooltipTimer; // 입력창 포커스 시 툴팁 타이머 (기존)
     let originalSection2PaddingBottom = null;
     const TOOLTIP_TIMEOUT_DURATION = 2000; // 입력창 포커스 시 툴팁 표시 딜레이 (기존)
@@ -2688,11 +2689,15 @@ async function handleMultipleCardSelection(selectedCardIds) {
         .then(() => displayTarotSelectionUI(cardsToRetry, handleMultipleCardSelection));
     }
 }
-async function sendApiRequest(retryCount = 0, isRequestingSyncTypeResult = false, syncTypeResultRetryCount = 0) {
-    const MAX_API_RETRIES = 5;
-    const MAX_SYNC_TYPE_RESULT_RETRIES = 3;
+async function sendApiRequest(retryCount = 0, isRetryForSyncType = false) {
+    const MAX_RETRIES = 5; // 일반 API 최대 재시도
+    const MAX_SYNC_TYPE_RETRIES = 3; // 싱크타입 결정 API 최대 재시도
 
-    if (isApiLoading && retryCount === 0 && syncTypeResultRetryCount === 0) {
+    // isRequestingSyncTypeResult와 syncTypeResultRetryCount는 전역 또는 상위 스코프 변수여야 합니다.
+    // 예: let isRequestingSyncTypeResult = false;
+    //     let syncTypeResultRetryCount = 0;
+
+    if (isApiLoading && retryCount === 0 && !isRetryForSyncType) {
         console.log("[sendApiRequest] 이전 API 요청 처리 중. 새 요청 무시.");
         return;
     }
@@ -2701,16 +2706,16 @@ async function sendApiRequest(retryCount = 0, isRequestingSyncTypeResult = false
         return;
     }
 
-    console.log(`[sendApiRequest] API 호출. isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}, 일반 retry: ${retryCount + 1}/${MAX_API_RETRIES}, 싱크타입결정 retry: ${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RESULT_RETRIES}`);
+    let currentGeneralRetry = retryCount;
+    // isRequestingSyncTypeResult가 true일 때만 syncTypeResultRetryCount를 사용
+    let currentSyncTypeRetryAttempt = isRequestingSyncTypeResult ? syncTypeResultRetryCount : 0;
+
+    console.log(`[sendApiRequest] API 호출 시작. isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}, 일반 retry: ${currentGeneralRetry + 1}/${MAX_RETRIES}, 싱크타입결정 retry: ${currentSyncTypeRetryAttempt +1}/${MAX_SYNC_TYPE_RETRIES}`);
     isApiLoading = true;
 
-    if (retryCount > 0 || (isRequestingSyncTypeResult && syncTypeResultRetryCount > 0)) {
+    if (currentGeneralRetry > 0 && !isRequestingSyncTypeResult) { // 일반 API 재시도 시 액션 텍스트
         const retryActionText = "잠시만요 교신에 문제가 생겼나봐요..! 📡";
-        const existingRetryMsg = section2.querySelector('.action-text-in-chat[data-retry-message="true"]');
-        if (existingRetryMsg) existingRetryMsg.remove();
-
         const actionEl = await createActionTextElement(retryActionText);
-        if (actionEl) actionEl.dataset.retryMessage = "true";
         if (section2 && actionEl) {
             section2.appendChild(actionEl);
             await animateActionText(actionEl, retryActionText);
@@ -2719,20 +2724,13 @@ async function sendApiRequest(retryCount = 0, isRequestingSyncTypeResult = false
         }
     }
 
-    if (retryCount === 0 && syncTypeResultRetryCount === 0) {
-        const placeholderText = isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주로 메시지를 보내는 중...";
-        setChatInputDisabled(true, placeholderText, true);
+    if (currentGeneralRetry === 0 && !isRetryForSyncType ) {
+        setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주로 메시지를 보내는 중...", true);
         showTypingIndicator();
     }
     setSendButtonLoading(true);
 
-    let userMessageForApi;
-    if (isRequestingSyncTypeResult) {
-        userMessageForApi = "사용자가 싱크타입 테스트를 완료했습니다. 사용자의 답변을 기반으로 가장 적합한 성운을 결정하고, 그 성운의 이름을 JSON 형식의 'determined_constellation' 필드로 반환해주세요. 성운 이름은 한글(예: '루미네시아') 또는 영문(예: 'Luminesia')으로 올 수 있습니다. 추가적인 설명이나 메시지는 필요 없습니다. 오직 JSON 응답만 주세요."; // API 지침에 영문 가능성 명시
-    } else {
-        userMessageForApi = messageBuffer.trim() || "진행해주세요.";
-    }
-
+    const userMessageForApi = messageBuffer.trim() || (isRequestingSyncTypeResult ? "" : "진행해주세요."); // 싱크타입 요청 시 빈 메시지 가능
     let parsedResponse = null;
     let modelGeneratedText = "";
 
@@ -2740,75 +2738,70 @@ async function sendApiRequest(retryCount = 0, isRequestingSyncTypeResult = false
         console.log(`[sendApiRequest] 실제 API 요청 전송 시도. 현재 단계: ${currentConsultationStage}, isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}`);
         const systemInstructionText = getActiveSystemPrompt(isRequestingSyncTypeResult);
 
-        let currentUserTurnTextForApiContent;
-        if (isRequestingSyncTypeResult) {
-            let userProfileItemsString = "";
-            const profileKeysToIterate = Object.keys(userProfile);
-            profileKeysToIterate.forEach(key => {
-                if (key.startsWith("주관식답변") || key === "객관식질문과답변" || key.startsWith("DISC_")) {
-                    const value = userProfile[key];
-                    let displayValue;
-                     if (key === "객관식질문과답변" && Array.isArray(value)) {
-                        if (value.length > 0) {
-                            displayValue = "\n";
-                            value.forEach((item, index) => {
-                                displayValue += `  - 질문 ${index + 1} (${item.type}타입): ${item.question.substring(0, 30)}... / 답변: ${item.answer}점\n`;
-                            });
-                        } else {
-                            displayValue = "수집안됨";
-                        }
-                    } else if (key.startsWith("DISC_") && typeof value === 'number') {
-                        displayValue = `${value}점`;
-                    } else if (key.startsWith("주관식답변") && value) {
-                        const questionNumber = key.replace("주관식답변", "");
-                        const questionKey = `주관식질문${questionNumber}`;
-                        const questionText = userProfile[questionKey] || "해당 질문 없음";
-                        displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`;
-                    } else {
-                        displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨";
-                    }
-                     userProfileItemsString += `${key}: ${displayValue}\n`;
+        let userProfileItemsString = "";
+        const profileKeysToIterate = Object.keys(userProfile);
+        profileKeysToIterate.forEach(key => {
+            const value = userProfile[key];
+            let displayValue;
+            if (key === "객관식질문과답변" && Array.isArray(value)) {
+                if (value.length > 0) {
+                    displayValue = "\n";
+                    value.forEach((item, index) => {
+                        displayValue += `  - 질문 ${index + 1} (${item.type}타입): ${item.question.substring(0, 30)}... / 답변: ${item.answer}\n`;
+                    });
+                } else {
+                    displayValue = "수집안됨";
                 }
-            });
-            const discSummary = `DISC 점수 요약: D=${userProfile.DISC_D_점수}점, I=${userProfile.DISC_I_점수}점, S=${userProfile.DISC_S_점수}점, C=${userProfile.DISC_C_점수}점`;
-            currentUserTurnTextForApiContent = `
-[현재 상담 단계]: 싱크타입 결정 요청
-[사용자 테스트 결과]
+            } else if (key.startsWith("DISC_") && typeof value === 'number') {
+                displayValue = `${value}점`;
+            } else if (key.startsWith("주관식답변") && value) {
+                const questionNumber = key.replace("주관식답변", "");
+                const questionKey = `주관식질문${questionNumber}`;
+                const questionText = userProfile[questionKey] || "해당 질문 없음";
+                displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`;
+            } else if (key.startsWith("주관식질문")) {
+                return;
+            } else {
+                displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨";
+            }
+            userProfileItemsString += `${key}: ${displayValue}\n`;
+        });
+
+        const discSummary = `DISC 점수: D=${userProfile.DISC_D_점수}, I=${userProfile.DISC_I_점수}, S=${userProfile.DISC_S_점수}, C=${userProfile.DISC_C_점수}`;
+
+        let currentUserTurnTextForApiContent = `
+[현재 상담 단계]: ${currentConsultationStage}단계
+[사용자 현재 정보]
 ${userProfileItemsString.trim()}
 ${discSummary}
-[사용자 발화]
-${userMessageForApi}`;
-        } else {
-            let userProfileSummary = `사용자 고민: ${userProfile.사용자의고민 || "미지정"}`;
-            if (userProfile.사용자소속성운) {
-                userProfileSummary += `\n사용자 성운: ${userProfile.사용자소속성운}`;
-                if (userProfile.결정된싱크타입) {
-                     userProfileSummary += ` (싱크타입: ${userProfile.결정된싱크타입})`;
-                }
-            }
-            currentUserTurnTextForApiContent = `
-[현재 상담 단계]: ${currentConsultationStage}단계
-[사용자 간략 정보]
-${userProfileSummary}
-루비가최근에보여준카드이미지: ${lastShownRubyCardImageId || "없음"}
-[사용자 발화]
-${userMessageForApi}`;
+루비가최근에보여준카드이미지: ${lastShownRubyCardImageId || "없음"}`;
+
+        if (!isRequestingSyncTypeResult && userMessageForApi) { // 일반 API 호출이고 사용자 메시지가 있을 때만 추가
+            currentUserTurnTextForApiContent += `\n[사용자 발화]\n${userMessageForApi}`;
         }
 
-        const contentsForAPI = [
-            ...conversationHistory.map(turn => ({ role: turn.role, parts: turn.parts })),
-            { role: "user", parts: [{ text: currentUserTurnTextForApiContent }] }
-        ];
+        const contentsForAPI = [];
+        if (isRequestingSyncTypeResult) {
+            contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] });
+        } else {
+            contentsForAPI.push(...conversationHistory.map(turn => ({ role: turn.role, parts: turn.parts })));
+            contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] });
+        }
+
         const requestBodyContent = {
             system_instruction: { parts: [{ text: systemInstructionText }] },
             contents: contentsForAPI,
             generationConfig: { temperature: 0.2 },
         };
 
-        if (retryCount === 0 && syncTypeResultRetryCount === 0) {
-            console.log("================ API REQUEST BODY (isRequestingSyncTypeResult: " + isRequestingSyncTypeResult + ") START ================");
+        if (currentGeneralRetry === 0 && !isRetryForSyncType) { // 최초 호출 시에만 상세 로그
+            console.log(`================ API REQUEST BODY (isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}) START ================`);
             console.log("[sendApiRequest] API 요청 본문 전체 (JSON):", JSON.stringify(requestBodyContent, null, 2));
             console.log("================ API REQUEST BODY END ==================");
+        }
+
+        if (!isRequestingSyncTypeResult && suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) {
+            hideSuggestionButtons(true);
         }
 
         const response = await fetch(API_URL, {
@@ -2818,7 +2811,7 @@ ${userMessageForApi}`;
         });
 
         const responseTextRaw = await response.text();
-        if (retryCount === 0 && syncTypeResultRetryCount === 0) {
+        if (currentGeneralRetry === 0 && !isRetryForSyncType) { // 최초 호출 시에만 상세 로그
             console.log("================ API RESPONSE RAW START ================");
             console.log("[sendApiRequest] API 원본 응답 (Raw Text):", responseTextRaw);
             console.log("================ API RESPONSE RAW END ==================");
@@ -2826,120 +2819,105 @@ ${userMessageForApi}`;
         console.log("[sendApiRequest] API 응답 상태 코드:", response.status);
 
         if (!response.ok) {
-            let errorDetail = `HTTP 상태 ${response.status}: ${response.statusText}. 응답: ${responseTextRaw.substring(0, 200)}...`;
-            if (response.status >= 500 && response.status <= 599) {
-                if (isRequestingSyncTypeResult && syncTypeResultRetryCount < MAX_SYNC_TYPE_RESULT_RETRIES - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (syncTypeResultRetryCount + 1)));
-                    return sendApiRequest(retryCount, true, syncTypeResultRetryCount + 1);
-                } else if (!isRequestingSyncTypeResult && retryCount < MAX_API_RETRIES - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                    return sendApiRequest(retryCount + 1, false, syncTypeResultRetryCount);
-                }
+            let errorDetail = `HTTP 상태 ${response.status}: ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
+            if (!isRequestingSyncTypeResult && response.status >= 500 && response.status <= 599 && currentGeneralRetry < MAX_RETRIES - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * (currentGeneralRetry + 1)));
+                return sendApiRequest(currentGeneralRetry + 1, false);
             }
+            // 싱크타입 요청 실패 시 또는 일반 API 최종 재시도 실패 시 아래에서 에러 throw
             throw new Error(errorDetail);
         }
 
         try {
             const responseData = JSON.parse(responseTextRaw);
-             if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content &&
+            if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content &&
                 responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0] &&
                 typeof responseData.candidates[0].content.parts[0].text === 'string') {
                 modelGeneratedText = responseData.candidates[0].content.parts[0].text;
             } else {
+                modelGeneratedText = "";
+                 if (!isRequestingSyncTypeResult && currentGeneralRetry < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (currentGeneralRetry + 1)));
+                    return sendApiRequest(currentGeneralRetry + 1, false);
+                }
+                // 싱크타입 요청이거나 일반 API 최종 재시도 실패 시
                 throw new Error("모델 응답 구조 이상, 유효 텍스트 없음");
             }
         } catch (e) {
-            console.error("[sendApiRequest] 모델 응답 파싱 실패 또는 구조 이상:", e, "Raw text:", responseTextRaw);
-            if (isRequestingSyncTypeResult && syncTypeResultRetryCount < MAX_SYNC_TYPE_RESULT_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (syncTypeResultRetryCount + 1)));
-                return sendApiRequest(retryCount, true, syncTypeResultRetryCount + 1);
-            } else if (!isRequestingSyncTypeResult && retryCount < MAX_API_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                return sendApiRequest(retryCount + 1, false, syncTypeResultRetryCount);
+            modelGeneratedText = "";
+            if (!isRequestingSyncTypeResult && currentGeneralRetry < MAX_RETRIES - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * (currentGeneralRetry + 1)));
+                return sendApiRequest(currentGeneralRetry + 1, false);
             }
-            throw new Error("API 응답이 유효한 JSON이 아니거나 모델 응답 구조 이상 (재시도 소진)");
+            // 싱크타입 요청이거나 일반 API 최종 재시도 실패 시
+            throw new Error(`API 응답 JSON 파싱 또는 구조 오류: ${e.message}`);
         }
 
         parsedResponse = extractAndParseJson(modelGeneratedText);
 
-        if (parsedResponse && parsedResponse.error) {
-            if (isRequestingSyncTypeResult && syncTypeResultRetryCount < MAX_SYNC_TYPE_RESULT_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (syncTypeResultRetryCount + 1)));
-                return sendApiRequest(retryCount, true, syncTypeResultRetryCount + 1);
-            } else if (!isRequestingSyncTypeResult && retryCount < MAX_API_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                return sendApiRequest(retryCount + 1, false, syncTypeResultRetryCount);
-            }
+        if (parsedResponse && parsedResponse.error && !isRequestingSyncTypeResult && currentGeneralRetry < MAX_RETRIES - 1) {
+             await new Promise(resolve => setTimeout(resolve, 1000 * (currentGeneralRetry + 1)));
+             return sendApiRequest(currentGeneralRetry + 1, false);
         }
+        // 싱크타입 요청 시 파싱 에러는 아래 isRequestingSyncTypeResult 블록에서 처리
+
+        lastApiResponse = parsedResponse;
 
         if (isRequestingSyncTypeResult) {
-            let determinedConstellationFromApi = parsedResponse ? parsedResponse.determined_constellation : null;
-            let validKoreanConstellationName = null;
+            console.log("[sendApiRequest] 싱크타입 결정 API 응답 처리 중:", parsedResponse);
+            const profileUpdate = parsedResponse ? parsedResponse.user_profile_update : null;
+            const determinedConstellation = profileUpdate ? String(profileUpdate.사용자소속성운 || "").trim() : null;
+            const determinedSyncType = profileUpdate ? String(profileUpdate.결정된싱크타입 || "").trim() : null;
+            const reason = profileUpdate ? String(profileUpdate.사용자가성운에속한이유 || "").trim() : null;
 
-            if (determinedConstellationFromApi) {
-                // 1. API 응답이 한글 성운명인지 확인 (CONSTELLATIONS_DATA 키에 있는지)
-                if (CONSTELLATIONS_DATA[determinedConstellationFromApi]) {
-                    validKoreanConstellationName = determinedConstellationFromApi;
-                } else {
-                    // 2. API 응답이 영문 성운명(우리가 사용하는 프롬프트 키)인지 확인
-                    // CONSTELLATION_PROMPT_KEY_MAP의 value 또는 promptFileMap의 키와 비교
-                    for (const koreanName in CONSTELLATION_PROMPT_KEY_MAP) {
-                        if (CONSTELLATION_PROMPT_KEY_MAP[koreanName].toLowerCase() === determinedConstellationFromApi.toLowerCase()) {
-                            validKoreanConstellationName = koreanName;
-                            break;
-                        }
-                    }
-                     // 또는 promptFileMap의 키와 직접 비교 (대소문자 구분 없이)
-                    if (!validKoreanConstellationName) {
-                        const matchedPromptKey = Object.keys(promptFileMap).find(
-                            promptKey => promptKey.toLowerCase() === determinedConstellationFromApi.toLowerCase() && promptKey !== 'globalprompts' && promptKey !== 'synctyperesult'
-                        );
-                        if (matchedPromptKey) {
-                             // matchedPromptKey (영문)에 해당하는 한글 성운명을 찾아야 함
-                            for (const koreanName in CONSTELLATION_PROMPT_KEY_MAP) {
-                                if (CONSTELLATION_PROMPT_KEY_MAP[koreanName] === matchedPromptKey) { // 대소문자 구분하여 정확히 일치하는 키
-                                    validKoreanConstellationName = koreanName;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            console.log(`[sendApiRequest_Debug] API 응답에서 추출된 성운: '${determinedConstellation}'`);
+            const isValidConstellation = determinedConstellation && CONSTELLATIONS_DATA.hasOwnProperty(determinedConstellation);
+            console.log(`[sendApiRequest_Debug] CONSTELLATIONS_DATA에 '${determinedConstellation}' 키 존재 여부: ${isValidConstellation}`);
 
-            if (validKoreanConstellationName) {
-                updateUserProfile({ "사용자소속성운": validKoreanConstellationName });
-                console.log(`[sendApiRequest] 싱크타입 결정 성공: ${validKoreanConstellationName} (API 응답: ${determinedConstellationFromApi})`);
-                await hideTypingIndicator();
-                const successMsg = `[exp001] 짜잔! 너의 성운은 바로 <b style="color:#FFD700;">'${validKoreanConstellationName}'</b>(이)야! <br>이제 너의 성운에 맞춰서 타로를 해석해 줄게!`;
-                await displayHardcodedUIElements("루비가 반짝이는 눈으로 너를 보며", successMsg, [], handleButtonClick);
-                messageBuffer = `사용자의 성운이 '${validKoreanConstellationName}'(으)로 결정되었습니다. 이 정보에 기반하여 사용자가 선택한 '${userProfile.사용자의고민}' 타로 상담을 시작해주세요.`;
-                return sendApiRequest(0, false, 0);
+            if (parsedResponse && !parsedResponse.error && profileUpdate && isValidConstellation && determinedSyncType && reason) {
+                updateUserProfile(profileUpdate);
+                console.log("[sendApiRequest] 싱크타입 결정 성공. 프로필 업데이트:", profileUpdate);
+
+                isRequestingSyncTypeResult = false;
+                syncTypeResultRetryCount = 0;
+                showStage10EntryEmoticon = true;
+                isInitialApiCallAfterObjectiveTest = true;
+
+                messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 내 성향에 맞는 타로 운세를 봐줘!`;
+                if (typingIndicatorElement) await hideTypingIndicator();
+                return sendApiRequest(0, false);
+
             } else {
-                console.warn("[sendApiRequest] 싱크타입 결정 실패: determined_constellation 필드 없거나 유효하지 않은 값. 응답:", parsedResponse);
-                if (syncTypeResultRetryCount < MAX_SYNC_TYPE_RESULT_RETRIES - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (syncTypeResultRetryCount + 1)));
-                    return sendApiRequest(retryCount, true, syncTypeResultRetryCount + 1);
+                let failureReason = "알 수 없는 이유";
+                if (parsedResponse && parsedResponse.error) failureReason = `파싱 오류: ${parsedResponse.error}`;
+                else if (!profileUpdate) failureReason = "user_profile_update 필드 없음";
+                else if (!determinedConstellation) failureReason = "사용자소속성운 필드 없음 또는 빈 값";
+                else if (!isValidConstellation) failureReason = `유효하지 않은 성운 값: '${determinedConstellation}' (CONSTELLATIONS_DATA에 없음)`;
+                else if (!determinedSyncType) failureReason = "결정된싱크타입 필드 없음 또는 빈 값";
+                else if (!reason) failureReason = "사용자가성운에속한이유 필드 없음 또는 빈 값";
+
+                console.error(`[sendApiRequest] 싱크타입 결정 실패: ${failureReason}. 응답:`, parsedResponse);
+
+                if (syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) {
+                    syncTypeResultRetryCount++;
+                    console.log(`[sendApiRequest] 싱크타입 결정 재시도 (${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RETRIES})`);
+                    if (typingIndicatorElement) await hideTypingIndicator();
+                    await new Promise(resolve => setTimeout(resolve, 1500 * (syncTypeResultRetryCount)));
+                    return sendApiRequest(currentGeneralRetry, true); // 일반 retryCount는 유지, isRetryForSyncType true로 재시도
                 } else {
-                    console.error("[sendApiRequest] 싱크타입 결정 최종 실패. 기본 글로벌 프롬프트로 진행.");
-                    updateUserProfile({ "사용자소속성운": null });
-                    await hideTypingIndicator();
-                    const fallbackMsg = "[exp007] 앗, 너의 성운을 정하는 데 어려움이 있었어. 우선은 일반적인 방식으로 타로를 봐줄게!";
-                    await displayHardcodedUIElements("루비가 곤란한 표정으로", fallbackMsg, [], handleButtonClick);
-                    messageBuffer = `사용자의 성운 결정에 실패했습니다. 사용자가 선택한 '${userProfile.사용자의고민}' 타로 상담을 일반적인 방식으로 시작해주세요.`;
-                    return sendApiRequest(0, false, 0);
+                    syncTypeResultRetryCount = 0;
+                    throw new Error(`싱크타입 결정 API 최종 실패: ${failureReason}`);
                 }
             }
-        }
-        else { // 일반 API 응답 처리
-            lastApiResponse = parsedResponse;
+        } else { // 일반 API 응답 처리
             if (parsedResponse.user_profile_update) {
                 updateUserProfile(parsedResponse.user_profile_update);
             }
 
             if (currentConsultationStage === 10 && showStage10EntryEmoticon) {
-                console.log("[sendApiRequest] Stage 10 first entry: Displaying exp002 before API response message.");
+                console.log("[sendApiRequest] Stage 10 first entry (일반): Displaying exp002 before API response message.");
                 await hideTypingIndicator();
+
                 const rubyImgElementForStage10 = createRubyExpressionElement('exp002');
                 if (rubyImgElementForStage10) {
                     const frame = document.createElement('div');
@@ -2952,21 +2930,26 @@ ${userMessageForApi}`;
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
                 showStage10EntryEmoticon = false;
-                console.log("[sendApiRequest] showStage10EntryEmoticon set to false.");
+                console.log("[sendApiRequest] showStage10EntryEmoticon set to false (일반 응답 처리).");
             }
 
             if (typingIndicatorElement) await hideTypingIndicator();
-            await displayApiResponseElements(parsedResponse);
-            conversationHistory.push({ role: "model", parts: [{ text: modelGeneratedText }] });
+            await displayApiResponseElements(parsedResponse); // parsedResponse가 오류 객체일 수도 있음 (최종 재시도 실패 시)
+            
+            // API 응답이 성공적일 때만 대화 기록에 추가
+            if (parsedResponse && !parsedResponse.error) {
+                 conversationHistory.push({ role: "model", parts: [{ text: modelGeneratedText }] });
+            }
+
 
             if (currentConsultationStage === 10) {
                 resetSessionTimers();
             }
 
             let nextStageFromApi = null;
-            if (parsedResponse.force_stage !== null && parsedResponse.force_stage !== undefined) {
+            if (parsedResponse && parsedResponse.force_stage !== null && parsedResponse.force_stage !== undefined) {
                 nextStageFromApi = parsedResponse.force_stage;
-            } else if (parsedResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) {
+            } else if (parsedResponse && parsedResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) {
                  nextStageFromApi = currentConsultationStage + 1;
             }
 
@@ -2974,7 +2957,7 @@ ${userMessageForApi}`;
                 console.log(`[sendApiRequest] API 응답에 따라 단계 변경 시도: ${currentConsultationStage} -> ${nextStageFromApi}`);
                 advanceConsultationStage(nextStageFromApi, true);
             } else if (parsedResponse && !parsedResponse.error && currentConsultationStage === 10) {
-                if (!isApiLoading) {
+                 if (!isApiLoading) {
                      const hasSampleAnswer = parsedResponse.sampleanswer && String(parsedResponse.sampleanswer).trim() !== "";
                      if (hasSampleAnswer) {
                         setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
@@ -2987,11 +2970,21 @@ ${userMessageForApi}`;
         }
 
     } catch (error) {
-        console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (일반 retry: ${retryCount + 1}, 싱크타입결정 retry: ${syncTypeResultRetryCount + 1}):`, error);
+        console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (일반 retry: ${currentGeneralRetry + 1}, 싱크타입 retry: ${currentSyncTypeRetryAttempt +1}):`, error);
         if (typingIndicatorElement) await hideTypingIndicator();
         const finalErrorMsgWithTags = `앗, 내부 시스템에 작은 문제가 생겼나 봐요! [exp008]<br>잠시 후 다시 시도해주시겠어요?<br><small>(오류: ${error.message.substring(0,120)}...)</small>`;
-        await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, ["처음으로 돌아갈래요"], (txt) => {
-            if(txt === "처음으로 돌아갈래요") {
+
+        let errorSuggestion = ["처음으로 돌아갈래요"];
+        if (isRequestingSyncTypeResult) {
+            errorSuggestion = ["테스트 처음부터 다시 하기", "싱크타입 없이 진행하기"];
+        }
+
+        await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, errorSuggestion, async (txt) => {
+            const wasRequestingSyncType = isRequestingSyncTypeResult; // 버튼 클릭 전 상태 저장
+            isRequestingSyncTypeResult = false;
+            syncTypeResultRetryCount = 0;
+
+            if(txt === "처음으로 돌아갈래요" || txt === "테스트 처음부터 다시 하기") {
                 clearChatArea();
                 conversationHistory = [];
                 userProfile = initializeUserProfile();
@@ -3000,19 +2993,39 @@ ${userMessageForApi}`;
                 isFirstBotMessageDisplayed = false;
                 showStage10EntryEmoticon = false;
                 isInitialApiCallAfterObjectiveTest = false;
-                clearSessionTimers();
-                advanceConsultationStage(1);
+                if (wasRequestingSyncType) { // 싱크타입 결정 중 오류였다면 프롬프트도 초기화
+                    loadedPrompts = {};
+                     await initializeApp(); // 프롬프트 다시 로드 포함
+                } else {
+                    advanceConsultationStage(1); // 일반 오류 시 프롬프트 재로드 없이 1단계로
+                }
+            } else if (txt === "싱크타입 없이 진행하기") {
+                currentConsultationStage = 10;
+                showStage10EntryEmoticon = true;
+                isInitialApiCallAfterObjectiveTest = true;
+                messageBuffer = "싱크타입 테스트 없이 바로 타로 상담을 진행합니다.";
+                if (typingIndicatorElement) await hideTypingIndicator(); // 확실하게 숨김
+                await sendApiRequest(0, false);
             }
         });
     } finally {
         console.log("[sendApiRequest] finally 블록 실행.");
-        isApiLoading = false;
-        setSendButtonLoading(false);
-        if (typingIndicatorElement && !isApiLoading) await hideTypingIndicator();
+        // isRequestingSyncTypeResult가 false가 되었거나, API 요청이 더 이상 진행되지 않을 때만 로딩 상태 해제
+        if (!isRequestingSyncTypeResult || (isRequestingSyncTypeResult && syncTypeResultRetryCount === 0 && !(parsedResponse && !parsedResponse.error && profileUpdate && isValidConstellation && determinedSyncType && reason) ) ) {
+            // 위 조건: 싱크타입 요청이 아니거나, 싱크타입 요청이었지만 최종 실패/성공으로 더 이상 재귀 호출이 없을 때
+            isApiLoading = false;
+            setSendButtonLoading(false);
+             if (isInitialApiCallAfterObjectiveTest && !isRequestingSyncTypeResult) { // 일반 10단계 첫 API 호출이 (성공적으로) 끝났다면
+                isInitialApiCallAfterObjectiveTest = false;
+                console.log("[sendApiRequest] finally: isInitialApiCallAfterObjectiveTest 플래그 최종 해제.");
+            }
+        }
+        // 싱크타입 결정 재시도가 남아있다면 isApiLoading은 true로 유지되어야 하지만,
+        // 현재 재귀호출은 return sendApiRequest() 형태로 바로 반환되므로, 이 finally는 재귀의 가장 바깥쪽 호출에서만 실행됨.
+        // 따라서, isApiLoading은 다음 호출 시작 시 다시 true로 설정됨.
 
-        if (isInitialApiCallAfterObjectiveTest && !isRequestingSyncTypeResult) {
-            isInitialApiCallAfterObjectiveTest = false;
-            console.log("[sendApiRequest] finally: isInitialApiCallAfterObjectiveTest 플래그 최종 해제 (일반 대화 완료 시).");
+        if (typingIndicatorElement && !isApiLoading) {
+             await hideTypingIndicator();
         }
     }
 }
