@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>타로 상담가 루비</title>
-    <link rel="stylesheet" href="style.css"> <!-- 여기에 위에서 제공된 CSS 파일 경로를 넣습니다. -->
+    <link rel="stylesheet" href="style.css"> <!-- 여기에 최종 CSS 파일 경로를 넣습니다. -->
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -57,18 +57,36 @@
             <!-- 1번 플로팅 바 (1단계 전용) -->
             <div class="floating-menu" id="floatingMenuPage1">
                 <div class="floating-menu-title">루비와 더 깊은 대화를 나눠보세요!</div>
-                <div class="floating-image-button-container">
-                    <!-- 예시: 10개의 이미지 버튼. 실제 이미지 경로와 alt 텍스트를 넣어주세요. -->
-                    <div class="floating-image-button" data-action="new_chat"><img src="images/menu/banner_new_chat.png" alt="새로운 상담 시작하기"></div>
-                    <div class="floating-image-button" data-action="continue_chat"><img src="images/menu/banner_continue_chat.png" alt="지난 상담 이어하기"></div>
-                    <div class="floating-image-button" data-action="guestbook"><img src="images/menu/banner_guestbook.png" alt="루비의 방명록"></div>
-                    <div class="floating-image-button" data-action="recommend_tarot"><img src="images/menu/banner_recommend_tarot.png" alt="오늘의 추천 타로"></div>
-                    <div class="floating-image-button" data-action="retest_sync"><img src="images/menu/banner_retest_sync.png" alt="싱크타입 다시 테스트"></div>
-                    <div class="floating-image-button" data-action="help"><img src="images/menu/banner_help.png" alt="도움말/가이드"></div>
-                    <div class="floating-image-button" data-action="contact"><img src="images/menu/banner_contact.png" alt="문의하기"></div>
-                    <div class="floating-image-button" data-action="policy"><img src="images/menu/banner_policy.png" alt="정보 동의 및 정책"></div>
-                    <div class="floating-image-button" data-action="bgm_toggle"><img src="images/menu/banner_bgm.png" alt="배경음악 ON/OFF"></div>
-                    <div class="floating-image-button" data-action="share"><img src="images/menu/banner_share.png" alt="공유하기"></div>
+                <!-- 한 줄에 이미지 한 장씩 세로로 나열 (스크롤 가능) -->
+                <div class="floating-image-list-item" data-action="new_chat">
+                    <img src="images/menu/banner_new_chat.png" alt="새로운 상담 시작하기">
+                </div>
+                <div class="floating-image-list-item" data-action="continue_chat">
+                    <img src="images/menu/banner_continue_chat.png" alt="지난 상담 이어하기">
+                </div>
+                <div class="floating-image-list-item" data-action="guestbook">
+                    <img src="images/menu/banner_guestbook.png" alt="루비의 방명록">
+                </div>
+                <div class="floating-image-list-item" data-action="recommend_tarot">
+                    <img src="images/menu/banner_recommend_tarot.png" alt="오늘의 추천 타로">
+                </div>
+                <div class="floating-image-list-item" data-action="retest_sync">
+                    <img src="images/menu/banner_retest_sync.png" alt="싱크타입 다시 테스트">
+                </div>
+                <div class="floating-image-list-item" data-action="help">
+                    <img src="images/menu/banner_help.png" alt="도움말/가이드">
+                </div>
+                <div class="floating-image-list-item" data-action="contact">
+                    <img src="images/menu/banner_contact.png" alt="문의하기">
+                </div>
+                <div class="floating-image-list-item" data-action="policy">
+                    <img src="images/menu/banner_policy.png" alt="정보 동의 및 정책">
+                </div>
+                <div class="floating-image-list-item" data-action="bgm_toggle">
+                    <img src="images/menu/banner_bgm.png" alt="배경음악 ON/OFF">
+                </div>
+                <div class="floating-image-list-item" data-action="share">
+                    <img src="images/menu/banner_share.png" alt="공유하기">
                 </div>
             </div>
 
@@ -76,8 +94,7 @@
             <div class="floating-menu" id="floatingMenuPage2">
                 <div class="floating-menu-title">오늘의 추천 타로</div>
                 <div class="floating-single-image-container">
-                    <!-- 예시: 단일 이미지. 실제 이미지 경로와 alt 텍스트를 넣어주세요. -->
-                    <img src="images/menu/recommended_tarot_today.png" alt="오늘 당신에게 추천하는 특별한 타로 카드입니다.">
+                    <img src="images/menu/recommended_tarot_today.png" alt="오늘 당신에게 추천하는 특별한 타로 카드입니다. 이 카드를 눌러 바로 시작해보세요!" data-action="start_recommended_tarot">
                 </div>
             </div>
 
@@ -85,11 +102,12 @@
             <div class="floating-menu" id="floatingMenuPage3">
                 <div class="floating-menu-title">루비의 친구들</div>
                 <div class="floating-two-column-image-container">
-                    <!-- 예시: 한 줄에 2개씩 이미지. 실제 이미지 경로와 alt 텍스트를 넣어주세요. -->
-                    <div class="floating-two-column-image-item" data-action="friend_1"><img src="images/menu/friend_apollo.png" alt="루비의 친구 아폴로 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_2"><img src="images/menu/friend_luna.png" alt="루비의 친구 루나 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_3"><img src="images/menu/friend_stellan.png" alt="루비의 친구 스텔란 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_4"><img src="images/menu/friend_cosmo.png" alt="루비의 친구 코스모 만나보기"></div>
+                    <div class="floating-two-column-image-item" data-action="friend_apollo"><img src="images/menu/friend_apollo.png" alt="루비의 친구 아폴로 만나보기"></div>
+                    <div class="floating-two-column-image-item" data-action="friend_luna"><img src="images/menu/friend_luna.png" alt="루비의 친구 루나 만나보기"></div>
+                    <div class="floating-two-column-image-item" data-action="friend_stellan"><img src="images/menu/friend_stellan.png" alt="루비의 친구 스텔란 만나보기"></div>
+                    <div class="floating-two-column-image-item" data-action="friend_cosmo"><img src="images/menu/friend_cosmo.png" alt="루비의 친구 코스모 만나보기"></div>
+                    <div class="floating-two-column-image-item" data-action="more_friends"><img src="images/menu/friend_more.png" alt="더 많은 친구들 보기"></div>
+                    <div class="floating-two-column-image-item" data-action="ruby_story"><img src="images/menu/ruby_story_icon.png" alt="루비의 이야기"></div>
                 </div>
             </div>
         </div>

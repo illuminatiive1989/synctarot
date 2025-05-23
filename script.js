@@ -3202,10 +3202,16 @@ async function displayApiResponseElements(parsedResp) {
         const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
         const mainContainer = document.querySelector('.container');
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); // 모든 슬라이드 선택
 
-        if (menuContainer && overlay && mainContainer) {
+        if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
             // 현재 상담 단계에 따라 1번 플로팅 바 표시 여부 업데이트
             updateFloatingMenuVisibility();
+
+            // 메뉴가 보이기 전에 모든 슬라이드의 opacity를 0으로 초기화 (CSS에서도 초기값 0 권장)
+            allSlides.forEach(slide => {
+                slide.style.opacity = '0';
+            });
 
             menuContainer.classList.add('visible');
             overlay.classList.add('visible');
@@ -3213,13 +3219,31 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
-            // 메뉴가 열릴 때 슬라이더를 첫 번째 페이지(0번 인덱스)로 설정
-            handleFloatingMenuSlide(0); // 첫 번째 슬라이드로 초기화
+            // 메뉴가 열릴 때 슬라이더를 첫 번째 페이지(0번 인덱스)로 설정하고, 해당 슬라이드만 보이도록 함
+            // handleFloatingMenuSlide(0, true); // true 플래그로 초기 로딩임을 알림
+            // 또는, handleFloatingMenuSlide 내부에서 초기 로딩을 더 잘 처리하도록 수정
+
+            // ★★★ 직접 초기 슬라이드 설정 및 opacity 조정 ★★★
+            const slider = document.querySelector('.floating-menu-slider');
+            if (slider) {
+                slider.style.transform = `translateX(0%)`; // 강제로 첫 번째 슬라이드 위치
+            }
+            if (allSlides[0]) { // 첫 번째 슬라이드가 존재하면
+                allSlides[0].style.opacity = '1'; // 첫 번째 슬라이드만 보이게 함
+            }
+            currentFloatingMenuSlideIndex = 0; // 현재 인덱스도 0으로 설정
+            // 인디케이터도 첫 번째로 설정
+            const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
+            indicators.forEach((dot, index) => {
+                dot.classList.toggle('active', index === 0);
+            });
+
 
             if (chatInput) chatInput.blur();
             hideTooltip(); // 기존 툴팁 숨기기
         }
     }
+
     function hideFloatingMenu() {
         const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
@@ -3345,24 +3369,43 @@ async function displayApiResponseElements(parsedResp) {
     const totalFloatingMenuSlides = 3; // 플로팅 바의 총 개수
 
     function handleFloatingMenuSlide(targetIndex) {
-        if (targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
-            console.warn("[FloatingMenu] 유효하지 않은 슬라이드 인덱스:", targetIndex);
+        // 메뉴가 보이지 않는 상태이거나, 이미 해당 슬라이드이거나, 유효하지 않은 인덱스면 변경 없음
+        if (!document.getElementById('floatingMenuContainer').classList.contains('visible') ||
+            targetIndex === currentFloatingMenuSlideIndex ||
+            targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
+
+            if (targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
+                console.warn("[FloatingMenu] 유효하지 않은 슬라이드 인덱스:", targetIndex);
+            }
             return;
         }
 
         const slider = document.querySelector('.floating-menu-slider');
         const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
-        if (slider) {
+        if (slider && allSlides.length === totalFloatingMenuSlides) {
+            // 1. 이전 활성 슬라이드 페이드 아웃
+            if (allSlides[currentFloatingMenuSlideIndex]) {
+                allSlides[currentFloatingMenuSlideIndex].style.opacity = '0';
+            }
+
+            // 2. 슬라이더 위치 이동
             slider.style.transform = `translateX(-${targetIndex * (100 / totalFloatingMenuSlides)}%)`;
+
+            // 3. 새로운 목표 슬라이드 페이드 인 (슬라이더 이동 애니메이션과 함께 시작될 수 있도록 짧은 딜레이 또는 requestAnimationFrame 사용)
+            // requestAnimationFrame을 사용하면 브라우저가 다음 리페인트 전에 코드를 실행하여 더 부드러울 수 있음
+            requestAnimationFrame(() => {
+                if (allSlides[targetIndex]) {
+                    allSlides[targetIndex].style.opacity = '1';
+                }
+            });
+
             currentFloatingMenuSlideIndex = targetIndex;
 
+            // 4. 인디케이터 업데이트
             indicators.forEach((dot, index) => {
-                if (index === targetIndex) {
-                    dot.classList.add('active');
-                } else {
-                    dot.classList.remove('active');
-                }
+                dot.classList.toggle('active', index === targetIndex);
             });
             console.log(`[FloatingMenu] 슬라이드 이동: ${targetIndex}번 인덱스`);
         }
