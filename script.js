@@ -3186,12 +3186,54 @@ async function displayApiResponseElements(parsedResp) {
         console.log("[displayApiResponseElements] UI 처리 완료.");
     }
 }
+
+    // --- 플로팅 메뉴 관련 함수 ---
+    let isFloatingMenuOpen = false;
+
+    function toggleFloatingMenu() {
+        if (isFloatingMenuOpen) {
+            hideFloatingMenu();
+        } else {
+            showFloatingMenu();
+        }
+    }
+
+    function showFloatingMenu() {
+        const menu = document.getElementById('floatingMenu');
+        const overlay = document.getElementById('menuOverlay');
+        const mainContainer = document.querySelector('.container');
+
+        if (menu && overlay && mainContainer) {
+            menu.classList.add('visible');
+            overlay.classList.add('visible');
+            mainContainer.classList.add('menu-open-blur'); // 배경 블러 적용
+            isFloatingMenuOpen = true;
+            console.log("[FloatingMenu] 메뉴 열림");
+            // 메뉴가 열릴 때 입력창 포커스 해제 (선택적)
+            if (chatInput) chatInput.blur();
+            hideTooltip(); // 기존 툴팁 숨기기
+        }
+    }
+
+    function hideFloatingMenu() {
+        const menu = document.getElementById('floatingMenu');
+        const overlay = document.getElementById('menuOverlay');
+        const mainContainer = document.querySelector('.container');
+
+        if (menu && overlay && mainContainer) {
+            menu.classList.remove('visible');
+            overlay.classList.remove('visible');
+            mainContainer.classList.remove('menu-open-blur'); // 배경 블러 해제
+            isFloatingMenuOpen = false;
+            console.log("[FloatingMenu] 메뉴 닫힘");
+        }
+    }
     function getRandomItem(arr) {
         if (!arr || arr.length === 0) return null;
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    function setupEventListeners() {
+     function setupEventListeners() {
         if (sendButton) sendButton.addEventListener('click', () => {
             if (isSessionTimedOut) {
                 console.log("[SendButtonClick] 세션 타임아웃. 보내기 버튼 동작 안 함.");
@@ -3202,46 +3244,18 @@ async function displayApiResponseElements(parsedResp) {
 
         if (chatInput) {
             chatInput.addEventListener('keypress', (event) => {
-                if (isSessionTimedOut) {
-                    event.preventDefault();
-                    return;
-                }
+                if (isSessionTimedOut) { event.preventDefault(); return; }
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
-                    if (!sendButton.disabled) {
-                        processUserInput();
-                    } else {
-                        console.log("[EnterKey] 보내기 버튼 비활성화 상태. 메시지 전송 무시.");
-                    }
+                    if (!sendButton.disabled) { processUserInput(); }
+                    else { console.log("[EnterKey] 보내기 버튼 비활성화 상태. 메시지 전송 무시."); }
                 }
             });
             chatInput.addEventListener('input', handleChatInput);
-
-            // ★★★ 입력창 포커스 시 레이아웃 조정 및 스크롤 ★★★
             chatInput.addEventListener('focus', () => {
                 console.log("[chatInput Focus] 입력창 포커스됨. 레이아웃 조정 및 스크롤 시도.");
-                // visualViewport가 변경될 때 adjustContainerHeight가 호출되지만,
-                // focus 시점에도 한번 호출해주면 즉각적인 반응에 도움될 수 있음.
-                // 또는, focus 시점에는 스크롤만 처리하고, 실제 높이 조정은 vv.resize에 맡김.
-                // adjustContainerHeight(); // 이미 vv.resize에서 처리될 것이므로 중복 호출 피할 수 있음
-
-                // 키보드가 올라오는 약간의 시간 후 스크롤 맨 아래로 이동
-                // (adjustContainerHeight가 비동기적으로 뷰포트 변경을 반영할 수 있으므로 약간의 딜레이)
-                setTimeout(() => {
-                    scrollToBottom(true); // 강제로 맨 아래로 스크롤
-                    // 입력창 자체가 보이도록 스크롤 (더 정확할 수 있음)
-                    // chatInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    console.log("[chatInput Focus] scrollToBottom(true) 호출됨.");
-                }, 300); // 딜레이 값은 테스트하며 조정
+                setTimeout(() => { scrollToBottom(true); console.log("[chatInput Focus] scrollToBottom(true) 호출됨."); }, 300);
             });
-
-            // (선택적) 입력창 블러 시 (키보드 내려갈 때) 추가 처리
-            // chatInput.addEventListener('blur', () => {
-            //     console.log("[chatInput Blur] 입력창 블러됨.");
-            //     // 키보드가 내려가면 visualViewport.height가 원래대로 돌아오고,
-            //     // adjustContainerHeight가 호출되어 컨테이너 높이가 복원됨.
-            //     // 특별히 추가할 작업이 없다면 생략 가능.
-            // });
         }
 
         if (section2) {
@@ -3249,11 +3263,8 @@ async function displayApiResponseElements(parsedResp) {
                 if (isSessionTimedOut) return;
                 const isAtBottom = section2.scrollHeight - section2.scrollTop - section2.clientHeight < isNearBottomThreshold;
                 userHasScrolledUp = !isAtBottom;
-                if (isAtBottom) {
-                    hideNewMessageButton();
-                } else if (section2.scrollHeight > section2.clientHeight + isNearBottomThreshold) {
-                    showNewMessageButton();
-                }
+                if (isAtBottom) { hideNewMessageButton(); }
+                else if (section2.scrollHeight > section2.clientHeight + isNearBottomThreshold) { showNewMessageButton(); }
             });
         }
 
@@ -3262,27 +3273,31 @@ async function displayApiResponseElements(parsedResp) {
             scrollToBottom(true);
         });
 
-        // VisualViewport API 이벤트 리스너 (중요)
         if (window.visualViewport) {
             console.log("[setupEventListeners] VisualViewport API 지원됨. resize 이벤트 리스너 등록.");
             window.visualViewport.addEventListener('resize', () => {
                 console.log("[VisualViewport Resize Event] VisualViewport 크기 변경 감지.");
-                adjustContainerHeight(); // 뷰포트 크기 변경 시 컨테이너 높이 조정
-                // 리사이즈 후에도 스크롤을 맨 아래로 보내는 것이 좋을 수 있음 (특히 키보드가 사라질 때)
-                // 하지만 입력 중에는 사용자가 의도적으로 스크롤했을 수 있으므로 주의.
-                // 여기서는 adjustContainerHeight 내부에서 스크롤을 직접 제어하지 않고,
-                // 입력창 focus 시 또는 새 메시지 추가 시 스크롤을 제어하는 것이 일반적.
-                // 만약 키보드가 사라질 때 항상 맨 아래로 가고 싶다면 아래 주석 해제
-                // setTimeout(() => scrollToBottom(true), 100);
+                adjustContainerHeight();
             });
         } else {
-            // Fallback: visualViewport 미지원 시 window resize 이벤트 사용 (덜 정확함)
             console.log("[setupEventListeners] VisualViewport API 미지원. window resize 이벤트 리스너 등록.");
             window.addEventListener('resize', adjustContainerHeight);
         }
+
+        // ★★★ 플로팅 메뉴 버튼 이벤트 리스너 추가 ★★★
+        const floatingMenuButton = document.getElementById('floatingMenuButton');
+        if (floatingMenuButton) {
+            floatingMenuButton.addEventListener('click', toggleFloatingMenu);
+        }
+
+        // ★★★ 메뉴 오버레이 클릭 시 메뉴 닫기 이벤트 리스너 추가 ★★★
+        const menuOverlay = document.getElementById('menuOverlay');
+        if (menuOverlay) {
+            menuOverlay.addEventListener('click', hideFloatingMenu);
+        }
+
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }
-
     initializeApp();
 
 }); // END DOMContentLoaded
