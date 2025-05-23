@@ -3199,29 +3199,34 @@ async function displayApiResponseElements(parsedResp) {
     }
 
     function showFloatingMenu() {
-        const menu = document.getElementById('floatingMenu');
+        const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
         const mainContainer = document.querySelector('.container');
 
-        if (menu && overlay && mainContainer) {
-            menu.classList.add('visible');
+        if (menuContainer && overlay && mainContainer) {
+            // 현재 상담 단계에 따라 1번 플로팅 바 표시 여부 업데이트
+            updateFloatingMenuVisibility();
+
+            menuContainer.classList.add('visible');
             overlay.classList.add('visible');
             mainContainer.classList.add('menu-open-blur'); // 배경 블러 적용
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
-            // 메뉴가 열릴 때 입력창 포커스 해제 (선택적)
+
+            // 메뉴가 열릴 때 슬라이더를 첫 번째 페이지(0번 인덱스)로 설정
+            handleFloatingMenuSlide(0); // 첫 번째 슬라이드로 초기화
+
             if (chatInput) chatInput.blur();
             hideTooltip(); // 기존 툴팁 숨기기
         }
     }
-
     function hideFloatingMenu() {
-        const menu = document.getElementById('floatingMenu');
+        const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
         const mainContainer = document.querySelector('.container');
 
-        if (menu && overlay && mainContainer) {
-            menu.classList.remove('visible');
+        if (menuContainer && overlay && mainContainer) {
+            menuContainer.classList.remove('visible');
             overlay.classList.remove('visible');
             mainContainer.classList.remove('menu-open-blur'); // 배경 블러 해제
             isFloatingMenuOpen = false;
@@ -3233,6 +3238,135 @@ async function displayApiResponseElements(parsedResp) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
+        async function handleFloatingMenuItemClick(action) {
+        console.log(`[FloatingMenu] 메뉴 아이템 클릭: ${action}`);
+        hideFloatingMenu(); // 아이템 클릭 시 기본적으로 메뉴를 닫음 (필요에 따라 조절)
+
+        // 각 action에 따른 실제 동작 구현
+        switch (action) {
+            case 'new_chat':
+                console.log("[FloatingMenu] '새로운 상담 시작하기' 선택됨.");
+                // 기존 상담 내용 및 상태 초기화 로직
+                clearChatArea();
+                conversationHistory = [];
+                userProfile = initializeUserProfile();
+                currentConsultationStage = 0; // advanceConsultationStage(1)이 호출될 것이므로 0으로 설정
+                isSessionTimedOut = false;
+                isFirstBotMessageDisplayed = false;
+                showStage10EntryEmoticon = false;
+                isInitialApiCallAfterObjectiveTest = false;
+                if (rubyImageElement) rubyImageElement.classList.remove('blurred'); // 루비 이미지 블러 해제
+                // loadedPrompts = {}; // 프롬프트는 앱 시작 시 한 번 로드되므로, 재로드는 필요 없을 수 있음 (정책에 따라 결정)
+                // await initializeApp(); // 전체 앱 초기화보다는 단계 이동으로 처리
+                advanceConsultationStage(1); // 1단계로 이동
+                break;
+            case 'retest_sync':
+                console.log("[FloatingMenu] '싱크타입 다시 테스트' 선택됨.");
+                if (currentConsultationStage >= 10) { // 이미 대화 단계에 진입한 경우
+                     // 사용자에게 다시 테스트할 것인지 확인하는 메시지를 보낼 수 있음
+                     // 여기서는 즉시 테스트 시작으로 가정
+                    clearChatArea(); // 이전 대화 내용 일부 또는 전체 지우기 (선택적)
+                     // userProfile의 싱크타입 관련 정보 초기화
+                    updateUserProfile({
+                        "주관식질문1": null, "주관식답변1": null,
+                        "주관식질문2": null, "주관식답변2": null,
+                        "주관식질문3": null, "주관식답변3": null,
+                        "주관식질문4": null, "주관식답변4": null,
+                        "주관식질문5": null, "주관식답변5": null,
+                        "객관식질문과답변": [],
+                        "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
+                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
+                        "시나리오": null // 테스트 다시 하므로 시나리오 초기화
+                    });
+                    현재주관식질문인덱스 = 0; // 주관식 질문 인덱스 초기화
+                    currentObjectiveQuestionIndex = 0; // 객관식 질문 인덱스 초기화
+                    if (rubyImageElement) rubyImageElement.classList.remove('blurred');
+                    advanceConsultationStage(4); // 주관식 질문 단계(4)로 이동
+                } else if (currentConsultationStage < 4) { // 아직 싱크타입 테스트 시작 전
+                     현재주관식질문인덱스 = 0;
+                     advanceConsultationStage(4);
+                } else { // 이미 싱크타입 테스트 진행 중이거나 완료 직후
+                    // 현재 테스트를 중단하고 처음부터 다시 시작
+                    const existingObjectiveContainers = section2.querySelectorAll('.objective-questions-container');
+                    existingObjectiveContainers.forEach(container => container.remove());
+                    updateUserProfile({
+                        "주관식질문1": null, "주관식답변1": null,
+                        "주관식질문2": null, "주관식답변2": null,
+                        "주관식질문3": null, "주관식답변3": null,
+                        "주관식질문4": null, "주관식답변4": null,
+                        "주관식질문5": null, "주관식답변5": null,
+                        "객관식질문과답변": [],
+                        "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
+                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
+                        "시나리오": null
+                    });
+                     현재주관식질문인덱스 = 0;
+                     currentObjectiveQuestionIndex = 0;
+                     if (rubyImageElement) rubyImageElement.classList.remove('blurred');
+                     advanceConsultationStage(4);
+                }
+                break;
+            // --- 다른 메뉴 아이템에 대한 케이스 추가 ---
+            case 'continue_chat':
+                console.log("[FloatingMenu] '지난 상담 이어하기' 선택됨. (준비중)");
+                await displayHardcodedUIElements("루비가 미안한 표정으로", "앗, 이 기능은 아직 준비 중이야! [exp008] 조금만 기다려줘!", [], handleButtonClick);
+                break;
+            case 'guestbook':
+                console.log("[FloatingMenu] '루비의 방명록' 선택됨. (준비중)");
+                await displayHardcodedUIElements("루비가 수줍어하며", "내 방명록은 지금 열심히 만들고 있어! [exp003] 곧 보여줄게!", [], handleButtonClick);
+                break;
+            // ... 나머지 준비중인 기능들에 대한 임시 메시지 처리
+            default:
+                if (action && action.startsWith('friend_')) {
+                    console.log(`[FloatingMenu] '${action}' 친구 만나보기 선택됨. (준비중)`);
+                    await displayHardcodedUIElements("루비가 신나하며", `내 친구 ${action.replace('friend_', '')}는 아직 소개 준비 중이야! [exp001] 기대해도 좋아!`, [], handleButtonClick);
+                } else if (action) {
+                    console.log(`[FloatingMenu] '${action}' 선택됨. (준비중)`);
+                     await displayHardcodedUIElements("루비가 머쓱해하며", "이 기능은 아직 공사 중이야! [exp007] 조금만 더 시간을 줘!", [], handleButtonClick);
+                } else {
+                    console.warn(`[FloatingMenu] 알 수 없는 액션: ${action}`);
+                }
+                break;
+        }
+    }
+
+        function updateFloatingMenuVisibility() {
+        const floatingMenuPage1 = document.getElementById('floatingMenuPage1');
+        if (floatingMenuPage1) {
+            if (currentConsultationStage === 1) {
+                floatingMenuPage1.classList.remove('hidden-by-stage');
+            } else {
+                floatingMenuPage1.classList.add('hidden-by-stage');
+            }
+        }
+    }
+    // --- 플로팅 메뉴 슬라이드 관련 상태 변수 ---
+    let currentFloatingMenuSlideIndex = 0;
+    const totalFloatingMenuSlides = 3; // 플로팅 바의 총 개수
+
+    function handleFloatingMenuSlide(targetIndex) {
+        if (targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
+            console.warn("[FloatingMenu] 유효하지 않은 슬라이드 인덱스:", targetIndex);
+            return;
+        }
+
+        const slider = document.querySelector('.floating-menu-slider');
+        const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
+
+        if (slider) {
+            slider.style.transform = `translateX(-${targetIndex * (100 / totalFloatingMenuSlides)}%)`;
+            currentFloatingMenuSlideIndex = targetIndex;
+
+            indicators.forEach((dot, index) => {
+                if (index === targetIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            console.log(`[FloatingMenu] 슬라이드 이동: ${targetIndex}번 인덱스`);
+        }
+    }
      function setupEventListeners() {
         if (sendButton) sendButton.addEventListener('click', () => {
             if (isSessionTimedOut) {
@@ -3284,17 +3418,41 @@ async function displayApiResponseElements(parsedResp) {
             window.addEventListener('resize', adjustContainerHeight);
         }
 
-        // ★★★ 플로팅 메뉴 버튼 이벤트 리스너 추가 ★★★
+        // 플로팅 메뉴 뼈다귀 버튼 이벤트 리스너
         const floatingMenuButton = document.getElementById('floatingMenuButton');
         if (floatingMenuButton) {
             floatingMenuButton.addEventListener('click', toggleFloatingMenu);
         }
 
-        // ★★★ 메뉴 오버레이 클릭 시 메뉴 닫기 이벤트 리스너 추가 ★★★
+        // 메뉴 오버레이 클릭 시 메뉴 닫기 이벤트 리스너
         const menuOverlay = document.getElementById('menuOverlay');
         if (menuOverlay) {
             menuOverlay.addEventListener('click', hideFloatingMenu);
         }
+
+        // 플로팅 메뉴 슬라이드 인디케이터 점들 이벤트 리스너
+        const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
+        indicatorDots.forEach(dot => {
+            dot.addEventListener('click', (event) => {
+                const targetIndex = parseInt(event.currentTarget.dataset.slideTarget, 10);
+                if (!isNaN(targetIndex)) {
+                    handleFloatingMenuSlide(targetIndex);
+                }
+            });
+        });
+
+        // 플로팅 메뉴 내부 이미지 버튼들 이벤트 리스너 (data-action 속성 활용)
+        const floatingMenuItems = document.querySelectorAll('.floating-image-button, .floating-two-column-image-item'); // 2번 바 단일 이미지는 필요시 추가
+        floatingMenuItems.forEach(item => {
+            item.addEventListener('click', (event) => {
+                const action = event.currentTarget.dataset.action;
+                if (action) {
+                    handleFloatingMenuItemClick(action);
+                    // 메뉴 아이템 클릭 후 메뉴를 닫을지 여부는 handleFloatingMenuItemClick 내부에서 결정하거나 여기서 일괄 처리
+                    // 예: hideFloatingMenu();
+                }
+            });
+        });
 
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }
