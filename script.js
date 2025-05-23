@@ -2366,17 +2366,22 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         if (currentConsultationStage === 2) {
             if (buttonText === "응") {
                 nextStage = 3;
-            } else if (buttonText === "다시 선택할래") { // 텍스트 변경
-                hardcodedAction = "루비가 알겠다는 듯 고개를 끄덕이며"; // 액션 텍스트 추가
-                hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!"; // 루비 응답 변경
-                shouldDisplayHardcodedUI = true;
-                // currentConsultationStage는 1로 변경하지 않고, 메시지만 보여준 후 사용자가 메뉴를 누르도록 유도
-                // 또는, 여기서 1단계 UI로 강제 이동시킬 수도 있음.
-                // advanceConsultationStage(1); // 이렇게 하면 1단계 UI가 다시 그려짐.
-                // 우선은 메시지만 표시하는 것으로.
+            } else if (buttonText === "다시 선택할래") {
+                hardcodedAction = "루비가 알겠다는 듯 고개를 끄덕이며";
+                hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
+                // 메시지 표시 후 사용자가 메뉴를 다시 열도록 유도
+                // 그리고 실제 상담 단계를 1단계로 되돌리고 UI를 갱신한다.
+                await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+                
+                // ★★★ 핵심 수정: currentConsultationStage를 1로 변경하고 advanceConsultationStage(1) 호출 ★★★
+                currentConsultationStage = 1; // 단계를 1로 명시적 변경
+                if (rubyImageElement) rubyImageElement.classList.remove('blurred'); // 1단계이므로 블러 해제
+                currentSelectedTarotType = null; // 선택했던 타로 타입 초기화
+                updateUserProfile({ "사용자의고민": null }); // 프로필에서도 초기화
+                advanceConsultationStage(1); // 1단계 UI를 다시 그리도록 함 (이 안에서 displayCurrentStageUI 호출)
+                return; // 이 로직 후 함수 종료
             }
         } else if (currentConsultationStage === 3) {
-            // ... (이하 로직은 이전과 동일)
             if (buttonText === "당연하지") {
                 tempSelectedConstellation = null;
                 nextStage = 3.5;
