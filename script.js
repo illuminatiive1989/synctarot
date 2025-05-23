@@ -480,20 +480,20 @@ function createCardImageElement(apiImageName) {
         return nullDiv;
     }
 
-    let foundCardId = null; // 코드 내 목록에서 찾은 최종 카드 ID
-    let imagePathPrefix = 'images/'; // 기본 이미지 경로
-    let isReversed = false;
+    let foundCardIdInList = null; // 코드 내 목록에서 찾은 최종 카드 ID (upright/reversed 포함)
+    let baseCardIdForImageFile = null; // 실제 이미지 파일명을 위한 ID (upright 또는 기본)
+    let imagePathPrefix = 'images/';
+    let isReversedByApiName = false;
     let isSyncCard = false;
 
-    // API에서 받은 이미지 이름을 기본 정규화 (소문자, 양쪽 공백 제거)
     const normalizedApiImgName = apiImageName.toLowerCase().trim();
 
     // 1. 싱크타입 카드 목록에서 찾아보기
-    // 싱크타입 카드 ID는 `_character_card`를 제거하고 비교
     const normalizedApiImgNameForSync = normalizedApiImgName.replace(/_character_card$/, '');
     for (const syncId of SYNC_TYPE_CHARACTER_CARD_IDS) {
         if (syncId.replace(/_character_card$/, '') === normalizedApiImgNameForSync) {
-            foundCardId = syncId;
+            foundCardIdInList = syncId;
+            baseCardIdForImageFile = syncId; // 싱크 카드는 역방향 없음
             imagePathPrefix = 'images/sync/';
             isSyncCard = true;
             break;
@@ -501,65 +501,128 @@ function createCardImageElement(apiImageName) {
     }
 
     // 2. 싱크타입 목록에서 못 찾았으면 타로 카드 목록에서 찾아보기
-    if (!foundCardId) {
-        // 타로 카드 ID는 `_upright` 또는 `_reversed`를 제거하고 비교
-        const normalizedApiImgNameForTarot = normalizedApiImgName.replace(/_upright$/, '').replace(/_reversed$/, '');
-        for (const tarotId of ALL_TAROT_CARD_IDS) {
-            const baseTarotId = tarotId.replace(/_upright$/, '').replace(/_reversed$/, '');
-            if (baseTarotId === normalizedApiImgNameForTarot) {
-                // API에서 받은 이름에 _reversed가 포함되어 있으면 해당 버전 우선
-                if (normalizedApiImgName.endsWith('_reversed') && tarotId.endsWith('_reversed')) {
-                    foundCardId = tarotId;
-                    isReversed = true;
-                    break;
-                }
-                // API에서 받은 이름에 _upright가 포함되어 있거나, 접미사가 없으면 _upright 버전 우선
-                if ((normalizedApiImgName.endsWith('_upright') || (!normalizedApiImgName.endsWith('_reversed'))) && tarotId.endsWith('_upright')) {
-                    foundCardId = tarotId;
-                    break;
-                }
-                // 위 조건에 안 맞지만 base 이름이 같다면, 일단 찾은 것으로 간주 (목록의 첫 번째 일치 항목)
-                if (!foundCardId) foundCardId = tarotId; // fallback
+    if (!foundCardIdInList) {
+        isReversedByApiName = normalizedApiImgName.endsWith('_reversed');
+        const baseNameFromApi = normalizedApiImgName.replace(/_upright$/, '').replace(/_reversed$/, '');
+
+        // ALL_TAROT_CARD_IDS 목록에서 API로 받은 이름과 가장 유사한 것을 찾음
+        // (정방향/역방향 모두 고려)
+        let bestMatch = null;
+        let exactMatchFound = false;
+
+        for (const tarotIdInList of ALL_TAROT_CARD_IDS) {
+            if (tarotIdInList === normalizedApiImgName) { // API 이름과 정확히 일치하는 ID가 목록에 존재
+                bestMatch = tarotIdInList;
+                exactMatchFound = true;
+                break;
+            }
+            // API 이름의 기본형과 목록 ID의 기본형이 일치하는 경우 (예: API='xxx_reversed', list='xxx_upright')
+            if (tarotIdInList.replace(/_upright$/, '').replace(/_reversed$/, '') === baseNameFromApi) {
+                if (!bestMatch) bestMatch = tarotIdInList; // 첫 번째 일치 항목 우선 저장
             }
         }
-        // 찾은 타로 ID가 있다면 isReversed 다시 확인
-        if (foundCardId && foundCardId.endsWith('_reversed')) {
-            isReversed = true;
+        
+        if (exactMatchFound) { // API 이름(예: 'xxx_reversed')이 목록에 그대로 있으면 사용
+            foundCardIdInList = bestMatch;
+            if (isReversedByApiName) {
+                 // 실제 파일은 upright 버전을 사용하고 CSS로 회전
+                baseCardIdForImageFile = foundCardIdInList.replace('_reversed', '_upright');
+                // 만약 upright 버전도 없다면, _reversed를 제거한 기본 이름 시도
+                if (!ALL_TAROT_CARD_IDS.includes(baseCardIdForImageFile)) {
+                    baseCardIdForImageFile = foundCardIdInList.replace('_reversed', '');
+                }
+            } else { // upright거나 접미사 없는 경우
+                baseCardIdForImageFile = foundCardIdInList;
+            }
+        } else if (bestMatch) { // 정확히 일치하진 않지만 기본 이름이 일치하는 경우 (예: API는 _reversed인데 목록에는 _upright만 있음)
+            foundCardIdInList = apiImageName; // API가 준 이름을 기준으로 판단 (alt 태그 등)
+            if (isReversedByApiName) {
+                baseCardIdForImageFile = bestMatch.endsWith('_upright') ? bestMatch : bestMatch.replace('_reversed', '_upright');
+                 if (!ALL_TAROT_CARD_IDS.includes(baseCardIdForImageFile)) {
+                    baseCardIdForImageFile = baseNameFromApi + '_upright'; // 강제로 upright 시도
+                     if (!ALL_TAROT_CARD_IDS.includes(baseCardIdForImageFile)) {
+                         baseCardIdForImageFile = baseNameFromApi; // 최후의 수단
+                     }
+                 }
+            } else { // API 이름이 _upright거나 접미사 없을 때
+                baseCardIdForImageFile = bestMatch.endsWith('_upright') ? bestMatch : baseNameFromApi + '_upright';
+                if (!ALL_TAROT_CARD_IDS.includes(baseCardIdForImageFile)) {
+                    baseCardIdForImageFile = baseNameFromApi;
+                }
+            }
+        } else { // 목록에서 어떤 형태로도 찾지 못한 경우
+             foundCardIdInList = apiImageName; // API가 준 이름 그대로 사용 (오류 처리를 위해)
+             baseCardIdForImageFile = apiImageName; // 일단 API 이름 그대로 시도 (null.png로 갈 가능성 높음)
+        }
+
+        // baseCardIdForImageFile이 여전히 _reversed를 포함하고 있다면, _upright로 변경 시도
+        if (baseCardIdForImageFile.endsWith('_reversed')) {
+            let uprightVersion = baseCardIdForImageFile.replace('_reversed', '_upright');
+            // upright 버전이 ALL_TAROT_CARD_IDS 목록에 실제로 존재하는지 확인하는 것이 더 정확하지만,
+            // 여기서는 일단 파일명 규칙으로 변환.
+            // 또는, ALL_TAROT_CARD_IDS 목록에서 해당 base 이름의 _upright 버전을 찾아야 함.
+            // 이 로직은 위에서 bestMatch 찾을 때 이미 어느정도 커버됨.
+            // 만약 baseCardIdForImageFile이 여전히 _reversed라면, 파일 시스템에 _reversed.png가 있어야 함.
+            // 우리의 전략은 _upright.png를 사용하고 CSS로 회전하는 것이므로, _reversed를 제거하거나 _upright로 바꿔야 함.
+            
+            // 더 확실한 방법: 목록에서 baseNameFromApi + "_upright" 을 찾는다.
+            const uprightVersionInList = ALL_TAROT_CARD_IDS.find(id => id === baseNameFromApi + "_upright");
+            if (uprightVersionInList) {
+                baseCardIdForImageFile = uprightVersionInList;
+            } else {
+                // upright 버전이 목록에 없다면, 그냥 baseName (접미사 없는)으로 시도
+                const baseVersionInList = ALL_TAROT_CARD_IDS.find(id => id === baseNameFromApi && !id.endsWith("_reversed") && !id.endsWith("_upright"));
+                if (baseVersionInList) {
+                    baseCardIdForImageFile = baseVersionInList;
+                } else {
+                     // 최후: API가 준 이름에서 _reversed만 제거 (이 파일이 존재할 가능성은 낮음)
+                    baseCardIdForImageFile = baseNameFromApi;
+                }
+            }
         }
     }
+
 
     const balloonDiv = document.createElement('div');
     balloonDiv.classList.add('image-balloon');
     const img = document.createElement('img');
-    let finalFilenameForDisplay; // alt 태그 및 콘솔용
+    let finalFilenameForDisplay = foundCardIdInList || apiImageName; // alt 태그 및 콘솔용
     let finalSrc;
 
-    if (foundCardId) {
-        finalFilenameForDisplay = foundCardId;
-        finalSrc = `${imagePathPrefix}${foundCardId}.png`;
-        console.log(`[createCardImageElement] API 이미지명 '${apiImageName}'에 대해 코드 목록에서 '${foundCardId}'를 찾아 이미지 경로 설정: ${finalSrc}`);
-    } else {
-        // 코드 목록에서 일치하는 것을 찾지 못한 경우
-        console.warn(`[createCardImageElement] API 이미지명 '${apiImageName}'에 일치하는 카드를 코드 내 목록에서 찾지 못함. null.png 표시.`);
+    if (baseCardIdForImageFile && !isSyncCard) { // 타로 카드인 경우
+        finalSrc = `${imagePathPrefix}${baseCardIdForImageFile}.png`;
+        console.log(`[createCardImageElement] API 이미지명 '${apiImageName}'에 대해, 실제 파일은 '${baseCardIdForImageFile}.png' 사용. 경로: ${finalSrc}`);
+    } else if (baseCardIdForImageFile && isSyncCard) { // 싱크 카드인 경우
+        finalSrc = `${imagePathPrefix}${baseCardIdForImageFile}.png`;
+        console.log(`[createCardImageElement] 싱크 카드 '${apiImageName}' 경로: ${finalSrc}`);
+    }
+    else { // 목록에서 일치하는 것을 찾지 못한 경우 또는 baseCardIdForImageFile이 설정 안된 경우
+        console.warn(`[createCardImageElement] API 이미지명 '${apiImageName}'에 적합한 이미지 파일 ID를 결정하지 못함. null.png 표시.`);
         finalFilenameForDisplay = "정보 없음";
-        // 기본 null.png는 images/ 폴더에 있다고 가정
         finalSrc = `images/null.png`;
-        isSyncCard = false; // null.png는 일반 이미지로 취급
-        isReversed = false;
+        isSyncCard = false;
+        isReversedByApiName = false; // null.png는 역방향 없음
     }
 
     img.src = finalSrc;
     const altTextContent = finalFilenameForDisplay.replace(/_character_card|_upright|_reversed/g, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    img.alt = isSyncCard ? `캐릭터: ${altTextContent}` : (foundCardId ? `타로: ${altTextContent}` : `이미지 정보 없음`);
+    img.alt = isSyncCard ? `캐릭터: ${altTextContent}` : (baseCardIdForImageFile && !baseCardIdForImageFile.includes("null") ? `타로: ${altTextContent}` : `이미지 정보 없음`);
 
-    if (isReversed && !isSyncCard) { // 싱크 카드는 역방향 없음
-        img.classList.add('reversed-card');
+
+    // isReversedByApiName는 API가 _reversed를 포함해서 줬는지 여부
+    if (isReversedByApiName && !isSyncCard) {
+        img.classList.add('reversed-card'); // CSS로 회전
     }
 
     img.onerror = () => {
-        // 최종적으로 이미지 로드 실패 시 (null.png조차 없거나 경로 문제)
-        console.error(`[createCardImageElement] 이미지 최종 로드 실패: ${img.src}`);
-        balloonDiv.innerHTML = `<p style="color:#f0c0c0; font-size:0.8em; text-align:center;">[이미지 표시 오류]</p>`;
+        console.error(`[createCardImageElement] 이미지 최종 로드 실패: ${img.src}. null.png으로 대체 시도.`);
+        // 에러 발생 시 null.png (기본 폴더)으로 강제 설정
+        img.src = `images/null.png`;
+        img.alt = `이미지 표시 오류`;
+        img.classList.remove('reversed-card'); // null.png는 회전 안 함
+        // balloonDiv.innerHTML = `<p style="color:#f0c0c0; font-size:0.8em; text-align:center;">[이미지 표시 오류]</p>`;
+        // 이미지를 null.png로 대체했으므로, 이 ballonDiv.innerHTML 설정은 필요 없을 수 있음.
+        // 만약 null.png 조차 로드 실패하면 이 메시지가 유용할 수 있지만, 그 경우는 드묾.
     };
 
     balloonDiv.appendChild(img);
@@ -2749,7 +2812,7 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
     }
 
     if (isFirstAttemptForThisType) {
-        setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주에서 메세지를 받아오는중.. 🎉.", true);
+        setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "루비의 메세지를 받아오는중... 🎉", true);
         showTypingIndicator();
     }
     setSendButtonLoading(true);
