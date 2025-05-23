@@ -2371,7 +2371,6 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
             if (buttonText === "응") {
                 nextStage = 3;
             } else if (buttonText === "다시 선택할래") {
-                hardcodedAction = "루비가 알겠다는 듯 고개를 끄덕이며";
                 hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
                 // 메시지 표시 후 사용자가 메뉴를 다시 열도록 유도
                 // 그리고 실제 상담 단계를 1단계로 되돌리고 UI를 갱신한다.
