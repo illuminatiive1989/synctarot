@@ -155,12 +155,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log("[ 초기화 ] 주요 상태 변수 초기화 완료. 현재 단계:", currentConsultationStage);
 
-    // --- 상수 및 설정 ---
-    const API_KEY = 'AIzaSyDSAA6rbNdD3tV1W_u0nIll0XyTe63rU_k'; // 실제 사용 시 환경 변수 등으로 관리 권장
-    const MODEL_NAME = 'gemini-2.5-flash-preview-04-17';
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-    console.log("[ 초기화 ] API 관련 상수 정의 완료");
-
     // --- 프롬프트 파일 맵 ---
     let loadedPrompts = {};
     const promptFileMap = {
@@ -2712,10 +2706,19 @@ async function handleMultipleCardSelection(selectedCardIds) {
         .then(() => displayTarotSelectionUI(cardsToRetry, handleMultipleCardSelection));
     }
 }
-async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) { // isInternalRecursiveCall 파라미터 추가
+async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
     const MAX_RETRIES = 3;
     const MAX_SYNC_TYPE_RETRIES = 3;
     const RETRY_DELAY_BASE = 3000;
+
+    // Vercel 서버리스 함수 엔드포인트 (새로 추가 또는 변경)
+    const PROXY_API_URL = '/api/callGoogleAPI'; // 실제 생성한 서버리스 함수 경로로 변경하세요.
+
+    // API_KEY 상수는 클라이언트에서 더 이상 직접 사용하지 않습니다.
+    // const API_KEY = 'AIzaSyDSAA6rbNdD3tV1W_u0nIll0XyTe63rU_k'; // 이 줄 삭제 또는 주석 처리
+    // const MODEL_NAME = 'gemini-2.5-flash-preview-04-17'; // 모델명은 서버리스 함수 또는 여기서 관리 가능 (여기서는 유지)
+    // const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`; // 이 줄 삭제 또는 주석 처리
+
 
     if (isApiLoading && retryCount === 0 && !isRequestingSyncTypeResult && !isInternalRecursiveCall) {
         console.log("[sendApiRequest] 이전 API 요청 처리 중 (외부 최초 호출 시 중복 방지). 새 요청 무시.");
@@ -2734,9 +2737,8 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
     console.log(`[sendApiRequest] API 호출 시작. isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}, 시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}`);
     isApiLoading = true;
 
-    if (currentEffectiveRetry > 0) { // 재시도 시 (싱크타입이든 일반이든)
+    if (currentEffectiveRetry > 0) {
         const retryActionText = "잠시만요 교신에 문제가 생겼나봐요..! 📡";
-        // (이하 액션 텍스트 표시 로직 - 이전과 동일)
         const actionEl = await createActionTextElement(retryActionText);
         if (section2 && actionEl) {
             section2.appendChild(actionEl);
@@ -2745,7 +2747,6 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
-
 
     if (isFirstAttemptForThisType) {
         setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주에서 메세지를 받아오는중.. 🎉.", true);
@@ -2756,148 +2757,126 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
     const userMessageForApi = messageBuffer.trim() || (isRequestingSyncTypeResult ? "" : "진행해주세요.");
     let parsedResponse = null;
     let modelGeneratedText = "";
-    const currentIsRequestingSyncType = isRequestingSyncTypeResult; // 현재 호출 사이클의 요청 타입
+    const currentIsRequestingSyncType = isRequestingSyncTypeResult;
 
     try {
         console.log(`[sendApiRequest] 실제 API 요청 전송 시도. 현재 단계: ${currentConsultationStage}, isRequestingSyncTypeResult (호출 시점): ${currentIsRequestingSyncType}`);
-        const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType);
+        const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType); // 이 systemInstructionText는 requestBodyContent에 포함됨
 
-        // ... (userProfileItemsString, currentUserTurnTextForApiContent, contentsForAPI, requestBodyContent 생성 로직 - 이전과 동일, userProfile.시나리오 자동 포함됨)
         let userProfileItemsString = "";
         const profileKeysToIterate = Object.keys(userProfile);
         profileKeysToIterate.forEach(key => {
             const value = userProfile[key];
             let displayValue;
             if (key === "객관식질문과답변" && Array.isArray(value)) {
-                if (value.length > 0) {
-                    displayValue = "\n";
-                    value.forEach((item, index) => {
-                        displayValue += `  - 질문 ${index + 1} (${item.type}타입): ${item.question.substring(0, 30)}... / 답변: ${item.answer}\n`;
-                    });
-                } else {
-                    displayValue = "수집안됨";
-                }
-            } else if (key.startsWith("DISC_") && typeof value === 'number') {
-                displayValue = `${value}점`;
-            } else if (key.startsWith("주관식답변") && value) {
-                const questionNumber = key.replace("주관식답변", "");
-                const questionKey = `주관식질문${questionNumber}`;
-                const questionText = userProfile[questionKey] || "해당 질문 없음";
-                displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`;
-            } else if (key.startsWith("주관식질문")) { // 주관식 질문 자체는 API 요청에 포함하지 않음 (답변만 포함)
-                return;
-            } else {
-                displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨";
-            }
+                if (value.length > 0) { displayValue = "\n"; value.forEach((item, index) => { displayValue += `  - 질문 ${index + 1} (${item.type}타입): ${item.question.substring(0, 30)}... / 답변: ${item.answer}\n`; }); }
+                else { displayValue = "수집안됨"; }
+            } else if (key.startsWith("DISC_") && typeof value === 'number') { displayValue = `${value}점`; }
+            else if (key.startsWith("주관식답변") && value) { const questionNumber = key.replace("주관식답변", ""); const questionKey = `주관식질문${questionNumber}`; const questionText = userProfile[questionKey] || "해당 질문 없음"; displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`; }
+            else if (key.startsWith("주관식질문")) { return; }
+            else { displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨"; }
             userProfileItemsString += `${key}: ${displayValue}\n`;
         });
-
         const discSummary = `DISC 점수: D=${userProfile.DISC_D_점수}, I=${userProfile.DISC_I_점수}, S=${userProfile.DISC_S_점수}, C=${userProfile.DISC_C_점수}`;
-
         let currentUserTurnTextForApiContent = `
 [현재 상담 단계]: ${currentConsultationStage}단계
 [사용자 현재 정보]
 ${userProfileItemsString.trim()}
 ${discSummary}
 루비가최근에보여준카드이미지: ${lastShownRubyCardImageId || "없음"}`;
-// userProfile.시나리오도 userProfileItemsString에 자동으로 포함됨.
-
-        if (!currentIsRequestingSyncType && userMessageForApi) {
-            currentUserTurnTextForApiContent += `\n[사용자 발화]\n${userMessageForApi}`;
-        }
+        if (!currentIsRequestingSyncType && userMessageForApi) { currentUserTurnTextForApiContent += `\n[사용자 발화]\n${userMessageForApi}`; }
 
         const contentsForAPI = [];
-        if (currentIsRequestingSyncType) {
-            contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] });
-        } else {
-            contentsForAPI.push(...conversationHistory.map(turn => ({ role: turn.role, parts: turn.parts })));
-            contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] });
-        }
+        if (currentIsRequestingSyncType) { contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] }); }
+        else { contentsForAPI.push(...conversationHistory.map(turn => ({ role: turn.role, parts: turn.parts }))); contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] }); }
 
+        // requestBodyContent는 이제 서버리스 함수로 전달될 페이로드입니다.
+        // 서버리스 함수가 Google API에 필요한 형식으로 이를 가공하거나 그대로 전달합니다.
         const requestBodyContent = {
-            system_instruction: { parts: [{ text: systemInstructionText }] },
+            system_instruction: { parts: [{ text: systemInstructionText }] }, // 서버리스 함수가 이 부분을 사용하거나, 아니면 contents만 받을 수도 있음
             contents: contentsForAPI,
-            generationConfig: { temperature: 0.7 },
+            generationConfig: { temperature: 0.7, topP: 0.9 }, // 이 부분도 서버리스 함수로 전달
+            
         };
-
 
         if (isFirstAttemptForThisType) {
             console.log(`================ API REQUEST BODY (isRequestingSyncTypeResult: ${currentIsRequestingSyncType}) START ================`);
-            console.log("[sendApiRequest] API 요청 본문 전체 (JSON):", JSON.stringify(requestBodyContent, null, 2));
+            console.log("[sendApiRequest] API 요청 본문 전체 (JSON) - 서버리스 함수로 전달될 내용:", JSON.stringify(requestBodyContent, null, 2));
             console.log("================ API REQUEST BODY END ==================");
         }
 
-        if (!currentIsRequestingSyncType && suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) {
-            hideSuggestionButtons(true);
-        }
+        if (!currentIsRequestingSyncType && suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) { hideSuggestionButtons(true); }
 
-        const response = await fetch(API_URL, {
+        // ★★★ 여기가 핵심 변경: fetch 대상이 PROXY_API_URL로 변경 ★★★
+        const response = await fetch(PROXY_API_URL, { // 서버리스 함수 호출
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBodyContent)
+            body: JSON.stringify(requestBodyContent) // 서버리스 함수로 전송할 데이터
         });
 
-        const responseTextRaw = await response.text();
+        const responseTextRaw = await response.text(); // 서버리스 함수의 응답을 받음
         if (isFirstAttemptForThisType) {
-            console.log("================ API RESPONSE RAW START ================");
-            console.log("[sendApiRequest] API 원본 응답 (Raw Text):", responseTextRaw);
-            console.log("================ API RESPONSE RAW END ==================");
+            console.log("================ API RESPONSE RAW (FROM PROXY) START ================");
+            console.log("[sendApiRequest] API 원본 응답 (프록시로부터):", responseTextRaw);
+            console.log("================ API RESPONSE RAW (FROM PROXY) END ==================");
         }
-        console.log("[sendApiRequest] API 응답 상태 코드:", response.status);
+        console.log("[sendApiRequest] API 응답 상태 코드 (프록시로부터):", response.status);
 
-        // ... (HTTP 에러 처리 및 파싱/구조 에러 재시도 로직 - 이전과 동일)
-        if (!response.ok) { // HTTP 에러 (4xx, 5xx 등)
-            const errorDetail = `HTTP 상태 ${response.status}: ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
-            if (response.status >= 500 && response.status <= 599) { // 5xx 서버 에러
-                if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
-                    console.warn(`[sendApiRequest] HTTP ${response.status} 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
+        // --- 이하 재시도 및 응답 처리 로직은 이전과 거의 동일하게 유지 ---
+        // (단, 에러 발생 시 재귀 호출 시 isInternalRecursiveCall = true 전달)
+
+        if (!response.ok) {
+            const errorDetail = `HTTP 상태 ${response.status} (프록시): ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
+            if (response.status >= 500 && response.status <= 599) {
+                if (currentEffectiveRetry < maxEffectiveRetries - 1) {
+                    console.warn(`[sendApiRequest] 프록시 HTTP ${response.status} 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                     if (typingIndicatorElement) await hideTypingIndicator(); 
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
                     if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
-                    else { return sendApiRequest(retryCount + 1, true); } // isInternalRecursiveCall true
+                    else { return sendApiRequest(retryCount + 1, true); }
                 }
             }
-            throw new Error(errorDetail); // 재시도 불가 또는 5xx 아닌 에러
+            throw new Error(errorDetail);
         }
 
-        try { // 내용 파싱
-            const responseData = JSON.parse(responseTextRaw);
+        try {
+            const responseData = JSON.parse(responseTextRaw); // 서버리스 함수의 응답을 파싱 (Google API 응답과 동일한 구조여야 함)
             if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content &&
                 responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0] &&
                 typeof responseData.candidates[0].content.parts[0].text === 'string') {
                 modelGeneratedText = responseData.candidates[0].content.parts[0].text;
-            } else { throw new Error("모델 응답 구조 이상, 유효 텍스트 없음"); }
-        } catch (e) { // JSON 파싱 실패 또는 위에서 throw된 "모델 응답 구조 이상"
-            console.warn(`[sendApiRequest] 응답 내용 파싱/구조 오류: ${e.message}. 재시도 가능한지 확인...`);
-            if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
-                console.warn(`[sendApiRequest] 응답 내용 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
+            } else { throw new Error("프록시 응답 모델 구조 이상, 유효 텍스트 없음"); }
+        } catch (e) {
+            console.warn(`[sendApiRequest] 프록시 응답 내용 파싱/구조 오류: ${e.message}. 재시도 가능한지 확인...`);
+            if (currentEffectiveRetry < maxEffectiveRetries - 1) {
+                console.warn(`[sendApiRequest] 프록시 응답 내용 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
                 if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
                 else { return sendApiRequest(retryCount + 1, true); }
             }
-            throw new Error(`API 응답 파싱/구조 최종 오류: ${e.message}`);
+            throw new Error(`프록시 API 응답 파싱/구조 최종 오류: ${e.message}`);
         }
         
         parsedResponse = extractAndParseJson(modelGeneratedText);
 
-        if (parsedResponse && parsedResponse.error) { // extractAndParseJson 내부에서 발생한 에러
-            console.warn(`[sendApiRequest] extractAndParseJson 오류: ${parsedResponse.error}. 재시도 가능한지 확인...`);
-            if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
+        if (parsedResponse && parsedResponse.error) {
+            console.warn(`[sendApiRequest] extractAndParseJson 오류 (프록시 응답): ${parsedResponse.error}. 재시도 가능한지 확인...`);
+            if (currentEffectiveRetry < maxEffectiveRetries - 1) {
                 console.warn(`[sendApiRequest] extractAndParseJson 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
                 if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
                 else { return sendApiRequest(retryCount + 1, true); }
             }
-            console.warn(`[sendApiRequest] extractAndParseJson 최종 오류: ${parsedResponse.error}.`);
-            // 최종 재시도 실패 시 parsedResponse는 에러 객체를 가짐. 이 객체를 다음 로직으로 전달.
+            console.warn(`[sendApiRequest] extractAndParseJson 최종 오류 (프록시 응답): ${parsedResponse.error}.`);
         }
-
 
         lastApiResponse = parsedResponse;
 
+        // --- 이하 싱크타입 결정 / 일반 응답 처리 로직 ---
         if (currentIsRequestingSyncType) {
+            // ... (싱크타입 결정 성공/실패/재시도 로직 - 이전과 동일) ...
             console.log("[sendApiRequest] 싱크타입 결정 API 응답 처리 중:", parsedResponse);
             const profileUpdate = parsedResponse ? parsedResponse.user_profile_update : null;
             let apiReceivedConstellationRaw = profileUpdate ? String(profileUpdate.사용자소속성운 || "").trim() : null;
@@ -2917,18 +2896,15 @@ ${discSummary}
                 apiReceivedConstellation && isValidConstellationName && 
                 apiReceivedSyncType && apiReceivedReason) {
                 
-                // ★★★ 시나리오 1 설정 ★★★
-                const scenario1 = "시나리오 1 - 싱크타입 테스트 완료 단계 : 이름묻기, 주관식&객관식풀이, 성운공개, 싱크타입공개, 마지막 정리 순으로 풀이 필요";
-                profileUpdate.시나리오 = scenario1; // API 응답에 시나리오 필드가 없으므로 직접 추가
+                const scenario1 = "시나리오 1 - 싱크타입 테스트 풀이 필요";
+                profileUpdate.시나리오 = scenario1;
                 updateUserProfile(profileUpdate);
                 console.log(`[sendApiRequest] 싱크타입 결정 성공 및 시나리오 1 설정. 프로필 업데이트:`, userProfile);
 
-
                 isRequestingSyncTypeResult = false; 
                 syncTypeResultRetryCount = 0; 
-                showStage10EntryEmoticon = true; // 다음 일반 대화 시작 시 이모티콘 표시
-                isInitialApiCallAfterObjectiveTest = true; // 다음이 10단계 첫 일반 API 호출임을 알림
-
+                showStage10EntryEmoticon = true;
+                isInitialApiCallAfterObjectiveTest = true;
                 messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 나는 ${userProfile.시나리오} 상황이야. 내 성향에 맞는 타로 운세를 봐줘!`;
                 
                 if (typingIndicatorElement) await hideTypingIndicator();
@@ -2936,9 +2912,8 @@ ${discSummary}
                 console.log("[sendApiRequest] 싱크타입 결정 후 일반 API 호출 직전, isApiLoading = false");
                 return sendApiRequest(0, true); // 일반 API 호출, isInternalRecursiveCall = true
 
-            } else { // 싱크타입 결정 로직 실패 (내용 불일치 등)
+            } else { 
                 let failureReason = "알 수 없는 이유";
-                // ... (failureReason 설정 로직 - 이전과 동일)
                 if (parsedResponse && parsedResponse.error) failureReason = `응답 파싱/내용 오류: ${parsedResponse.error}`;
                 else if (!profileUpdate) failureReason = "user_profile_update 필드 없음";
                 else if (!apiReceivedConstellationRaw) failureReason = "사용자소속성운 필드 없음 또는 빈 값 (원본)";
@@ -2954,19 +2929,17 @@ ${discSummary}
                     console.log(`[sendApiRequest] 싱크타입 결정 내용 검증 실패. 재시도 (${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RETRIES})`);
                     if (typingIndicatorElement) await hideTypingIndicator();
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (syncTypeResultRetryCount)));
-                    return sendApiRequest(retryCount, true); // isInternalRecursiveCall = true
+                    return sendApiRequest(retryCount, true); 
                 } else {
                     syncTypeResultRetryCount = 0; 
                     throw new Error(`싱크타입 결정 API 최종 실패 (내용 검증): ${failureReason}`);
                 }
             }
-        } else { // 일반 API 응답 처리 (currentIsRequestingSyncType is false)
-            // ... (이전과 동일한 일반 API 응답 처리 로직) ...
+        } else { 
+            // ... (일반 API 응답 처리 로직 - 이전과 동일) ...
             if (parsedResponse && !parsedResponse.error && parsedResponse.user_profile_update) {
-                // 일반 API 응답에서는 시나리오를 덮어쓰지 않도록 주의 (필요하다면 조건 추가)
                 if (parsedResponse.user_profile_update.시나리오 === undefined || parsedResponse.user_profile_update.시나리오 === null) {
-                    // API 응답에 시나리오가 없다면 기존 값 유지를 위해 delete 또는 값 복사 방지
-                    // delete parsedResponse.user_profile_update.시나리오; // 이렇게 하면 기존 시나리오 유지됨
+                    // delete parsedResponse.user_profile_update.시나리오;
                 }
                 updateUserProfile(parsedResponse.user_profile_update);
             }
@@ -2996,17 +2969,12 @@ ${discSummary}
                  conversationHistory.push({ role: "model", parts: [{ text: modelGeneratedText }] });
             }
 
-            if (currentConsultationStage === 10) {
-                resetSessionTimers();
-            }
+            if (currentConsultationStage === 10) { resetSessionTimers(); }
 
             let nextStageFromApi = null;
             if (parsedResponse && !parsedResponse.error) {
-                if (parsedResponse.force_stage !== null && parsedResponse.force_stage !== undefined) {
-                    nextStageFromApi = parsedResponse.force_stage;
-                } else if (parsedResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) {
-                     nextStageFromApi = currentConsultationStage + 1;
-                }
+                if (parsedResponse.force_stage !== null && parsedResponse.force_stage !== undefined) { nextStageFromApi = parsedResponse.force_stage; }
+                else if (parsedResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) { nextStageFromApi = currentConsultationStage + 1; }
             }
 
             if (nextStageFromApi !== null && nextStageFromApi !== currentConsultationStage) {
@@ -3014,23 +2982,18 @@ ${discSummary}
                 advanceConsultationStage(nextStageFromApi, true);
             } else if (parsedResponse && !parsedResponse.error && currentConsultationStage === 10) {
                  const hasSampleAnswer = parsedResponse.sampleanswer && String(parsedResponse.sampleanswer).trim() !== "";
-                 if (hasSampleAnswer) {
-                    setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
-                 } else {
-                    setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
-                    setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100);
-                 }
+                 if (hasSampleAnswer) { setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨"); }
+                 else { setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨"); setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100); }
             }
         }
 
-    } catch (error) { // 모든 종류의 최종 에러 처리
+    } catch (error) { // 최종 에러 처리
         console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}):`, error);
         if (typingIndicatorElement) await hideTypingIndicator();
         const finalErrorMsgWithTags = `앗, 내부 시스템에 작은 문제가 생겼나 봐요! [exp008]<br>잠시 후 다시 시도해주시겠어요?<br><small>(오류: ${error.message.substring(0,120)}...)</small>`;
         let errorSuggestion = ["처음으로 돌아갈래요"];
         const wasRequestingSyncTypeOnError = currentIsRequestingSyncType; 
-        isRequestingSyncTypeResult = false;
-        syncTypeResultRetryCount = 0;
+        isRequestingSyncTypeResult = false; syncTypeResultRetryCount = 0;
         await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, errorSuggestion, async (txt) => {
             if(txt === "처음으로 돌아갈래요" || txt === "테스트 처음부터 다시 하기") {
                 clearChatArea(); conversationHistory = []; userProfile = initializeUserProfile(); currentConsultationStage = 0;
@@ -3040,16 +3003,15 @@ ${discSummary}
             } else if (txt === "싱크타입 없이 진행하기") {
                 currentConsultationStage = 10; showStage10EntryEmoticon = true; isInitialApiCallAfterObjectiveTest = true;
                 messageBuffer = "싱크타입 테스트 없이 바로 타로 상담을 진행합니다.";
-                updateUserProfile({ "시나리오": "시나리오 X - 싱크타입 없이 진행 (오류 후 선택)"}); // 임시 시나리오
+                updateUserProfile({ "시나리오": "시나리오 X - 싱크타입 없이 진행 (오류 후 선택)"});
                 if (typingIndicatorElement) await hideTypingIndicator();
-                isApiLoading = false;
-                await sendApiRequest(0, true);
+                isApiLoading = false; await sendApiRequest(0, true);
             }
         });
         isApiLoading = false; 
     } finally {
         console.log("[sendApiRequest] finally 블록 실행.");
-        const isStillRecursiveCallPending = (currentIsRequestingSyncType && !isRequestingSyncTypeResult); // 현재 호출은 싱크타입이었고, 다음 호출은 일반 API일 예정
+        const isStillRecursiveCallPending = (currentIsRequestingSyncType && !isRequestingSyncTypeResult); // 현재가 싱크타입이었고, 다음이 일반 API일 예정
 
         if (!isStillRecursiveCallPending) {
             isApiLoading = false;
