@@ -2325,7 +2325,6 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         let hardcodedMsgWithTags = null;
         let hardcodedSuggestions = [];
         let shouldDisplayHardcodedUI = false;
-        // let shouldInitiateSyncTypeResultApiCall = false; // 이 플래그는 직접 호출로 대체
 
         if (currentConsultationStage === 1) {
             currentSelectedTarotType = buttonText;
@@ -2363,9 +2362,8 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 currentConsultationStage = 10;
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
-                updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
                 messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다.";
-                await sendApiRequest(0, false);
+                await sendApiRequest(0);
                 return;
             }
         } else if (currentConsultationStage === 3.5) {
@@ -2402,7 +2400,7 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                         showStage10EntryEmoticon = true;
                         isInitialApiCallAfterObjectiveTest = true;
                         messageBuffer = "사용자가 자신의 성운과 싱크타입을 입력하고 타로를 시작합니다.";
-                        await sendApiRequest(0, false);
+                        await sendApiRequest(0);
                         return;
                     }
                 } else {
@@ -2424,9 +2422,8 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 currentConsultationStage = 10;
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
-                updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
                 messageBuffer = "사용자가 싱크타입 정보 입력 없이 타로를 시작합니다.";
-                await sendApiRequest(0, false);
+                await sendApiRequest(0);
                 return;
             }
         } else if (currentConsultationStage === 4) {
@@ -2447,31 +2444,40 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                  currentConsultationStage = 10;
                  showStage10EntryEmoticon = true;
                  isInitialApiCallAfterObjectiveTest = true;
-                 updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
                  messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다.";
-                 await sendApiRequest(0, false);
+                 await sendApiRequest(0);
                  return;
             }
         } else if (currentConsultationStage === 7) {
             if (buttonText === "좋아! 시작하자 ✨") {
                 nextStage = 8;
             }
-        } else if (currentConsultationStage === 9 && buttonText === "응, 찾아줘!") { // ★★★ 이 조건 블록을 명시적으로 추가 ★★★
-            console.log("[handleButtonClick] 9단계 '응, 찾아줘!' 클릭. 싱크타입 결정 API 호출 시작.");
-            currentConsultationStage = 10; // 다음 단계를 10으로 설정 (API 호출 중에도)
-            showStage10EntryEmoticon = true; // 이모티콘은 2차 API 호출 후 표시
-            isInitialApiCallAfterObjectiveTest = true;
-            // messageBuffer는 sendApiRequest에서 isRequestingSyncTypeResult=true일 때 설정됨
-            await sendApiRequest(0, true); // 싱크타입 결정 API 호출
-            return; // API 호출 후에는 이 함수에서 더 이상 진행할 작업 없음
+        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) { // "응, 찾아줘!" 추가
+            console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
+
+            // ★★★ 중요: 싱크타입 결정 요청 플래그 설정 ★★★
+            isRequestingSyncTypeResult = true;
+            syncTypeResultRetryCount = 0; // 싱크타입 결정 API 재시도 횟수 초기화
+
+            currentConsultationStage = 10; // API 호출 전에 단계를 10으로 설정 (API 응답 후에도 10 유지)
+            showStage10EntryEmoticon = false; // 싱크타입 결정 후에는 일반 메시지가 나오므로 이모티콘 표시 안 함.
+                                             // 또는, 싱크타입 결정 후 나오는 첫 메시지에 이모티콘을 포함시키고 싶다면 true로 설정하고 sendApiRequest에서 처리.
+                                             // 여기서는 sendApiRequest에서 isRequestingSyncTypeResult가 false로 바뀐 후 showStage10EntryEmoticon을 true로 설정하므로,
+                                             // 여기서 false로 해도 괜찮음.
+            isInitialApiCallAfterObjectiveTest = false; // 이것은 싱크타입 "결과 후" 첫 일반 API 호출에 대한 플래그이므로, 여기서는 false.
+                                                        // sendApiRequest에서 싱크타입 결정 성공 후 true로 설정됨.
+
+            messageBuffer = ""; // 싱크타입 결정 API는 사용자 메시지 없이 프로필 정보만 사용
+            console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
+            await sendApiRequest(0); // retryCount 0으로 시작
+            return;
         } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
             console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
             messageBuffer = buttonText;
-            await sendApiRequest(0, false); // 일반 API 호출
-            return;
+            await sendApiRequest(0); return;
         }
 
-        // --- 다음 단계로 진행하거나 하드코딩된 UI 표시 (위에서 return되지 않은 경우) ---
+
         if (shouldDisplayHardcodedUI) {
             if (nextStage !== null && nextStage !== currentConsultationStage) {
                 advanceConsultationStage(nextStage);
@@ -2481,8 +2487,7 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         } else if (nextStage !== null) {
             advanceConsultationStage(nextStage);
         } else {
-            // 위의 어떤 조건에도 해당하지 않으면 이 로그가 출력됨 (9단계 "응, 찾아줘!"는 위에서 처리되어야 함)
-            console.log(`[handleButtonClick] 버튼 "${buttonText}"에 대한 명시적 액션 없음. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
+            console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
         }
     }
     async function processUserInput() {
