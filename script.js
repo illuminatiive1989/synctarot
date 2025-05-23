@@ -3488,40 +3488,34 @@ async function displayApiResponseElements(parsedResp) {
         }
 
         if (slider && allSlides.length >= visibleFloatingMenuSlides) {
-            let actualDomTargetIndex = targetVisibleIndex; // 목표하는 슬라이드의 실제 DOM 인덱스
-            let actualDomCurrentIndex = currentFloatingMenuSlideIndex; // 현재 슬라이드의 실제 DOM 인덱스
+            let actualDomTargetIndex = targetVisibleIndex;
+            let actualDomCurrentIndex = currentFloatingMenuSlideIndex;
 
-            // 1번 슬라이드가 숨겨져 있을 때, 보이는 슬라이드 기준 인덱스를 DOM 인덱스로 변환
             if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
                 actualDomTargetIndex = targetVisibleIndex + 1;
                 actualDomCurrentIndex = currentFloatingMenuSlideIndex + 1;
             } else {
-                 // 3개 다 보일 때는 보이는 인덱스와 DOM 인덱스가 동일
                  actualDomTargetIndex = targetVisibleIndex;
                  actualDomCurrentIndex = currentFloatingMenuSlideIndex;
             }
 
-            // 1. 이전 활성 슬라이드 페이드 아웃 (실제 DOM 인덱스 사용)
             if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
-            // 2. 슬라이더 위치 이동 (보이는 슬라이드 수와 목표하는 보이는 슬라이드 인덱스 기준)
             slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
 
-            // 3. 새로운 목표 슬라이드 페이드 인 (실제 DOM 인덱스 사용)
             requestAnimationFrame(() => {
                 if (allSlides[actualDomTargetIndex]) {
                     allSlides[actualDomTargetIndex].style.opacity = '1';
                 }
             });
 
-            currentFloatingMenuSlideIndex = targetVisibleIndex; // 현재 인덱스는 *보이는 슬라이드 기준*으로 저장
+            currentFloatingMenuSlideIndex = targetVisibleIndex;
 
-            // 4. 인디케이터 업데이트 (보이는 인디케이터만 고려)
             let visibleIndicatorCounter = 0;
             indicators.forEach((dot) => {
-                if (dot.style.display !== 'none') { // DOM에서 보이는 인디케이터만 대상으로
+                if (dot.style.display !== 'none') {
                     dot.classList.toggle('active', visibleIndicatorCounter === targetVisibleIndex);
                     visibleIndicatorCounter++;
                 }
@@ -3590,32 +3584,27 @@ async function displayApiResponseElements(parsedResp) {
             menuOverlay.addEventListener('click', hideFloatingMenu);
         }
 
-// setupEventListeners 함수 내 인디케이터 클릭 부분 수정
-const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
-indicatorDots.forEach(dot => {
-    dot.addEventListener('click', (event) => {
-        const domTargetIndexAttr = event.currentTarget.getAttribute('data-slide-target'); // DOM 기준 0,1,2
-        if (domTargetIndexAttr !== null) {
-            const domTargetIndex = parseInt(domTargetIndexAttr, 10);
-            let targetVisibleIdx = domTargetIndex;
+        const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
+        indicatorDots.forEach(dot => {
+            dot.addEventListener('click', (event) => {
+                const domTargetIndexAttr = event.currentTarget.getAttribute('data-slide-target');
+                if (domTargetIndexAttr !== null) {
+                    const domTargetIndex = parseInt(domTargetIndexAttr, 10);
+                    let targetVisibleIdx = domTargetIndex;
 
-            // 1번 슬라이드가 숨겨진 경우 (visibleFloatingMenuSlides === 2)
-            // DOM 인덱스 1 (Page2)은 보이는 슬라이드 기준 0번
-            // DOM 인덱스 2 (Page3)은 보이는 슬라이드 기준 1번
-            if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
-                if (domTargetIndex === 1) targetVisibleIdx = 0; // Page2 클릭 시 보이는 인덱스 0
-                else if (domTargetIndex === 2) targetVisibleIdx = 1; // Page3 클릭 시 보이는 인덱스 1
-                else return; // 숨겨진 0번 인디케이터는 무시 (실제로는 display:none 처리됨)
-            }
-            // 3개 다 보일 때는 DOM 인덱스와 보이는 인덱스가 동일
+                    if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
+                        if (domTargetIndex === 1) targetVisibleIdx = 0;
+                        else if (domTargetIndex === 2) targetVisibleIdx = 1;
+                        else return;
+                    }
 
-            if (!isNaN(targetVisibleIdx)) {
-                console.log(`[Indicator Click] DOM target: ${domTargetIndex}, Visible target for handler: ${targetVisibleIdx}`);
-                handleFloatingMenuSlide(targetVisibleIdx);
-            }
-        }
-    });
-});
+                    if (!isNaN(targetVisibleIdx)) {
+                        console.log(`[Indicator Click] DOM target: ${domTargetIndex}, Visible target for handler: ${targetVisibleIdx}`);
+                        handleFloatingMenuSlide(targetVisibleIdx);
+                    }
+                }
+            });
+        });
 
         const floatingPage1Items = document.querySelectorAll('#floatingMenuPage1 .floating-image-list-item');
         floatingPage1Items.forEach(item => {
@@ -3628,7 +3617,6 @@ indicatorDots.forEach(dot => {
             });
         });
 
-        // --- 플로팅 메뉴 2, 3번 아이템 클릭 기능 임시 주석 처리 ---
         /*
         const floatingPage2Image = document.querySelector('#floatingMenuPage2 .floating-single-image-container img');
         if (floatingPage2Image) {
@@ -3652,43 +3640,80 @@ indicatorDots.forEach(dot => {
             });
         });
         */
-        // --- 주석 처리 끝 ---
 
-        // --- 드래그/스와이프 슬라이드 기능 추가 ---
+        // --- 드래그/스와이프 슬라이드 기능 수정 ---
         const sliderElement = document.querySelector('.floating-menu-slider');
         if (sliderElement) {
             let touchStartX = 0;
-            let touchEndX = 0;
-            let टचिंग = false; // isTouching 변수명 변경 (한글 충돌 방지)
-            const swipeThreshold = 50; // 최소 스와이프 거리 (px)
+            let touchEndX = 0; // touchmove에서 마지막으로 기록된 X 좌표
+            let isTouching = false; // isTouching으로 변수명 변경 (의미 명확화)
+            const swipeThreshold = 50;
 
             sliderElement.addEventListener('touchstart', (event) => {
-                touchStartX = event.changedTouches[0].screenX;
-                टचिंग = true;
-            }, { passive: true });
+                // 멀티터치 방지 및 메뉴가 열려 있을 때만 스와이프 활성화
+                if (event.touches.length > 1 || !isFloatingMenuOpen) return;
+                touchStartX = event.touches[0].clientX; // clientX 사용 (screenX보다 뷰포트 기준)
+                touchEndX = touchStartX; // 초기화 시점에는 start와 end 동일
+                isTouching = true;
+                // console.log(`[Swipe] touchstart: X=${touchStartX}`);
+            }, { passive: true }); // passive: true 로 스크롤 성능 최적화
 
             sliderElement.addEventListener('touchmove', (event) => {
-                if (!टचिंग) return;
-                touchEndX = event.changedTouches[0].screenX;
+                if (!isTouching || event.touches.length > 1 || !isFloatingMenuOpen) return;
+                touchEndX = event.touches[0].clientX;
+                // console.log(`[Swipe] touchmove: X=${touchEndX}`);
+                // 스와이프 중 실시간으로 슬라이더를 움직이게 하려면 여기서 transform 조작 (더 복잡해짐)
+                // 여기서는 touchend에서 한 번에 처리
             }, { passive: true });
 
-            sliderElement.addEventListener('touchend', () => {
-                if (!टचING) return;
-                टचिंग = false;
+            sliderElement.addEventListener('touchend', (event) => {
+                if (!isTouching || !isFloatingMenuOpen) { // event.touches.length 조건 제거 (touchend에서는 touches가 비어있음)
+                    isTouching = false; // 혹시 모를 상황 대비
+                    return;
+                }
+                isTouching = false;
+                // touchEndX는 touchmove에서 마지막으로 업데이트된 값을 사용해야 함.
+                // touchend의 event.changedTouches[0].clientX는 터치가 끝난 지점.
+
                 const deltaX = touchEndX - touchStartX;
+                // console.log(`[Swipe] touchend: deltaX=${deltaX}, startX=${touchStartX}, endX=${touchEndX}`);
 
                 if (Math.abs(deltaX) > swipeThreshold) {
-                    if (deltaX < 0) { // 왼쪽으로 스와이프 (다음 슬라이드)
+                    if (deltaX < 0) { // 왼쪽으로 스와이프 (다음)
                         if (currentFloatingMenuSlideIndex < visibleFloatingMenuSlides - 1) {
+                            console.log("[Swipe] Next slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex + 1);
+                        } else {
+                            console.log("[Swipe] Already at last slide");
+                            // 마지막 슬라이드에서 더 스와이프 시 약간의 바운스 효과 (선택적)
+                            sliderElement.style.transition = 'transform 0.2s ease-out';
+                            sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides) + 5}%)`; // 살짝 더 이동
+                            setTimeout(() => {
+                                sliderElement.style.transition = 'transform 0.4s ease-in-out'; // 원래 transition 복원
+                                sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides)}%)`; // 제자리
+                            }, 200);
                         }
-                    } else { // 오른쪽으로 스와이프 (이전 슬라이드)
+                    } else { // 오른쪽으로 스와이프 (이전)
                         if (currentFloatingMenuSlideIndex > 0) {
+                            console.log("[Swipe] Previous slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex - 1);
+                        } else {
+                            console.log("[Swipe] Already at first slide");
+                            // 첫 슬라이드에서 더 스와이프 시 약간의 바운스 효과 (선택적)
+                            sliderElement.style.transition = 'transform 0.2s ease-out';
+                            sliderElement.style.transform = `translateX(5%)`; // 살짝 더 이동
+                            setTimeout(() => {
+                                sliderElement.style.transition = 'transform 0.4s ease-in-out';
+                                sliderElement.style.transform = `translateX(0%)`;
+                            }, 200);
                         }
                     }
+                } else {
+                    console.log("[Swipe] Swipe distance not enough or no swipe.");
+                    // 원래 위치로 돌려놓는 로직 (스와이프 도중 실시간 이동 구현 시 필요)
+                    // sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides)}%)`;
                 }
-                // Reset X
+                // Reset X 좌표
                 touchStartX = 0;
                 touchEndX = 0;
             });
