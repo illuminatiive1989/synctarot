@@ -2817,7 +2817,7 @@ ${discSummary}
         const requestBodyContent = {
             system_instruction: { parts: [{ text: systemInstructionText }] },
             contents: contentsForAPI,
-            generationConfig: { temperature: 0.2 },
+            generationConfig: { temperature: 0.7 },
         };
 
 
