@@ -1531,9 +1531,9 @@ function clearChatArea() {
 
 async function displayCurrentStageUI() {
     console.log(`[displayCurrentStageUI] START - currentConsultationStage: ${currentConsultationStage}`);
+    updateFloatingMenuVisibility(); // 플로팅 메뉴 가시성 업데이트 (중요!)
     let actionText = null;
     let assistantMsgWithTags = null;
-    let suggestionTexts = [];
 
     if (!isSessionTimedOut && currentConsultationStage !== 10) {
         clearSessionTimers();
@@ -1549,79 +1549,70 @@ async function displayCurrentStageUI() {
 
     switch (currentConsultationStage) {
         case 1:
-            hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 1");
             actionText = "루비가 당신을 발견하고 환하게 웃어요.";
             assistantMsgWithTags = "[exp001] 어서 와! 기다리고 있었어!<br>오늘은 어떤 <b>운명의 카드</b> 가 궁금해서 나를 찾아왔어?";
-            suggestionTexts = Object.values(TAROT_TYPES);
-            setChatInputDisabled(true, "버튼으로 타로 종류를 선택해주세요.");
+            setChatInputDisabled(true, "궁금한 타로 주제를 메뉴에서 선택해주세요.");
             if (rubyImageElement) rubyImageElement.classList.remove('blurred');
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
             break;
 
         case 2:
             hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 2");
             if (!currentSelectedTarotType) {
-                advanceConsultationStage(1); return;
+                console.warn("[displayCurrentStageUI] Stage 2 entered without currentSelectedTarotType.");
             }
-            actionText = "루비가 눈을 반짝이며";
-            switch (currentSelectedTarotType) {
-                case TAROT_TYPES.TODAY_FORTUNE: assistantMsgWithTags = "오늘의 운세가 궁금하구나? 좋아, 그럼 살펴볼까? ✨"; break;
-                case TAROT_TYPES.CURRENT_ENERGY: assistantMsgWithTags = "우주의 기운을 모아 지금 너란 사람에 대해 알아보자! 🔮"; break;
-                case TAROT_TYPES.MONEY_FLOW: assistantMsgWithTags = "오.. 뭔가 느낌이 좋은걸? 💰 바로 알아보자!"; break;
-                case TAROT_TYPES.LOVE_LUCK: assistantMsgWithTags = "사랑하는 사람이 있구나? 좋아, 알아보자! 🥰"; break;
-                case TAROT_TYPES.STUDY_ACADEMIC: assistantMsgWithTags = "혹시 중요한 시험을 앞두고 있니? 📚 좋아, 알아보자!"; break;
-                case TAROT_TYPES.WORK_CAREER: assistantMsgWithTags = "느껴진다, 느껴져! 🚀 너의 직장운! ..을 볼까? (머쓱)"; break;
-                case TAROT_TYPES.SOMEONES_HEALTH: assistantMsgWithTags = "좋은 기운을 받길 우주에 기원하며, 지금 바로 알아보자! 🙏"; break;
-                default: assistantMsgWithTags = "선택한 주제에 대해 알아볼까? 🤔";
-            }
-            suggestionTexts = ["응", "다시 선택할래"];
+            actionText = null;
+            assistantMsgWithTags = `선택한 주제 '${currentSelectedTarotType}'에 대해 더 자세히 알아볼까?`;
+            const suggestionTextsStage2 = ["응", "다시 선택할래"]; // 버튼 텍스트 변경
             setChatInputDisabled(true, "버튼으로 답변해주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
+            createSuggestionButtons(suggestionTextsStage2, handleButtonClick);
             break;
 
+        // ... case 3, 3.5, 4, 7, 8, 9, 10, default 는 이전과 동일하게 유지 ...
         case 3:
             hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 3");
             actionText = null;
             assistantMsgWithTags = "아, 그런데 혹시...🤔 <b>싱크타입</b> 이라고 알고 있어?";
-            suggestionTexts = ["당연하지", "그게뭐야?"];
+            const suggestionTextsStage3 = ["당연하지", "그게뭐야?"];
             setChatInputDisabled(true, "버튼으로 답변해주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
+            createSuggestionButtons(suggestionTextsStage3, handleButtonClick);
             break;
 
         case 3.5:
             hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 3.5");
+            let suggestionTextsStage3_5 = [];
             if (!tempSelectedConstellation) {
                 actionText = "루비가 귀를 쫑긋하며";
                 assistantMsgWithTags = "그래 좋아! 그럼 너의 성운은 어디였어? 🌠";
-                suggestionTexts = [...ALL_CONSTELLATION_NAMES, "기억안나 (성운)"];
+                suggestionTextsStage3_5 = [...ALL_CONSTELLATION_NAMES, "기억안나 (성운)"];
             } else {
                 actionText = null;
                 const constellationData = CONSTELLATIONS_DATA[tempSelectedConstellation];
                 if (constellationData) {
                     assistantMsgWithTags = `오 ${tempSelectedConstellation} 성운이구나! <br>${constellationData.description}<br>그러면 너의 싱크타입은..?`;
-                    suggestionTexts = constellationData.syncTypes.map(st => st === "기억안나" ? "기억안나 (싱크타입)" : st);
+                    suggestionTextsStage3_5 = constellationData.syncTypes.map(st => st === "기억안나" ? "기억안나 (싱크타입)" : st);
                 } else {
                     actionText = "루비가 고개를 갸웃하며";
                     assistantMsgWithTags = "음... 성운 정보에 문제가 있는 것 같아. [exp007] 다시 시도해줄래?";
-                    suggestionTexts = ["처음으로 돌아가기"];
+                    suggestionTextsStage3_5 = ["처음으로 돌아가기"];
                     tempSelectedConstellation = null;
                 }
             }
             setChatInputDisabled(true, "아래에서 선택해주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
+            createSuggestionButtons(suggestionTextsStage3_5, handleButtonClick);
             break;
 
         case 4:
             hideSuggestionButtons(true);
             console.log(`[displayCurrentStageUI] Processing stage 4 (Subjective question ${현재주관식질문인덱스 + 1})`);
+            let suggestionTextsStage4 = [];
             if (현재주관식질문인덱스 === 0) {
                 actionText = "루비가 테스트 준비를 하며";
                 assistantMsgWithTags = `좋아 그럼 바로 테스트를 시작하자!<br><br>테스트는 <b>주관식 질문 ${MAX_SUBJECTIVE_QUESTIONS}개와, 객관식 질문 ${MAX_OBJECTIVE_QUESTIONS}개</b> 답변으로 진행돼.<br><br>BigFive 성격심리학과, 융의 감정이론, 그리고 다양한 내부적 요인에 따라 너의 싱크타입을 선택받게 될거야.<br><br>그럼.. 첫번째 질문을 바로 시작할게!<br>신중히 대답해줘!<br><br>`;
@@ -1635,9 +1626,9 @@ async function displayCurrentStageUI() {
                 updateUserProfile({ [`주관식질문${현재주관식질문인덱스 + 1}`]: currentQuestionText });
                 assistantMsgWithTags += `<b style="color:#FFD700;">${currentQuestionText}</b><br><br>※채팅으로 신중하게 입력해주세요`;
                 if (현재주관식질문인덱스 === 0) {
-                    suggestionTexts = ["아니 잠깐! 싱크타입이 뭐라구?"];
+                    suggestionTextsStage4 = ["아니 잠깐! 싱크타입이 뭐라구?"];
                     await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-                    createSuggestionButtons(suggestionTexts, handleButtonClick);
+                    createSuggestionButtons(suggestionTextsStage4, handleButtonClick);
                 } else {
                     await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
                 }
@@ -1654,11 +1645,11 @@ async function displayCurrentStageUI() {
             console.log("[displayCurrentStageUI] Processing stage 7 (Objective intro)");
             actionText = "루비가 만족스러운 표정으로";
             assistantMsgWithTags = `주관식 질문에 모두 답해줘서 고마워! 😊<br><br>이제 마지막으로 ${MAX_OBJECTIVE_QUESTIONS}개의 객관식 질문에 답해주면 싱크타입 테스트는 끝이야.<br>준비됐으면 알려줘!`;
-            suggestionTexts = ["좋아! 시작하자 ✨"];
+            const suggestionTextsStage7 = ["좋아! 시작하자 ✨"];
             setChatInputDisabled(true, "버튼으로 알려주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
             console.log("[displayCurrentStageUI] Stage 7: Creating '좋아! 시작하자 ✨' button.");
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
+            createSuggestionButtons(suggestionTextsStage7, handleButtonClick);
             break;
 
         case 8:
@@ -1698,11 +1689,11 @@ async function displayCurrentStageUI() {
             hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 9 (Sync Type result API call wait)");
             actionText = "루비가 두 손을 모아 기도하며";
-            assistantMsgWithTags = "정말 고생많았어! 😉 모든 질문에 답해줬네.<br><br>그럼 이제 너의 선택을 종이에 적어서 우주로 띄워 보낼게 🌠 <br><br>잠시만 기다려줘.. 너의 싱크타입을 찾아서 올게!"; // 메시지 변경
-            suggestionTexts = ["응, 찾아줘!"]; // 버튼 텍스트 변경
+            assistantMsgWithTags = "정말 고생많았어! 😉 모든 질문에 답해줬네.<br><br>그럼 이제 너의 선택을 종이에 적어서 우주로 띄워 보낼게 🌠 <br><br>잠시만 기다려줘.. 너의 싱크타입을 찾아서 올게!";
+            const suggestionTextsStage9 = ["응, 찾아줘!"];
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick); // 이 버튼 누르면 handleButtonClick에서 싱크타입 결정 API 호출
+            createSuggestionButtons(suggestionTextsStage9, handleButtonClick);
             break;
 
         case 10:
@@ -1711,9 +1702,8 @@ async function displayCurrentStageUI() {
                 console.log("[displayCurrentStageUI] Session timed out. Skipping UI display for stage 10.");
                 return;
             }
-            // 이모티콘 표시는 sendApiRequest 내부에서 API 응답 후 처리됨.
 
-            if (!isApiLoading) { // API 로딩 중이 아닐 때만 입력창 상태 관리
+            if (!isApiLoading) {
                 const hasSampleAnswerCurrently = lastApiResponse && lastApiResponse.sampleanswer && String(lastApiResponse.sampleanswer).trim() !== "";
                 if (hasSampleAnswerCurrently) {
                      setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
@@ -1734,7 +1724,7 @@ async function displayCurrentStageUI() {
             console.warn(`[displayCurrentStageUI] Unknown stage: ${currentConsultationStage}. Resetting to stage 1.`);
             actionText = "루비가 어리둥절하며";
             assistantMsgWithTags = "앗, 길을 잃은 것 같아요! [exp007] 처음부터 다시 시작해볼까요?";
-            suggestionTexts = ["응, 처음으로"];
+            const suggestionTextsDefault = ["응, 처음으로"];
 
             currentConsultationStage = 1;
             isSessionTimedOut = false;
@@ -1742,11 +1732,11 @@ async function displayCurrentStageUI() {
             showStage10EntryEmoticon = false;
             isInitialApiCallAfterObjectiveTest = false;
             clearSessionTimers();
-            updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null }); // 알 수 없는 단계 진입 시 성운 정보 초기화
+            updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
 
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTexts, handleButtonClick);
+            createSuggestionButtons(suggestionTextsDefault, handleButtonClick);
             break;
     }
     manageSendButtonState();
@@ -2371,28 +2361,22 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         let hardcodedMsgWithTags = null;
         let hardcodedSuggestions = [];
         let shouldDisplayHardcodedUI = false;
-
-        // 시나리오 값 설정을 위한 임시 변수
         let scenarioToSet = null;
 
-        if (currentConsultationStage === 1) {
-            currentSelectedTarotType = buttonText;
-            if (rubyImageElement && !rubyImageElement.classList.contains('blurred')) {
-                rubyImageElement.classList.add('blurred');
-            }
-            nextStage = 2;
-        } else if (currentConsultationStage === 2) {
+        if (currentConsultationStage === 2) {
             if (buttonText === "응") {
-                updateUserProfile({ "사용자의고민": currentSelectedTarotType });
                 nextStage = 3;
-            } else {
-                hardcodedAction = "루비가 미소지으며";
-                hardcodedMsgWithTags = "그래 좋아, 그럼 오늘은 어떤 타로를 보고싶어?";
-                hardcodedSuggestions = Object.values(TAROT_TYPES);
+            } else if (buttonText === "다시 선택할래") { // 텍스트 변경
+                hardcodedAction = "루비가 알겠다는 듯 고개를 끄덕이며"; // 액션 텍스트 추가
+                hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!"; // 루비 응답 변경
                 shouldDisplayHardcodedUI = true;
-                currentConsultationStage = 1;
+                // currentConsultationStage는 1로 변경하지 않고, 메시지만 보여준 후 사용자가 메뉴를 누르도록 유도
+                // 또는, 여기서 1단계 UI로 강제 이동시킬 수도 있음.
+                // advanceConsultationStage(1); // 이렇게 하면 1단계 UI가 다시 그려짐.
+                // 우선은 메시지만 표시하는 것으로.
             }
         } else if (currentConsultationStage === 3) {
+            // ... (이하 로직은 이전과 동일)
             if (buttonText === "당연하지") {
                 tempSelectedConstellation = null;
                 nextStage = 3.5;
@@ -2404,7 +2388,6 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 현재주관식질문인덱스 = 0;
                 nextStage = 4;
             } else if (buttonText === "바쁘니깐 나중에할게") {
-                // 시나리오 3
                 scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
                 updateUserProfile({ "시나리오": scenarioToSet });
                 console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
@@ -2433,17 +2416,17 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 } else if (buttonText === "처음으로 돌아가기") {
                     nextStage = 1;
                 }
-            } else { // tempSelectedConstellation이 설정된 후 (즉, 성운 선택 후 싱크타입 선택 단계)
+            } else {
                 const constellationData = CONSTELLATIONS_DATA[tempSelectedConstellation];
                 const cleanButtonText = buttonText.replace(" (싱크타입)", "");
                 if (constellationData && constellationData.syncTypes.includes(cleanButtonText)) {
-                    if (cleanButtonText === "기억안나") { // 싱크타입을 "기억안나"로 선택
+                    if (cleanButtonText === "기억안나") {
                         hardcodedAction = "루비가 고개를 갸웃하며";
                         hardcodedMsgWithTags = `이런, ${tempSelectedConstellation} 성운의 싱크타입도 기억나지 않는구나. 그럼 싱크타입 테스트를 다시 진행해볼까?`;
                         hardcodedSuggestions = ["응, 다시 테스트할게", "아니, 그냥 타로 볼래"];
                         shouldDisplayHardcodedUI = true;
-                        tempSelectedConstellation = null; // 다음 선택을 위해 초기화
-                    } else { // 특정 싱크타입 선택 완료 (시나리오 4)
+                        tempSelectedConstellation = null;
+                    } else {
                         scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
                         updateUserProfile({
                             "사용자소속성운": tempSelectedConstellation,
@@ -2464,18 +2447,19 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                         await sendApiRequest(0);
                         return;
                     }
-                } else { // 잘못된 싱크타입 선택 (오류)
+                } else {
                      hardcodedAction = "루비가 당황하며";
                      hardcodedMsgWithTags = "앗, 뭔가 잘못 선택된 것 같아. [exp008] 다시 한번 골라줄래?";
-                     displayCurrentStageUI(); return; // 현재 3.5 단계 UI 다시 표시
+                     await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+                     displayCurrentStageUI();
+                     return;
                 }
             }
-            // 공통 처리: "응, 다시 테스트할게" 또는 "아니, 그냥 타로 볼래" 버튼 클릭 시
-            if (buttonText === "응, 다시 테스트할게") { // 싱크타입 테스트로 돌아감
+            if (buttonText === "응, 다시 테스트할게") {
                 tempSelectedConstellation = null;
                 현재주관식질문인덱스 = 0;
                 nextStage = 4;
-            } else if (buttonText === "아니, 그냥 타로 볼래") { // 시나리오 2
+            } else if (buttonText === "아니, 그냥 타로 볼래") {
                 scenarioToSet = "시나리오 2 - 기억이 안날수도 있다고 위로하며 타로 진행";
                 updateUserProfile({ "시나리오": scenarioToSet });
                 console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
@@ -2492,7 +2476,7 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 await sendApiRequest(0);
                 return;
             }
-        } else if (currentConsultationStage === 4) { // 주관식 질문 단계
+        } else if (currentConsultationStage === 4) {
             if (buttonText === "아니 잠깐! 싱크타입이 뭐라구?") {
                 hardcodedAction = "루비가 다시 한번 설명하며";
                 hardcodedMsgWithTags = "싱크타입에 대해 다시 한번 설명해 줄게. 😊<br><br>이건 <b>다양한 심리학 이론과 우주의 기운</b>을 통해 너의 <b>본질적인 유형</b>을 찾아내는 과정이야.<br>이렇게 발견된 너의 <b>'영혼의 쌍둥이'</b> 같은 싱크타입은 타로 카드의 해석 정확도를 높이는 데 중요한 역할을 해. ✨<br><br>바로 테스트를 통해 너의 싱크타입을 알아볼래?";
@@ -2501,8 +2485,9 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
             } else if (buttonText === "오오 정말? 좋아!") {
                  현재주관식질문인덱스 = 0;
-                 displayCurrentStageUI(); return; // 4단계 UI 다시 표시 (첫 질문부터)
-            } else if (buttonText === "바쁘니깐 나중에할게") { // 시나리오 3
+                 displayCurrentStageUI();
+                 return;
+            } else if (buttonText === "바쁘니깐 나중에할게") {
                  scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
                  updateUserProfile({ "시나리오": scenarioToSet });
                  console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
@@ -2518,37 +2503,25 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                  await sendApiRequest(0);
                  return;
             }
-        } else if (currentConsultationStage === 7) { // 객관식 질문 시작 전
+        } else if (currentConsultationStage === 7) {
             if (buttonText === "좋아! 시작하자 ✨") {
                 nextStage = 8;
             }
-        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) { // 시나리오 1
+        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) {
             console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
-            
-            // 시나리오 1 설정은 sendApiRequest 내에서 싱크타입 결정 성공 후 다음 일반 API 호출 준비 시점에 하는 것이 더 적절.
-            // 여기서 미리 설정하면 싱크타입 결정 API 자체에 영향을 줄 수 있음.
-            // isRequestingSyncTypeResult = true; // sendApiRequest가 이 플래그를 사용함
-            // syncTypeResultRetryCount = 0;
-
             isRequestingSyncTypeResult = true;
             syncTypeResultRetryCount = 0;
-            // 시나리오 1은 싱크타입 결정 *후*의 첫 일반 API 호출에 적용되므로, 여기서는 설정하지 않음.
-            // updateUserProfile({ "시나리오": "시나리오 1 - 싱크타입 테스트 풀이 필요" }); // 여기서 하면 안됨
-            
             currentConsultationStage = 10;
-            showStage10EntryEmoticon = false; 
-            isInitialApiCallAfterObjectiveTest = false; 
-            messageBuffer = ""; // 싱크타입 결정 API는 프로필만 사용
+            showStage10EntryEmoticon = false;
+            isInitialApiCallAfterObjectiveTest = false;
+            messageBuffer = "";
             console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
-            await sendApiRequest(0); // 싱크타입 결정 API 호출
+            await sendApiRequest(0);
             return;
         } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
-            // 10단계에서 사용자가 제안 버튼(sampleanswer)을 클릭한 경우
             console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
-            // 이 경우, userProfile.시나리오 값은 이미 이전 단계에서 설정되어 있어야 함.
-            // 여기서는 messageBuffer만 설정하고 API 호출
             messageBuffer = buttonText;
-            await sendApiRequest(0); 
+            await sendApiRequest(0);
             return;
         }
 
@@ -2565,6 +2538,7 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
             console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
         }
     }
+
     async function processUserInput() {
         console.log(`[processUserInput] 사용자 입력 처리 시작, isApiLoading: ${isApiLoading}, isSessionTimedOut: ${isSessionTimedOut}`);
         if (isSessionTimedOut) {
@@ -3202,45 +3176,53 @@ async function displayApiResponseElements(parsedResp) {
         const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
         const mainContainer = document.querySelector('.container');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); // 모든 슬라이드 선택
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
         if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
-            // 현재 상담 단계에 따라 1번 플로팅 바 표시 여부 업데이트
-            updateFloatingMenuVisibility();
+            updateFloatingMenuVisibility(); // 먼저 가시성 업데이트 (visibleFloatingMenuSlides 값 설정)
 
-            // 메뉴가 보이기 전에 모든 슬라이드의 opacity를 0으로 초기화 (CSS에서도 초기값 0 권장)
             allSlides.forEach(slide => {
-                slide.style.opacity = '0';
+                slide.style.opacity = '0'; // 모든 슬라이드 일단 숨김
             });
 
             menuContainer.classList.add('visible');
             overlay.classList.add('visible');
-            mainContainer.classList.add('menu-open-blur'); // 배경 블러 적용
+            mainContainer.classList.add('menu-open-blur');
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
-            // 메뉴가 열릴 때 슬라이더를 첫 번째 페이지(0번 인덱스)로 설정하고, 해당 슬라이드만 보이도록 함
-            // handleFloatingMenuSlide(0, true); // true 플래그로 초기 로딩임을 알림
-            // 또는, handleFloatingMenuSlide 내부에서 초기 로딩을 더 잘 처리하도록 수정
-
-            // ★★★ 직접 초기 슬라이드 설정 및 opacity 조정 ★★★
             const slider = document.querySelector('.floating-menu-slider');
-            if (slider) {
-                slider.style.transform = `translateX(0%)`; // 강제로 첫 번째 슬라이드 위치
-            }
-            if (allSlides[0]) { // 첫 번째 슬라이드가 존재하면
-                allSlides[0].style.opacity = '1'; // 첫 번째 슬라이드만 보이게 함
-            }
-            currentFloatingMenuSlideIndex = 0; // 현재 인덱스도 0으로 설정
-            // 인디케이터도 첫 번째로 설정
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-            indicators.forEach((dot, index) => {
-                dot.classList.toggle('active', index === 0);
+            let initialTargetIndex = 0; // 보이는 슬라이드 기준 첫번째
+            let initialDomIndex = 0;    // DOM 기준 첫번째
+
+            if (visibleFloatingMenuSlides === 2) { // 1번 슬라이드가 숨겨진 상태라면
+                // initialTargetIndex는 0 (보이는 것 중 첫번째)
+                initialDomIndex = 1; // DOM에서는 Page2가 첫번째로 보임
+                slider.style.transform = `translateX(0%)`; // Page2가 시작점이므로 slider는 0%
+            } else { // 3개 다 보일 때
+                // initialTargetIndex는 0
+                initialDomIndex = 0; // DOM에서도 Page1이 첫번째
+                slider.style.transform = `translateX(0%)`;
+            }
+
+            if (allSlides[initialDomIndex]) {
+                allSlides[initialDomIndex].style.opacity = '1';
+            }
+            currentFloatingMenuSlideIndex = initialTargetIndex; // 보이는 슬라이드 기준으로 현재 인덱스 저장
+
+            // 인디케이터 업데이트
+            let visibleIndicatorCount = 0;
+            indicators.forEach((dot) => {
+                if (dot.style.display !== 'none') {
+                    dot.classList.toggle('active', visibleIndicatorCount === initialTargetIndex);
+                    visibleIndicatorCount++;
+                }
             });
 
 
             if (chatInput) chatInput.blur();
-            hideTooltip(); // 기존 툴팁 숨기기
+            hideTooltip();
         }
     }
 
@@ -3262,152 +3244,284 @@ async function displayApiResponseElements(parsedResp) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-        async function handleFloatingMenuItemClick(action) {
+    async function handleFloatingMenuItemClick(action) {
         console.log(`[FloatingMenu] 메뉴 아이템 클릭: ${action}`);
-        hideFloatingMenu(); // 아이템 클릭 시 기본적으로 메뉴를 닫음 (필요에 따라 조절)
+        hideFloatingMenu(); // 아이템 클릭 시 기본적으로 메뉴를 닫음
 
-        // 각 action에 따른 실제 동작 구현
+        let userMessageText = "";
+        let rubyActionText = null;
+        let rubyAssistantMsg = "";
+        let selectedTarotTypeForProfile = null; // userProfile.사용자의고민 에 저장될 값
+
+        // data-action 값에 따라 메시지 설정
         switch (action) {
+            case 'tarot_today_fortune': // HTML의 data-action 값과 일치해야 함
+                userMessageText = "오늘, 좋은일이 생길까?";
+                rubyActionText = "루비가 눈을 반짝이며";
+                rubyAssistantMsg = "당연하지! 타로로 한번 살펴보자 🎉";
+                selectedTarotTypeForProfile = TAROT_TYPES.TODAY_FORTUNE; // 또는 "오늘의 운세" 직접 사용
+                break;
+            case 'tarot_love_crush':
+                userMessageText = "그 애가 날 좋아할까?";
+                rubyActionText = "루비의 눈이 하트가 됐어요";
+                rubyAssistantMsg = "😍 확실한건 너는 정말 매력적이란거야!<br>타로로 그 분의 마음을 확인해볼까?";
+                selectedTarotTypeForProfile = TAROT_TYPES.LOVE_LUCK;
+                break;
+            case 'tarot_pet_mood':
+                userMessageText = "반려동물의 오늘 기분이 궁금해";
+                rubyActionText = "루비가 꼬리를 살랑거리며";
+                rubyAssistantMsg = "😁 분명 기분이 좋을거야! 타로로 알아볼까?";
+                selectedTarotTypeForProfile = "반려동물 기분"; // TAROT_TYPES에 없다면 직접 문자열
+                break;
+            case 'tarot_lotto':
+                userMessageText = "로또번호가 진짜 궁금해";
+                rubyActionText = "루비가 눈을 반짝거려요";
+                rubyAssistantMsg = "🎩 그럼 오늘의 '루또' 를 마법으로 들여다 보자!";
+                selectedTarotTypeForProfile = "로또 번호"; // TAROT_TYPES에 없다면 직접 문자열
+                break;
+            case 'tarot_is_this_some':
+                userMessageText = "이거 썸타는건가?";
+                rubyActionText = "루비가 고개를 갸웃하며"; // "적당히"
+                rubyAssistantMsg = "음... 그 미묘한 기류, 타로로 한번 살펴볼까? 🧐"; // "적당히"
+                selectedTarotTypeForProfile = "썸 확인";
+                break;
+            case 'tarot_money_flow':
+                userMessageText = "오늘의 재물운이 궁금해!";
+                rubyActionText = "루비가 지폐를 세는 시늉을 하며"; // "적당히"
+                rubyAssistantMsg = "좋아! 돈의 흐름이 어디로 향하는지 한번 보자! 💸"; // "적당히"
+                selectedTarotTypeForProfile = TAROT_TYPES.MONEY_FLOW;
+                break;
+            case 'tarot_exam_luck':
+                userMessageText = "얼마 안남은 시험, 잘 볼수 있을까?";
+                rubyActionText = "루비가 응원의 눈빛을 보내며"; // "적당히"
+                rubyAssistantMsg = "분명 잘 해낼 수 있을 거야! 타로로 기운을 북돋아 줄게! 📖"; // "적당히"
+                selectedTarotTypeForProfile = TAROT_TYPES.STUDY_ACADEMIC;
+                break;
+            case 'tarot_relationship_luck':
+                userMessageText = "오늘의 대인관계운이 궁금해";
+                rubyActionText = "루비가 악수하는 손짓을 하며"; // "적당히"
+                rubyAssistantMsg = "좋은 인연이 가득할지, 타로에게 물어보자! 🤝"; // "적당히"
+                selectedTarotTypeForProfile = "대인관계운";
+                break;
+            case 'tarot_health_luck':
+                userMessageText = "건강운이 궁금해";
+                rubyActionText = "루비가 건강 주스를 마시는 흉내를 내며"; // "적당히"
+                rubyAssistantMsg = "몸도 마음도 건강한 하루가 되길! 타로로 건강의 기운을 살펴보자! 💪"; // "적당히"
+                selectedTarotTypeForProfile = TAROT_TYPES.SOMEONES_HEALTH; // 본인 건강으로 해석
+                break;
+            case 'tarot_salary_increase':
+                userMessageText = "이번에 연봉 오를 수 있을까?";
+                rubyActionText = "루비가 엄지를 척 들며"; // "적당히"
+                rubyAssistantMsg = "두근두근! 너의 노력이 결실을 맺을지, 타로 카드가 알려줄 거야! 💼"; // "적당히"
+                selectedTarotTypeForProfile = TAROT_TYPES.WORK_CAREER;
+                break;
+
+            // --- 기존 메뉴 아이템 처리 ---
             case 'new_chat':
                 console.log("[FloatingMenu] '새로운 상담 시작하기' 선택됨.");
-                // 기존 상담 내용 및 상태 초기화 로직
                 clearChatArea();
                 conversationHistory = [];
                 userProfile = initializeUserProfile();
-                currentConsultationStage = 0; // advanceConsultationStage(1)이 호출될 것이므로 0으로 설정
+                currentConsultationStage = 0;
                 isSessionTimedOut = false;
                 isFirstBotMessageDisplayed = false;
                 showStage10EntryEmoticon = false;
                 isInitialApiCallAfterObjectiveTest = false;
-                if (rubyImageElement) rubyImageElement.classList.remove('blurred'); // 루비 이미지 블러 해제
-                // loadedPrompts = {}; // 프롬프트는 앱 시작 시 한 번 로드되므로, 재로드는 필요 없을 수 있음 (정책에 따라 결정)
-                // await initializeApp(); // 전체 앱 초기화보다는 단계 이동으로 처리
-                advanceConsultationStage(1); // 1단계로 이동
-                break;
+                if (rubyImageElement) rubyImageElement.classList.remove('blurred');
+                advanceConsultationStage(1);
+                return; // 이 케이스는 아래 로직을 타지 않고 종료
             case 'retest_sync':
                 console.log("[FloatingMenu] '싱크타입 다시 테스트' 선택됨.");
-                if (currentConsultationStage >= 10) { // 이미 대화 단계에 진입한 경우
-                     // 사용자에게 다시 테스트할 것인지 확인하는 메시지를 보낼 수 있음
-                     // 여기서는 즉시 테스트 시작으로 가정
-                    clearChatArea(); // 이전 대화 내용 일부 또는 전체 지우기 (선택적)
-                     // userProfile의 싱크타입 관련 정보 초기화
+                // (이전과 동일한 싱크타입 재테스트 로직)
+                if (currentConsultationStage >= 10) {
+                    clearChatArea();
                     updateUserProfile({
-                        "주관식질문1": null, "주관식답변1": null,
-                        "주관식질문2": null, "주관식답변2": null,
-                        "주관식질문3": null, "주관식답변3": null,
-                        "주관식질문4": null, "주관식답변4": null,
-                        "주관식질문5": null, "주관식답변5": null,
-                        "객관식질문과답변": [],
+                        "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
+                        "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
+                        "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
                         "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
-                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
-                        "시나리오": null // 테스트 다시 하므로 시나리오 초기화
+                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
                     });
-                    현재주관식질문인덱스 = 0; // 주관식 질문 인덱스 초기화
-                    currentObjectiveQuestionIndex = 0; // 객관식 질문 인덱스 초기화
+                    현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
                     if (rubyImageElement) rubyImageElement.classList.remove('blurred');
-                    advanceConsultationStage(4); // 주관식 질문 단계(4)로 이동
-                } else if (currentConsultationStage < 4) { // 아직 싱크타입 테스트 시작 전
-                     현재주관식질문인덱스 = 0;
-                     advanceConsultationStage(4);
-                } else { // 이미 싱크타입 테스트 진행 중이거나 완료 직후
-                    // 현재 테스트를 중단하고 처음부터 다시 시작
+                    advanceConsultationStage(4);
+                } else if (currentConsultationStage < 4) {
+                     현재주관식질문인덱스 = 0; advanceConsultationStage(4);
+                } else {
                     const existingObjectiveContainers = section2.querySelectorAll('.objective-questions-container');
                     existingObjectiveContainers.forEach(container => container.remove());
                     updateUserProfile({
-                        "주관식질문1": null, "주관식답변1": null,
-                        "주관식질문2": null, "주관식답변2": null,
-                        "주관식질문3": null, "주관식답변3": null,
-                        "주관식질문4": null, "주관식답변4": null,
-                        "주관식질문5": null, "주관식답변5": null,
-                        "객관식질문과답변": [],
+                        "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
+                        "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
+                        "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
                         "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
-                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
-                        "시나리오": null
+                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
                     });
-                     현재주관식질문인덱스 = 0;
-                     currentObjectiveQuestionIndex = 0;
+                     현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
                      if (rubyImageElement) rubyImageElement.classList.remove('blurred');
                      advanceConsultationStage(4);
                 }
-                break;
-            // --- 다른 메뉴 아이템에 대한 케이스 추가 ---
-            case 'continue_chat':
-                console.log("[FloatingMenu] '지난 상담 이어하기' 선택됨. (준비중)");
-                await displayHardcodedUIElements("루비가 미안한 표정으로", "앗, 이 기능은 아직 준비 중이야! [exp008] 조금만 기다려줘!", [], handleButtonClick);
-                break;
-            case 'guestbook':
-                console.log("[FloatingMenu] '루비의 방명록' 선택됨. (준비중)");
-                await displayHardcodedUIElements("루비가 수줍어하며", "내 방명록은 지금 열심히 만들고 있어! [exp003] 곧 보여줄게!", [], handleButtonClick);
-                break;
-            // ... 나머지 준비중인 기능들에 대한 임시 메시지 처리
+                return; // 이 케이스는 아래 로직을 타지 않고 종료
             default:
-                if (action && action.startsWith('friend_')) {
-                    console.log(`[FloatingMenu] '${action}' 친구 만나보기 선택됨. (준비중)`);
-                    await displayHardcodedUIElements("루비가 신나하며", `내 친구 ${action.replace('friend_', '')}는 아직 소개 준비 중이야! [exp001] 기대해도 좋아!`, [], handleButtonClick);
+                if (action && (action.startsWith('tarot_') || action.includes('_luck') || action.includes('start_recommended_tarot') )) {
+                    // 기타 타로 관련 액션이 있지만 위에서 명시적으로 처리되지 않은 경우 (예: 2번 바의 추천 타로)
+                    userMessageText = `"${action.replace('tarot_', '').replace(/_/g, ' ')}" 주제로 타로를 보고 싶어.`;
+                    rubyActionText = "루비가 흥미로운 표정으로";
+                    rubyAssistantMsg = "좋아! 그 주제에 대해서도 한번 살펴보자!";
+                    selectedTarotTypeForProfile = action; // action 값을 그대로 사용
                 } else if (action) {
-                    console.log(`[FloatingMenu] '${action}' 선택됨. (준비중)`);
-                     await displayHardcodedUIElements("루비가 머쓱해하며", "이 기능은 아직 공사 중이야! [exp007] 조금만 더 시간을 줘!", [], handleButtonClick);
+                    console.log(`[FloatingMenu] '${action}' 선택됨. (준비중 또는 기타 액션)`);
+                    await displayHardcodedUIElements("루비가 머쓱해하며", "이 기능은 아직 준비 중이거나, 특별한 동작이 없어! [exp007]", [], handleButtonClick);
+                    return; // 준비 중인 기능은 아래 단계로 넘어가지 않음
                 } else {
-                    console.warn(`[FloatingMenu] 알 수 없는 액션: ${action}`);
+                    console.warn(`[FloatingMenu] 알 수 없는 액션 또는 타로 주제 아님: ${action}`);
+                    return;
                 }
                 break;
         }
+
+        // userMessageText와 rubyAssistantMsg가 설정된 경우 (타로 주제 선택 시)
+        if (userMessageText && rubyAssistantMsg && selectedTarotTypeForProfile) {
+            // 1. 사용자 메시지 표시
+            const userMessageElement = createTextMessageElement(userMessageText, true);
+            if(section2) section2.appendChild(userMessageElement);
+            applyFadeIn(userMessageElement);
+            conversationHistory.push({ role: "user", parts: [{ text: userMessageText }] });
+            scrollToBottom(true);
+
+            // 2. 루비 액션 및 메시지 표시 (displayHardcodedUIElements 사용)
+            // displayHardcodedUIElements는 내부적으로 typing indicator, action text, bot message 애니메이션 등을 처리
+            await displayHardcodedUIElements(rubyActionText, rubyAssistantMsg, [], handleButtonClick);
+            // displayHardcodedUIElements 내부에서 conversationHistory에도 모델 턴을 추가하므로 중복 추가 방지
+
+            // 3. 상태 업데이트 및 단계 이동
+            currentSelectedTarotType = selectedTarotTypeForProfile; // 선택된 타로 주제 저장
+            updateUserProfile({ "사용자의고민": currentSelectedTarotType }); // 프로필에도 저장
+            if (rubyImageElement && !rubyImageElement.classList.contains('blurred')) {
+                rubyImageElement.classList.add('blurred');
+            }
+            advanceConsultationStage(2); // 2단계로 이동
+        }
     }
 
-        function updateFloatingMenuVisibility() {
+    // --- 플로팅 메뉴 슬라이드 관련 전역(또는 상위 스코프) 변수 ---
+    // let currentFloatingMenuSlideIndex = 0; // 이미 존재
+    // const totalFloatingMenuSlides = 3; // 이 값을 동적으로 변경
+    let visibleFloatingMenuSlides = 3; // 실제 보이는 슬라이드 수
+
+    function updateFloatingMenuVisibility() {
         const floatingMenuPage1 = document.getElementById('floatingMenuPage1');
-        if (floatingMenuPage1) {
-            if (currentConsultationStage === 1) {
-                floatingMenuPage1.classList.remove('hidden-by-stage');
-            } else {
-                floatingMenuPage1.classList.add('hidden-by-stage');
+        const slider = document.querySelector('.floating-menu-slider');
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
+        const indicatorContainer = document.querySelector('.floating-menu-indicator-container');
+        const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
+
+        if (!floatingMenuPage1 || !slider || !indicatorContainer || indicatorDots.length < 3) {
+            console.warn("[updateFloatingMenuVisibility] 플로팅 메뉴 관련 중요 DOM 요소 누락.");
+            return;
+        }
+
+        if (currentConsultationStage === 1) {
+            floatingMenuPage1.classList.remove('hidden-by-stage');
+            floatingMenuPage1.style.display = ''; // 명시적으로 display 복원 (CSS에서 flex로 설정됨)
+            visibleFloatingMenuSlides = 3;
+            slider.style.width = '300%'; // 3개 슬라이드 너비
+            allSlides.forEach(slide => {
+                slide.style.width = `calc(100% / 3)`;
+            });
+            // 인디케이터 3개 모두 보이도록
+            indicatorDots.forEach(dot => dot.style.display = '');
+            // 현재 슬라이드가 0번이 아니었다면 0번으로 강제 이동 (1단계 진입 시)
+            // if(currentFloatingMenuSlideIndex !== 0) handleFloatingMenuSlide(0);
+        } else {
+            floatingMenuPage1.classList.add('hidden-by-stage');
+            floatingMenuPage1.style.display = 'none'; // 확실히 숨김
+            visibleFloatingMenuSlides = 2; // 2, 3번 슬라이드만 보임
+            slider.style.width = '200%'; // 2개 슬라이드 너비
+            // 보이는 슬라이드(2,3번)들의 너비 조정
+            document.getElementById('floatingMenuPage2').style.width = `calc(100% / 2)`;
+            document.getElementById('floatingMenuPage3').style.width = `calc(100% / 2)`;
+
+            // 인디케이터 1번 숨기고, 2,3번만 보이도록
+            indicatorDots[0].style.display = 'none';
+            indicatorDots[1].style.display = '';
+            indicatorDots[2].style.display = '';
+
+            // 만약 현재 슬라이드가 숨겨진 0번이었다면, 다음 유효한 슬라이드(여기서는 2번 바, 즉 인덱스 1)로 이동
+            if (currentFloatingMenuSlideIndex === 0) {
+                handleFloatingMenuSlide(1, true); // 1번 인덱스(두 번째 보이는 슬라이드)로 강제 이동
             }
         }
+        console.log(`[updateFloatingMenuVisibility] 현재 보이는 플로팅 슬라이드 수: ${visibleFloatingMenuSlides}`);
     }
     // --- 플로팅 메뉴 슬라이드 관련 상태 변수 ---
     let currentFloatingMenuSlideIndex = 0;
     const totalFloatingMenuSlides = 3; // 플로팅 바의 총 개수
 
-    function handleFloatingMenuSlide(targetIndex) {
-        // 메뉴가 보이지 않는 상태이거나, 이미 해당 슬라이드이거나, 유효하지 않은 인덱스면 변경 없음
-        if (!document.getElementById('floatingMenuContainer').classList.contains('visible') ||
-            targetIndex === currentFloatingMenuSlideIndex ||
-            targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
+    // --- 플로팅 메뉴 슬라이드 관련 상태 변수 ---
+    // let currentFloatingMenuSlideIndex = 0; // 이미 존재
+    // let visibleFloatingMenuSlides = 3; // 이미 존재 (updateFloatingMenuVisibility에서 관리)
 
-            if (targetIndex < 0 || targetIndex >= totalFloatingMenuSlides) {
-                console.warn("[FloatingMenu] 유효하지 않은 슬라이드 인덱스:", targetIndex);
+    function handleFloatingMenuSlide(targetIndex, forceMove = false) {
+        const slider = document.querySelector('.floating-menu-slider');
+        const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
+        const menuContainer = document.getElementById('floatingMenuContainer');
+
+        // 메뉴가 보이지 않거나, forceMove가 아닌데 이미 해당 슬라이드거나, 유효하지 않은 인덱스면 변경 없음
+        if (!menuContainer.classList.contains('visible') ||
+            (!forceMove && targetIndex === currentFloatingMenuSlideIndex) ||
+            targetIndex < 0 || targetIndex >= visibleFloatingMenuSlides ) { // visibleFloatingMenuSlides 사용
+
+            if (targetIndex < 0 || targetIndex >= visibleFloatingMenuSlides) {
+                console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetIndex}, 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
             }
             return;
         }
 
-        const slider = document.querySelector('.floating-menu-slider');
-        const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
-        if (slider && allSlides.length === totalFloatingMenuSlides) {
-            // 1. 이전 활성 슬라이드 페이드 아웃
-            if (allSlides[currentFloatingMenuSlideIndex]) {
-                allSlides[currentFloatingMenuSlideIndex].style.opacity = '0';
+        if (slider && allSlides.length >= visibleFloatingMenuSlides) { // allSlides.length는 항상 3이지만, visibleFloatingMenuSlides 기준으로 로직 수행
+            // 실제 DOM 슬라이드 인덱스를 계산 (1번이 숨겨졌을 때 targetIndex 0은 실제로는 DOM의 1번 인덱스)
+            let actualDomTargetIndex = targetIndex;
+            let actualDomCurrentIndex = currentFloatingMenuSlideIndex;
+
+            if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
+                // 1번 슬라이드가 숨겨진 경우, 인자로 받은 targetIndex는 보이는 슬라이드 기준의 인덱스임.
+                // targetIndex 0 -> DOM 인덱스 1 (Page2)
+                // targetIndex 1 -> DOM 인덱스 2 (Page3)
+                actualDomTargetIndex = targetIndex + 1;
+                actualDomCurrentIndex = currentFloatingMenuSlideIndex +1; // 이전 current도 보이는 슬라이드 기준이었으므로 +1
             }
 
-            // 2. 슬라이더 위치 이동
-            slider.style.transform = `translateX(-${targetIndex * (100 / totalFloatingMenuSlides)}%)`;
 
-            // 3. 새로운 목표 슬라이드 페이드 인 (슬라이더 이동 애니메이션과 함께 시작될 수 있도록 짧은 딜레이 또는 requestAnimationFrame 사용)
-            // requestAnimationFrame을 사용하면 브라우저가 다음 리페인트 전에 코드를 실행하여 더 부드러울 수 있음
+            // 1. 이전 활성 슬라이드 페이드 아웃 (실제 DOM 인덱스 사용)
+            if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) { // 현재와 목표가 다를때만 페이드아웃
+                allSlides[actualDomCurrentIndex].style.opacity = '0';
+            }
+
+            // 2. 슬라이더 위치 이동 (보이는 슬라이드 수와 인덱스 기준)
+            // translateX 계산 시, (100 / visibleFloatingMenuSlides) 를 사용해야 함.
+            slider.style.transform = `translateX(-${targetIndex * (100 / visibleFloatingMenuSlides)}%)`;
+
+
+            // 3. 새로운 목표 슬라이드 페이드 인 (실제 DOM 인덱스 사용)
             requestAnimationFrame(() => {
-                if (allSlides[targetIndex]) {
-                    allSlides[targetIndex].style.opacity = '1';
+                if (allSlides[actualDomTargetIndex]) {
+                    allSlides[actualDomTargetIndex].style.opacity = '1';
                 }
             });
 
-            currentFloatingMenuSlideIndex = targetIndex;
+            currentFloatingMenuSlideIndex = targetIndex; // 현재 인덱스는 *보이는 슬라이드 기준*으로 저장
 
-            // 4. 인디케이터 업데이트
-            indicators.forEach((dot, index) => {
-                dot.classList.toggle('active', index === targetIndex);
+            // 4. 인디케이터 업데이트 (보이는 인디케이터만 고려)
+            let visibleIndicatorIndex = 0;
+            indicators.forEach((dot, domIndex) => {
+                if (dot.style.display !== 'none') { // 보이는 인디케이터만 대상으로
+                    dot.classList.toggle('active', visibleIndicatorIndex === targetIndex);
+                    visibleIndicatorIndex++;
+                }
             });
-            console.log(`[FloatingMenu] 슬라이드 이동: ${targetIndex}번 인덱스`);
+            console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetIndex}번 (DOM ${actualDomTargetIndex}번)`);
         }
     }
      function setupEventListeners() {
@@ -3477,25 +3591,57 @@ async function displayApiResponseElements(parsedResp) {
         const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
         indicatorDots.forEach(dot => {
             dot.addEventListener('click', (event) => {
-                const targetIndex = parseInt(event.currentTarget.dataset.slideTarget, 10);
-                if (!isNaN(targetIndex)) {
-                    handleFloatingMenuSlide(targetIndex);
+                // event.currentTarget.dataset.slideTarget 에서 값을 가져오도록 수정
+                const targetIndexAttr = event.currentTarget.getAttribute('data-slide-target');
+                if (targetIndexAttr !== null) {
+                    const targetIndex = parseInt(targetIndexAttr, 10);
+                    if (!isNaN(targetIndex)) {
+                        handleFloatingMenuSlide(targetIndex);
+                    }
                 }
             });
         });
 
-        // 플로팅 메뉴 내부 이미지 버튼들 이벤트 리스너 (data-action 속성 활용)
-        const floatingMenuItems = document.querySelectorAll('.floating-image-button, .floating-two-column-image-item'); // 2번 바 단일 이미지는 필요시 추가
-        floatingMenuItems.forEach(item => {
+        // --- 플로팅 메뉴 내부 아이템 클릭 이벤트 리스너 (수정된 부분) ---
+        // data-action 속성을 가진 모든 하위 요소를 대상으로 이벤트 위임 방식을 사용할 수도 있지만,
+        // 여기서는 개별적으로 추가하는 방식을 유지하되, 선택자를 더 명확히 합니다.
+        // 플로팅 메뉴 1번 바의 아이템들
+        const floatingPage1Items = document.querySelectorAll('#floatingMenuPage1 .floating-image-list-item');
+        floatingPage1Items.forEach(item => {
             item.addEventListener('click', (event) => {
                 const action = event.currentTarget.dataset.action;
+                console.log(`[Event Listener] Page 1 Item clicked. Action: ${action}`); // 클릭 로그 추가
                 if (action) {
                     handleFloatingMenuItemClick(action);
-                    // 메뉴 아이템 클릭 후 메뉴를 닫을지 여부는 handleFloatingMenuItemClick 내부에서 결정하거나 여기서 일괄 처리
-                    // 예: hideFloatingMenu();
                 }
             });
         });
+
+        // 플로팅 메뉴 2번 바의 아이템 (단일 이미지)
+        const floatingPage2Image = document.querySelector('#floatingMenuPage2 .floating-single-image-container img');
+        if (floatingPage2Image) {
+            floatingPage2Image.addEventListener('click', (event) => {
+                const action = event.currentTarget.dataset.action;
+                console.log(`[Event Listener] Page 2 Item clicked. Action: ${action}`); // 클릭 로그 추가
+                if (action) {
+                    handleFloatingMenuItemClick(action);
+                }
+            });
+        }
+
+        // 플로팅 메뉴 3번 바의 아이템들
+        const floatingPage3Items = document.querySelectorAll('#floatingMenuPage3 .floating-two-column-image-item');
+        floatingPage3Items.forEach(item => {
+            item.addEventListener('click', (event) => {
+                const action = event.currentTarget.dataset.action;
+                console.log(`[Event Listener] Page 3 Item clicked. Action: ${action}`); // 클릭 로그 추가
+                if (action) {
+                    handleFloatingMenuItemClick(action);
+                }
+            });
+        });
+        // --- 플로팅 메뉴 내부 아이템 클릭 이벤트 리스너 끝 ---
+
 
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }
