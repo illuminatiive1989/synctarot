@@ -2918,7 +2918,7 @@ ${discSummary}
                 apiReceivedSyncType && apiReceivedReason) {
                 
                 // ★★★ 시나리오 1 설정 ★★★
-                const scenario1 = "시나리오 1 - 싱크타입 테스트 풀이 필요";
+                const scenario1 = "시나리오 1 - 싱크타입 테스트 완료 단계 : 이름묻기, 주관식&객관식풀이, 성운공개, 싱크타입공개, 마지막 정리 순으로 풀이 필요";
                 profileUpdate.시나리오 = scenario1; // API 응답에 시나리오 필드가 없으므로 직접 추가
                 updateUserProfile(profileUpdate);
                 console.log(`[sendApiRequest] 싱크타입 결정 성공 및 시나리오 1 설정. 프로필 업데이트:`, userProfile);
