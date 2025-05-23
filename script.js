@@ -268,33 +268,22 @@ function initializeUserProfile() {
         "사용자이름": null, "사용자애칭": null, "사용자가좋아하는것": null, "사용자의마음을아프게하는것": null,
         "사용자가싫어하는것": null, "사용자의나이성별": null, "사용자의고민": null,
 
-        // --- 주관식 질문 (5개) ---
         "주관식질문1": null, "주관식답변1": null,
         "주관식질문2": null, "주관식답변2": null,
         "주관식질문3": null, "주관식답변3": null,
         "주관식질문4": null, "주관식답변4": null,
         "주관식질문5": null, "주관식답변5": null,
 
-        // --- 객관식 질문 (12개) 및 DISC 점수 ---
-        // 객관식 질문과 답변은 배열로 관리하거나, 각 질문/답변을 개별 키로 저장할 수 있습니다.
-        // 여기서는 DISC 점수만 우선적으로 추가하고, 필요시 질문/답변 저장 방식을 구체화합니다.
-        "객관식질문과답변": [], // 예시: [{ question: "질문1", answer: 3 }, ...] 형태로 저장 가능
+        "객관식질문과답변": [],
         "DISC_D_점수": 0,
         "DISC_I_점수": 0,
         "DISC_S_점수": 0,
         "DISC_C_점수": 0,
 
-        // --- 기존 싱크타입 관련 필드 제거 또는 수정 ---
-        // "싱크타입질문1": null, "싱크타입답변1": null, // 기존 주관식 필드 제거
-        // "싱크타입질문2": null, "싱크타입답변2": null,
-        // "싱크타입질문3": null, "싱크타입답변3": null,
-        // "싱크타입객관식질문1": null, "싱크타입객관식답변1": null, // 기존 객관식 필드 제거
-        // ... (나머지 기존 객관식 질문/답변 필드도 제거)
-        // "싱크타입타로카드선택": null, // 타로 카드 뽑기 제거로 인해 필드 제거
-
         "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
         "사용자의감정상태": null,
-        "선택된타로카드들": []
+        "선택된타로카드들": [],
+        "시나리오": null // ★★★ 추가된 필드 ★★★
     };
 }
     // --- 프롬프트 로드 함수 ---
@@ -2326,6 +2315,9 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         let hardcodedSuggestions = [];
         let shouldDisplayHardcodedUI = false;
 
+        // 시나리오 값 설정을 위한 임시 변수
+        let scenarioToSet = null;
+
         if (currentConsultationStage === 1) {
             currentSelectedTarotType = buttonText;
             if (rubyImageElement && !rubyImageElement.classList.contains('blurred')) {
@@ -2355,6 +2347,11 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 현재주관식질문인덱스 = 0;
                 nextStage = 4;
             } else if (buttonText === "바쁘니깐 나중에할게") {
+                // 시나리오 3
+                scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
+                updateUserProfile({ "시나리오": scenarioToSet });
+                console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+
                 hardcodedAction = "루비가 아쉬워하며";
                 hardcodedMsgWithTags = "에고 그렇구나.. 좋아 그러면 바로 타로를 시작하자!";
                 await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
@@ -2362,7 +2359,7 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 currentConsultationStage = 10;
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
-                messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다.";
+                messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
                 await sendApiRequest(0);
                 return;
             }
@@ -2379,19 +2376,26 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 } else if (buttonText === "처음으로 돌아가기") {
                     nextStage = 1;
                 }
-            } else {
+            } else { // tempSelectedConstellation이 설정된 후 (즉, 성운 선택 후 싱크타입 선택 단계)
                 const constellationData = CONSTELLATIONS_DATA[tempSelectedConstellation];
                 const cleanButtonText = buttonText.replace(" (싱크타입)", "");
                 if (constellationData && constellationData.syncTypes.includes(cleanButtonText)) {
-                    if (cleanButtonText === "기억안나") {
+                    if (cleanButtonText === "기억안나") { // 싱크타입을 "기억안나"로 선택
                         hardcodedAction = "루비가 고개를 갸웃하며";
                         hardcodedMsgWithTags = `이런, ${tempSelectedConstellation} 성운의 싱크타입도 기억나지 않는구나. 그럼 싱크타입 테스트를 다시 진행해볼까?`;
                         hardcodedSuggestions = ["응, 다시 테스트할게", "아니, 그냥 타로 볼래"];
                         shouldDisplayHardcodedUI = true;
+                        tempSelectedConstellation = null; // 다음 선택을 위해 초기화
+                    } else { // 특정 싱크타입 선택 완료 (시나리오 4)
+                        scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
+                        updateUserProfile({
+                            "사용자소속성운": tempSelectedConstellation,
+                            "결정된싱크타입": cleanButtonText,
+                            "시나리오": scenarioToSet
+                        });
+                        console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
                         tempSelectedConstellation = null;
-                    } else {
-                        updateUserProfile({ "사용자소속성운": tempSelectedConstellation, "결정된싱크타입": cleanButtonText });
-                        tempSelectedConstellation = null;
+
                         hardcodedAction = "루비가 기뻐하며";
                         hardcodedMsgWithTags = `좋아! 너의 정보가 업데이트되었어. 그럼 이제 바로 타로를 시작해보자!`;
                         await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
@@ -2399,22 +2403,27 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                         currentConsultationStage = 10;
                         showStage10EntryEmoticon = true;
                         isInitialApiCallAfterObjectiveTest = true;
-                        messageBuffer = "사용자가 자신의 성운과 싱크타입을 입력하고 타로를 시작합니다.";
+                        messageBuffer = `사용자가 자신의 성운(${userProfile.사용자소속성운})과 싱크타입(${userProfile.결정된싱크타입})을 입력하고 타로를 시작합니다. (시나리오 4)`;
                         await sendApiRequest(0);
                         return;
                     }
-                } else {
+                } else { // 잘못된 싱크타입 선택 (오류)
                      hardcodedAction = "루비가 당황하며";
                      hardcodedMsgWithTags = "앗, 뭔가 잘못 선택된 것 같아. [exp008] 다시 한번 골라줄래?";
-                     displayCurrentStageUI(); return;
+                     displayCurrentStageUI(); return; // 현재 3.5 단계 UI 다시 표시
                 }
             }
-            if (buttonText === "응, 다시 테스트할게") {
+            // 공통 처리: "응, 다시 테스트할게" 또는 "아니, 그냥 타로 볼래" 버튼 클릭 시
+            if (buttonText === "응, 다시 테스트할게") { // 싱크타입 테스트로 돌아감
                 tempSelectedConstellation = null;
                 현재주관식질문인덱스 = 0;
                 nextStage = 4;
-            } else if (buttonText === "아니, 그냥 타로 볼래") {
+            } else if (buttonText === "아니, 그냥 타로 볼래") { // 시나리오 2
+                scenarioToSet = "시나리오 2 - 기억이 안날수도 있다고 위로하며 타로 진행";
+                updateUserProfile({ "시나리오": scenarioToSet });
+                console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
                 tempSelectedConstellation = null;
+
                 hardcodedAction = "루비가 알겠다는 듯";
                 hardcodedMsgWithTags = "그렇구나.. 😭 알았어. 그럼 바로 타로를 보자!";
                 await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
@@ -2422,11 +2431,11 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 currentConsultationStage = 10;
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
-                messageBuffer = "사용자가 싱크타입 정보 입력 없이 타로를 시작합니다.";
+                messageBuffer = "사용자가 싱크타입 정보를 기억하지 못해 바로 타로를 시작합니다. (시나리오 2)";
                 await sendApiRequest(0);
                 return;
             }
-        } else if (currentConsultationStage === 4) {
+        } else if (currentConsultationStage === 4) { // 주관식 질문 단계
             if (buttonText === "아니 잠깐! 싱크타입이 뭐라구?") {
                 hardcodedAction = "루비가 다시 한번 설명하며";
                 hardcodedMsgWithTags = "싱크타입에 대해 다시 한번 설명해 줄게. 😊<br><br>이건 <b>다양한 심리학 이론과 우주의 기운</b>을 통해 너의 <b>본질적인 유형</b>을 찾아내는 과정이야.<br>이렇게 발견된 너의 <b>'영혼의 쌍둥이'</b> 같은 싱크타입은 타로 카드의 해석 정확도를 높이는 데 중요한 역할을 해. ✨<br><br>바로 테스트를 통해 너의 싱크타입을 알아볼래?";
@@ -2435,8 +2444,12 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                 setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
             } else if (buttonText === "오오 정말? 좋아!") {
                  현재주관식질문인덱스 = 0;
-                 displayCurrentStageUI(); return;
-            } else if (buttonText === "바쁘니깐 나중에할게") {
+                 displayCurrentStageUI(); return; // 4단계 UI 다시 표시 (첫 질문부터)
+            } else if (buttonText === "바쁘니깐 나중에할게") { // 시나리오 3
+                 scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
+                 updateUserProfile({ "시나리오": scenarioToSet });
+                 console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+
                  hardcodedAction = "루비가 아쉬워하며";
                  hardcodedMsgWithTags = "에고 그렇구나.. [exp007] 좋아 그러면 바로 타로를 시작하자!";
                  await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
@@ -2444,37 +2457,42 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
                  currentConsultationStage = 10;
                  showStage10EntryEmoticon = true;
                  isInitialApiCallAfterObjectiveTest = true;
-                 messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다.";
+                 messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
                  await sendApiRequest(0);
                  return;
             }
-        } else if (currentConsultationStage === 7) {
+        } else if (currentConsultationStage === 7) { // 객관식 질문 시작 전
             if (buttonText === "좋아! 시작하자 ✨") {
                 nextStage = 8;
             }
-        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) { // "응, 찾아줘!" 추가
+        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) { // 시나리오 1
             console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
+            
+            // 시나리오 1 설정은 sendApiRequest 내에서 싱크타입 결정 성공 후 다음 일반 API 호출 준비 시점에 하는 것이 더 적절.
+            // 여기서 미리 설정하면 싱크타입 결정 API 자체에 영향을 줄 수 있음.
+            // isRequestingSyncTypeResult = true; // sendApiRequest가 이 플래그를 사용함
+            // syncTypeResultRetryCount = 0;
 
-            // ★★★ 중요: 싱크타입 결정 요청 플래그 설정 ★★★
             isRequestingSyncTypeResult = true;
-            syncTypeResultRetryCount = 0; // 싱크타입 결정 API 재시도 횟수 초기화
-
-            currentConsultationStage = 10; // API 호출 전에 단계를 10으로 설정 (API 응답 후에도 10 유지)
-            showStage10EntryEmoticon = false; // 싱크타입 결정 후에는 일반 메시지가 나오므로 이모티콘 표시 안 함.
-                                             // 또는, 싱크타입 결정 후 나오는 첫 메시지에 이모티콘을 포함시키고 싶다면 true로 설정하고 sendApiRequest에서 처리.
-                                             // 여기서는 sendApiRequest에서 isRequestingSyncTypeResult가 false로 바뀐 후 showStage10EntryEmoticon을 true로 설정하므로,
-                                             // 여기서 false로 해도 괜찮음.
-            isInitialApiCallAfterObjectiveTest = false; // 이것은 싱크타입 "결과 후" 첫 일반 API 호출에 대한 플래그이므로, 여기서는 false.
-                                                        // sendApiRequest에서 싱크타입 결정 성공 후 true로 설정됨.
-
-            messageBuffer = ""; // 싱크타입 결정 API는 사용자 메시지 없이 프로필 정보만 사용
+            syncTypeResultRetryCount = 0;
+            // 시나리오 1은 싱크타입 결정 *후*의 첫 일반 API 호출에 적용되므로, 여기서는 설정하지 않음.
+            // updateUserProfile({ "시나리오": "시나리오 1 - 싱크타입 테스트 풀이 필요" }); // 여기서 하면 안됨
+            
+            currentConsultationStage = 10;
+            showStage10EntryEmoticon = false; 
+            isInitialApiCallAfterObjectiveTest = false; 
+            messageBuffer = ""; // 싱크타입 결정 API는 프로필만 사용
             console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
-            await sendApiRequest(0); // retryCount 0으로 시작
+            await sendApiRequest(0); // 싱크타입 결정 API 호출
             return;
         } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
+            // 10단계에서 사용자가 제안 버튼(sampleanswer)을 클릭한 경우
             console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
+            // 이 경우, userProfile.시나리오 값은 이미 이전 단계에서 설정되어 있어야 함.
+            // 여기서는 messageBuffer만 설정하고 API 호출
             messageBuffer = buttonText;
-            await sendApiRequest(0); return;
+            await sendApiRequest(0); 
+            return;
         }
 
 
@@ -2694,19 +2712,12 @@ async function handleMultipleCardSelection(selectedCardIds) {
         .then(() => displayTarotSelectionUI(cardsToRetry, handleMultipleCardSelection));
     }
 }
-async function sendApiRequest(retryCount = 0) {
+async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) { // isInternalRecursiveCall 파라미터 추가
     const MAX_RETRIES = 3;
     const MAX_SYNC_TYPE_RETRIES = 3;
     const RETRY_DELAY_BASE = 3000;
 
-    // isRequestingSyncTypeResult 와 syncTypeResultRetryCount는 전역 변수입니다.
-    // isApiLoading 또한 전역 변수입니다.
-
-    // 재귀 호출 시, 이전 호출의 isApiLoading 상태가 다음 호출에 영향을 주지 않도록 주의.
-    if (isApiLoading && retryCount === 0 && !isRequestingSyncTypeResult && !arguments[1] /* 내부 재귀 호출 플래그 부재 시 */) {
-        // arguments[1]은 이 함수 내부에서 재귀 호출 시 true를 전달하여 이 블록을 건너뛰도록 하기 위함 (임시 방편)
-        // 더 나은 방법은 명시적인 파라미터를 추가하거나, 상태 관리를 세밀하게 하는 것.
-        // 여기서는 일단 간단하게, 외부에서 최초 호출 시에만 이 중복 방지 로직이 강하게 작동하도록 함.
+    if (isApiLoading && retryCount === 0 && !isRequestingSyncTypeResult && !isInternalRecursiveCall) {
         console.log("[sendApiRequest] 이전 API 요청 처리 중 (외부 최초 호출 시 중복 방지). 새 요청 무시.");
         return;
     }
@@ -2718,16 +2729,14 @@ async function sendApiRequest(retryCount = 0) {
 
     let currentEffectiveRetry = isRequestingSyncTypeResult ? syncTypeResultRetryCount : retryCount;
     let maxEffectiveRetries = isRequestingSyncTypeResult ? MAX_SYNC_TYPE_RETRIES : MAX_RETRIES;
-
-    // 재귀 호출 시에는 currentEffectiveRetry가 0이 아닐 수 있으므로, 최초 호출 여부 명확히 판단
     const isFirstAttemptForThisType = currentEffectiveRetry === 0;
 
     console.log(`[sendApiRequest] API 호출 시작. isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}, 시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}`);
-    isApiLoading = true; // API 요청 시작 시 항상 true로 설정
+    isApiLoading = true;
 
-    // 재시도 시 UI (최초 시도에는 불필요)
-    if (currentEffectiveRetry > 0 && !isRequestingSyncTypeResult) { // 일반 API 재시도 시
+    if (currentEffectiveRetry > 0) { // 재시도 시 (싱크타입이든 일반이든)
         const retryActionText = "잠시만요 교신에 문제가 생겼나봐요..! 📡";
+        // (이하 액션 텍스트 표시 로직 - 이전과 동일)
         const actionEl = await createActionTextElement(retryActionText);
         if (section2 && actionEl) {
             section2.appendChild(actionEl);
@@ -2735,14 +2744,11 @@ async function sendApiRequest(retryCount = 0) {
             scrollToBottom(true);
             await new Promise(resolve => setTimeout(resolve, 50));
         }
-    } else if (currentEffectiveRetry > 0 && isRequestingSyncTypeResult) { // 싱크타입 API 재시도 시
-         console.log(`[sendApiRequest] 싱크타입 결정 API 재시도 UI 준비 (현재 ${currentEffectiveRetry +1}번째 시도)`);
-         // 필요시 여기에 싱크타입 재시도 관련 UI 로직 추가
     }
 
 
-    if (isFirstAttemptForThisType) { // 각 타입(싱크타입/일반)의 최초 시도에만 UI 변경
-        setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주로 메시지를 보내는 중...", true);
+    if (isFirstAttemptForThisType) {
+        setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주에서 메세지를 받아오는중.. 🎉.", true);
         showTypingIndicator();
     }
     setSendButtonLoading(true);
@@ -2750,12 +2756,13 @@ async function sendApiRequest(retryCount = 0) {
     const userMessageForApi = messageBuffer.trim() || (isRequestingSyncTypeResult ? "" : "진행해주세요.");
     let parsedResponse = null;
     let modelGeneratedText = "";
-    const currentIsRequestingSyncType = isRequestingSyncTypeResult;
+    const currentIsRequestingSyncType = isRequestingSyncTypeResult; // 현재 호출 사이클의 요청 타입
 
     try {
         console.log(`[sendApiRequest] 실제 API 요청 전송 시도. 현재 단계: ${currentConsultationStage}, isRequestingSyncTypeResult (호출 시점): ${currentIsRequestingSyncType}`);
         const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType);
 
+        // ... (userProfileItemsString, currentUserTurnTextForApiContent, contentsForAPI, requestBodyContent 생성 로직 - 이전과 동일, userProfile.시나리오 자동 포함됨)
         let userProfileItemsString = "";
         const profileKeysToIterate = Object.keys(userProfile);
         profileKeysToIterate.forEach(key => {
@@ -2777,7 +2784,7 @@ async function sendApiRequest(retryCount = 0) {
                 const questionKey = `주관식질문${questionNumber}`;
                 const questionText = userProfile[questionKey] || "해당 질문 없음";
                 displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`;
-            } else if (key.startsWith("주관식질문")) {
+            } else if (key.startsWith("주관식질문")) { // 주관식 질문 자체는 API 요청에 포함하지 않음 (답변만 포함)
                 return;
             } else {
                 displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨";
@@ -2793,6 +2800,7 @@ async function sendApiRequest(retryCount = 0) {
 ${userProfileItemsString.trim()}
 ${discSummary}
 루비가최근에보여준카드이미지: ${lastShownRubyCardImageId || "없음"}`;
+// userProfile.시나리오도 userProfileItemsString에 자동으로 포함됨.
 
         if (!currentIsRequestingSyncType && userMessageForApi) {
             currentUserTurnTextForApiContent += `\n[사용자 발화]\n${userMessageForApi}`;
@@ -2811,6 +2819,7 @@ ${discSummary}
             contents: contentsForAPI,
             generationConfig: { temperature: 0.2 },
         };
+
 
         if (isFirstAttemptForThisType) {
             console.log(`================ API REQUEST BODY (isRequestingSyncTypeResult: ${currentIsRequestingSyncType}) START ================`);
@@ -2836,52 +2845,55 @@ ${discSummary}
         }
         console.log("[sendApiRequest] API 응답 상태 코드:", response.status);
 
-        if (!response.ok) {
+        // ... (HTTP 에러 처리 및 파싱/구조 에러 재시도 로직 - 이전과 동일)
+        if (!response.ok) { // HTTP 에러 (4xx, 5xx 등)
             const errorDetail = `HTTP 상태 ${response.status}: ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
-            if (response.status >= 500 && response.status <= 599) {
-                if (currentEffectiveRetry < maxEffectiveRetries - 1) {
+            if (response.status >= 500 && response.status <= 599) { // 5xx 서버 에러
+                if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
                     console.warn(`[sendApiRequest] HTTP ${response.status} 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
-                    if (typingIndicatorElement) await hideTypingIndicator();
+                    if (typingIndicatorElement) await hideTypingIndicator(); 
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                    if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount); } // retryCount는 이전 값 유지
-                    else { return sendApiRequest(retryCount + 1); }
+                    if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                    else { return sendApiRequest(retryCount + 1, true); } // isInternalRecursiveCall true
                 }
             }
-            throw new Error(errorDetail);
+            throw new Error(errorDetail); // 재시도 불가 또는 5xx 아닌 에러
         }
 
-        try {
+        try { // 내용 파싱
             const responseData = JSON.parse(responseTextRaw);
             if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content &&
                 responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0] &&
                 typeof responseData.candidates[0].content.parts[0].text === 'string') {
                 modelGeneratedText = responseData.candidates[0].content.parts[0].text;
             } else { throw new Error("모델 응답 구조 이상, 유효 텍스트 없음"); }
-        } catch (e) {
+        } catch (e) { // JSON 파싱 실패 또는 위에서 throw된 "모델 응답 구조 이상"
             console.warn(`[sendApiRequest] 응답 내용 파싱/구조 오류: ${e.message}. 재시도 가능한지 확인...`);
-            if (currentEffectiveRetry < maxEffectiveRetries - 1) {
+            if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
                 console.warn(`[sendApiRequest] 응답 내용 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount); }
-                else { return sendApiRequest(retryCount + 1); }
+                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                else { return sendApiRequest(retryCount + 1, true); }
             }
             throw new Error(`API 응답 파싱/구조 최종 오류: ${e.message}`);
         }
         
         parsedResponse = extractAndParseJson(modelGeneratedText);
 
-        if (parsedResponse && parsedResponse.error) {
+        if (parsedResponse && parsedResponse.error) { // extractAndParseJson 내부에서 발생한 에러
             console.warn(`[sendApiRequest] extractAndParseJson 오류: ${parsedResponse.error}. 재시도 가능한지 확인...`);
-            if (currentEffectiveRetry < maxEffectiveRetries - 1) {
+            if (currentEffectiveRetry < maxEffectiveRetries - 1) { // 재시도 가능
                 console.warn(`[sendApiRequest] extractAndParseJson 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount); }
-                else { return sendApiRequest(retryCount + 1); }
+                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                else { return sendApiRequest(retryCount + 1, true); }
             }
             console.warn(`[sendApiRequest] extractAndParseJson 최종 오류: ${parsedResponse.error}.`);
+            // 최종 재시도 실패 시 parsedResponse는 에러 객체를 가짐. 이 객체를 다음 로직으로 전달.
         }
+
 
         lastApiResponse = parsedResponse;
 
@@ -2905,22 +2917,28 @@ ${discSummary}
                 apiReceivedConstellation && isValidConstellationName && 
                 apiReceivedSyncType && apiReceivedReason) {
                 
+                // ★★★ 시나리오 1 설정 ★★★
+                const scenario1 = "시나리오 1 - 싱크타입 테스트 풀이 필요";
+                profileUpdate.시나리오 = scenario1; // API 응답에 시나리오 필드가 없으므로 직접 추가
                 updateUserProfile(profileUpdate);
-                console.log("[sendApiRequest] 싱크타입 결정 성공. 프로필 업데이트:", profileUpdate);
+                console.log(`[sendApiRequest] 싱크타입 결정 성공 및 시나리오 1 설정. 프로필 업데이트:`, userProfile);
+
 
                 isRequestingSyncTypeResult = false; 
                 syncTypeResultRetryCount = 0; 
-                showStage10EntryEmoticon = true;
-                isInitialApiCallAfterObjectiveTest = true;
-                messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 내 성향에 맞는 타로 운세를 봐줘!`;
+                showStage10EntryEmoticon = true; // 다음 일반 대화 시작 시 이모티콘 표시
+                isInitialApiCallAfterObjectiveTest = true; // 다음이 10단계 첫 일반 API 호출임을 알림
+
+                messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 나는 ${userProfile.시나리오} 상황이야. 내 성향에 맞는 타로 운세를 봐줘!`;
                 
                 if (typingIndicatorElement) await hideTypingIndicator();
-                isApiLoading = false; // ★★★ 다음 API 호출 전에 isApiLoading을 false로 설정 ★★★
+                isApiLoading = false; 
                 console.log("[sendApiRequest] 싱크타입 결정 후 일반 API 호출 직전, isApiLoading = false");
-                return sendApiRequest(0, true); // 일반 API 호출, 내부 재귀 플래그 true 전달
+                return sendApiRequest(0, true); // 일반 API 호출, isInternalRecursiveCall = true
 
-            } else {
+            } else { // 싱크타입 결정 로직 실패 (내용 불일치 등)
                 let failureReason = "알 수 없는 이유";
+                // ... (failureReason 설정 로직 - 이전과 동일)
                 if (parsedResponse && parsedResponse.error) failureReason = `응답 파싱/내용 오류: ${parsedResponse.error}`;
                 else if (!profileUpdate) failureReason = "user_profile_update 필드 없음";
                 else if (!apiReceivedConstellationRaw) failureReason = "사용자소속성운 필드 없음 또는 빈 값 (원본)";
@@ -2936,14 +2954,20 @@ ${discSummary}
                     console.log(`[sendApiRequest] 싱크타입 결정 내용 검증 실패. 재시도 (${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RETRIES})`);
                     if (typingIndicatorElement) await hideTypingIndicator();
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (syncTypeResultRetryCount)));
-                    return sendApiRequest(retryCount); // 현재 일반 retryCount 전달
+                    return sendApiRequest(retryCount, true); // isInternalRecursiveCall = true
                 } else {
                     syncTypeResultRetryCount = 0; 
                     throw new Error(`싱크타입 결정 API 최종 실패 (내용 검증): ${failureReason}`);
                 }
             }
-        } else { 
+        } else { // 일반 API 응답 처리 (currentIsRequestingSyncType is false)
+            // ... (이전과 동일한 일반 API 응답 처리 로직) ...
             if (parsedResponse && !parsedResponse.error && parsedResponse.user_profile_update) {
+                // 일반 API 응답에서는 시나리오를 덮어쓰지 않도록 주의 (필요하다면 조건 추가)
+                if (parsedResponse.user_profile_update.시나리오 === undefined || parsedResponse.user_profile_update.시나리오 === null) {
+                    // API 응답에 시나리오가 없다면 기존 값 유지를 위해 delete 또는 값 복사 방지
+                    // delete parsedResponse.user_profile_update.시나리오; // 이렇게 하면 기존 시나리오 유지됨
+                }
                 updateUserProfile(parsedResponse.user_profile_update);
             }
 
@@ -2997,15 +3021,14 @@ ${discSummary}
                     setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100);
                  }
             }
-            // 일반 API 호출 성공 후에는 isApiLoading = false가 finally에서 처리됨.
         }
 
-    } catch (error) {
+    } catch (error) { // 모든 종류의 최종 에러 처리
         console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}):`, error);
         if (typingIndicatorElement) await hideTypingIndicator();
         const finalErrorMsgWithTags = `앗, 내부 시스템에 작은 문제가 생겼나 봐요! [exp008]<br>잠시 후 다시 시도해주시겠어요?<br><small>(오류: ${error.message.substring(0,120)}...)</small>`;
         let errorSuggestion = ["처음으로 돌아갈래요"];
-        const wasRequestingSyncTypeOnError = currentIsRequestingSyncType;
+        const wasRequestingSyncTypeOnError = currentIsRequestingSyncType; 
         isRequestingSyncTypeResult = false;
         syncTypeResultRetryCount = 0;
         await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, errorSuggestion, async (txt) => {
@@ -3017,39 +3040,27 @@ ${discSummary}
             } else if (txt === "싱크타입 없이 진행하기") {
                 currentConsultationStage = 10; showStage10EntryEmoticon = true; isInitialApiCallAfterObjectiveTest = true;
                 messageBuffer = "싱크타입 테스트 없이 바로 타로 상담을 진행합니다.";
+                updateUserProfile({ "시나리오": "시나리오 X - 싱크타입 없이 진행 (오류 후 선택)"}); // 임시 시나리오
                 if (typingIndicatorElement) await hideTypingIndicator();
-                isApiLoading = false; // 다음 호출 전 false로 설정
-                await sendApiRequest(0, true); // 내부 재귀 플래그 true
+                isApiLoading = false;
+                await sendApiRequest(0, true);
             }
         });
-        isApiLoading = false; // catch 블록에서도 isApiLoading 해제
+        isApiLoading = false; 
     } finally {
         console.log("[sendApiRequest] finally 블록 실행.");
-        // isApiLoading은 재귀 호출이 완료되거나 에러로 종료될 때 false로 설정됨.
-        // 이 함수가 return sendApiRequest()로 재귀 호출하는 경우,
-        // 해당 재귀 호출이 끝나고 그 함수의 finally가 실행될 때 isApiLoading이 false가 됨.
-        // 따라서, 현재 호출 스택의 가장 바깥쪽 finally에서만 isApiLoading을 최종적으로 false로 설정해야 함.
-        // 그러나 현재 로직상, 모든 실행 경로는 isApiLoading을 적절히 관리하거나,
-        // 재귀 호출이 끝나면 결국 이 finally에서 isApiLoading = false가 됨.
-        // 만약 싱크타입 결정 성공 후 바로 다음 sendApiRequest를 호출하고, 그 호출이 아직 진행 중이라면
-        // isApiLoading이 true여야 함.
-        // 현재 return sendApiRequest()는 await 없이 호출되므로,
-        // 싱크타입 결정 성공 후 일반 API 호출로 넘어갈 때, 이 finally가 먼저 실행될 수 있음.
-        // 이를 방지하기 위해, 재귀 호출 시에는 isApiLoading을 false로 설정하지 않도록 명확히 해야 함.
+        const isStillRecursiveCallPending = (currentIsRequestingSyncType && !isRequestingSyncTypeResult); // 현재 호출은 싱크타입이었고, 다음 호출은 일반 API일 예정
 
-        const isRecursiveCallPending = (currentIsRequestingSyncType && isRequestingSyncTypeResult === false); // 싱크타입 -> 일반으로 넘어가는 재귀
-
-        if (!isRecursiveCallPending) { // 재귀 호출이 예정되어 있지 않을 때만 로딩 해제
+        if (!isStillRecursiveCallPending) {
             isApiLoading = false;
             setSendButtonLoading(false);
-            if (isInitialApiCallAfterObjectiveTest && !currentIsRequestingSyncType) { // 현재 호출이 일반 API였고, initial 플래그가 있었다면
+            if (isInitialApiCallAfterObjectiveTest && !currentIsRequestingSyncType) {
                 isInitialApiCallAfterObjectiveTest = false;
                 console.log("[sendApiRequest] finally: isInitialApiCallAfterObjectiveTest 플래그 최종 해제.");
             }
         } else {
-            console.log("[sendApiRequest] finally: 재귀 호출 예정. isApiLoading 유지.");
+            console.log("[sendApiRequest] finally: 다음 일반 API 호출 예정. isApiLoading은 다음 호출 시작 시 관리됨.");
         }
-
 
         if (typingIndicatorElement && !isApiLoading) {
              await hideTypingIndicator();
