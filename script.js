@@ -2695,11 +2695,8 @@ async function handleMultipleCardSelection(selectedCardIds) {
     }
 }
 async function sendApiRequest(retryCount = 0) {
-    const MAX_RETRIES = 5; // 일반 API 최대 재시도
-    const MAX_SYNC_TYPE_RETRIES = 3; // 싱크타입 결정 API 최대 재시도
-
-    // isRequestingSyncTypeResult와 syncTypeResultRetryCount는 전역 또는 상위 스코프 변수여야 합니다.
-    // 이 함수는 호출될 때 이 전역 변수들의 현재 상태를 사용합니다.
+    const MAX_RETRIES = 5;
+    const MAX_SYNC_TYPE_RETRIES = 3;
 
     if (isApiLoading && retryCount === 0 && !isRequestingSyncTypeResult) {
         console.log("[sendApiRequest] 이전 API 요청 처리 중. 새 요청 무시.");
@@ -2710,14 +2707,13 @@ async function sendApiRequest(retryCount = 0) {
         return;
     }
 
-    // 현재 호출이 싱크타입 결정 요청인지, 일반 요청인지에 따라 재시도 횟수 관리
     let currentEffectiveRetry = isRequestingSyncTypeResult ? syncTypeResultRetryCount : retryCount;
     let maxEffectiveRetries = isRequestingSyncTypeResult ? MAX_SYNC_TYPE_RETRIES : MAX_RETRIES;
 
     console.log(`[sendApiRequest] API 호출 시작. isRequestingSyncTypeResult: ${isRequestingSyncTypeResult}, 시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}`);
     isApiLoading = true;
 
-    if (retryCount > 0 && !isRequestingSyncTypeResult) { // 일반 API 재시도 시에만 액션 텍스트
+    if (retryCount > 0 && !isRequestingSyncTypeResult) {
         const retryActionText = "잠시만요 교신에 문제가 생겼나봐요..! 📡";
         const actionEl = await createActionTextElement(retryActionText);
         if (section2 && actionEl) {
@@ -2728,7 +2724,6 @@ async function sendApiRequest(retryCount = 0) {
         }
     }
 
-    // 최초 호출 시 (일반 API의 retryCount 0 또는 싱크타입 API의 syncTypeResultRetryCount 0)
     if (currentEffectiveRetry === 0 ) {
         setChatInputDisabled(true, isRequestingSyncTypeResult ? "너의 싱크타입을 찾는 중... ✨" : "우주로 메시지를 보내는 중...", true);
         showTypingIndicator();
@@ -2740,11 +2735,9 @@ async function sendApiRequest(retryCount = 0) {
     let modelGeneratedText = "";
 
     try {
-        // sendApiRequest 시작 시점의 isRequestingSyncTypeResult 값으로 프롬프트 결정
         const currentIsRequestingSyncType = isRequestingSyncTypeResult;
         console.log(`[sendApiRequest] 실제 API 요청 전송 시도. 현재 단계: ${currentConsultationStage}, isRequestingSyncTypeResult (호출 시점): ${currentIsRequestingSyncType}`);
         const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType);
-
 
         let userProfileItemsString = "";
         const profileKeysToIterate = Object.keys(userProfile);
@@ -2828,12 +2821,21 @@ ${discSummary}
 
         if (!response.ok) {
             let errorDetail = `HTTP 상태 ${response.status}: ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
-            if (!currentIsRequestingSyncType && response.status >= 500 && response.status <= 599 && retryCount < MAX_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                return sendApiRequest(retryCount + 1);
+            // 500 에러는 isRequestingSyncTypeResult 여부와 관계없이 재시도 로직으로 연결될 수 있도록 조건 수정
+            if (response.status >= 500 && response.status <= 599) {
+                if (currentIsRequestingSyncType && syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) {
+                    // 싱크타입 요청 중 500 에러, 재시도 가능
+                } else if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) {
+                    // 일반 요청 중 500 에러, 재시도 가능
+                } else {
+                    throw new Error(errorDetail); // 재시도 횟수 초과 시 에러 발생
+                }
+            } else { // 5xx 에러가 아니면 즉시 에러 발생 (4xx 등)
+                 throw new Error(errorDetail);
             }
-            throw new Error(errorDetail);
+            // 5xx 에러이고 재시도 가능한 경우는 아래에서 처리
         }
+
 
         try {
             const responseData = JSON.parse(responseTextRaw);
@@ -2841,42 +2843,70 @@ ${discSummary}
                 responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0] &&
                 typeof responseData.candidates[0].content.parts[0].text === 'string') {
                 modelGeneratedText = responseData.candidates[0].content.parts[0].text;
-            } else {
-                modelGeneratedText = "";
-                 if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                    return sendApiRequest(retryCount + 1);
+            } else { // 모델 응답 구조 이상
+                modelGeneratedText = ""; // 빈 문자열로 초기화
+                let canRetry = false;
+                if (currentIsRequestingSyncType && syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) canRetry = true;
+                else if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) canRetry = true;
+
+                if (canRetry) {
+                    // 재시도 로직은 아래 parsedResponse.error에서 함께 처리하거나, 여기서 명시적 재시도
+                } else {
+                    throw new Error("모델 응답 구조 이상, 유효 텍스트 없음 (최종 재시도 실패)");
                 }
-                throw new Error("모델 응답 구조 이상, 유효 텍스트 없음");
             }
-        } catch (e) {
-            modelGeneratedText = "";
-            if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                return sendApiRequest(retryCount + 1);
+        } catch (e) { // JSON 파싱 실패
+            modelGeneratedText = ""; // 빈 문자열로 초기화
+            let canRetry = false;
+            if (currentIsRequestingSyncType && syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) canRetry = true;
+            else if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) canRetry = true;
+
+            if (canRetry) {
+                 // 재시도 로직은 아래 parsedResponse.error에서 함께 처리하거나, 여기서 명시적 재시도
+            } else {
+                throw new Error(`API 응답 JSON 파싱 오류 (최종 재시도 실패): ${e.message}`);
             }
-            throw new Error(`API 응답 JSON 파싱 또는 구조 오류: ${e.message}`);
+        }
+        
+        parsedResponse = extractAndParseJson(modelGeneratedText); // modelGeneratedText가 비어있으면 parsedResponse.error 발생 가능
+
+        // HTTP 상태는 OK였으나, 응답 내용 파싱/구조에 문제가 있거나, 모델이 에러 객체를 반환했을 경우
+        if (parsedResponse && parsedResponse.error) {
+            let canRetry = false;
+            if (currentIsRequestingSyncType && syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) canRetry = true;
+            else if (!currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) canRetry = true;
+
+            if (canRetry) {
+                // 재시도 로직은 각 분기에서 명시적으로 처리
+            } else {
+                 // 최종 재시도 실패 시 parsedResponse는 에러 객체를 가짐. 이 객체를 다음 로직으로 전달.
+                 // throw new Error(`모델 응답 내용 오류 또는 파싱 실패 (최종): ${parsedResponse.error}`);
+                 // 여기서 throw하면 catch로 바로 빠지므로, 아래 분기 로직을 타지 않게 됨.
+                 // 따라서, parsedResponse가 에러 객체인 상태로 아래로 진행시키고, 각 분기에서 처리.
+                 console.warn(`[sendApiRequest] HTTP OK, 그러나 응답 내용 처리 중 문제 발생 (parsedResponse.error): ${parsedResponse.error}. 최종 재시도 단계일 수 있음.`);
+            }
         }
 
-        parsedResponse = extractAndParseJson(modelGeneratedText);
-
-        if (parsedResponse && parsedResponse.error && !currentIsRequestingSyncType && retryCount < MAX_RETRIES - 1) {
-             await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-             return sendApiRequest(retryCount + 1);
-        }
 
         lastApiResponse = parsedResponse;
 
-        if (currentIsRequestingSyncType) { // ★★★ 여기와 아래 로직에서 currentIsRequestingSyncType 사용 ★★★
+        if (currentIsRequestingSyncType) {
             console.log("[sendApiRequest] 싱크타입 결정 API 응답 처리 중:", parsedResponse);
             const profileUpdate = parsedResponse ? parsedResponse.user_profile_update : null;
-            const apiReceivedConstellation = profileUpdate ? String(profileUpdate.사용자소속성운 || "").trim() : null;
+            
+            let apiReceivedConstellationRaw = profileUpdate ? String(profileUpdate.사용자소속성운 || "").trim() : null;
+            let apiReceivedConstellation = apiReceivedConstellationRaw; // 정제된 값 저장 변수
+            if (apiReceivedConstellationRaw && apiReceivedConstellationRaw.includes(" (")) {
+                apiReceivedConstellation = apiReceivedConstellationRaw.substring(0, apiReceivedConstellationRaw.indexOf(" (")).trim();
+            }
+            
             const apiReceivedSyncType = profileUpdate ? String(profileUpdate.결정된싱크타입 || "").trim() : null;
             const apiReceivedReason = profileUpdate ? String(profileUpdate.사용자가성운에속한이유 || "").trim() : null;
 
-            console.log(`[sendApiRequest_Debug] API 응답에서 추출된 사용자소속성운: '${apiReceivedConstellation}'`);
+            console.log(`[sendApiRequest_Debug] API 응답에서 추출된 사용자소속성운 (원본): '${apiReceivedConstellationRaw}'`);
+            console.log(`[sendApiRequest_Debug] API 응답에서 추출된 사용자소속성운 (정제 후): '${apiReceivedConstellation}'`);
             const isValidConstellationName = apiReceivedConstellation && CONSTELLATIONS_DATA.hasOwnProperty(apiReceivedConstellation);
-            console.log(`[sendApiRequest_Debug] CONSTELLATIONS_DATA에 '${apiReceivedConstellation}' 키 존재 여부: ${isValidConstellationName}`);
+            console.log(`[sendApiRequest_Debug] CONSTELLATIONS_DATA에 정제된 값 ('${apiReceivedConstellation}') 키 존재 여부: ${isValidConstellationName}`);
 
             if (parsedResponse && !parsedResponse.error && profileUpdate && 
                 apiReceivedConstellation && isValidConstellationName && 
@@ -2885,39 +2915,42 @@ ${discSummary}
                 updateUserProfile(profileUpdate);
                 console.log("[sendApiRequest] 싱크타입 결정 성공. 프로필 업데이트:", profileUpdate);
 
-                isRequestingSyncTypeResult = false; // ★★★ 성공 시 플래그 해제 ★★★
+                isRequestingSyncTypeResult = false; 
                 syncTypeResultRetryCount = 0; 
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
 
                 messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 내 성향에 맞는 타로 운세를 봐줘!`;
                 if (typingIndicatorElement) await hideTypingIndicator();
-                return sendApiRequest(0); // 다음은 일반 API 호출 (retryCount 0)
+                return sendApiRequest(0);
 
             } else {
                 let failureReason = "알 수 없는 이유";
-                if (parsedResponse && parsedResponse.error) failureReason = `파싱 오류: ${parsedResponse.error}`;
+                if (parsedResponse && parsedResponse.error) failureReason = `응답 파싱/내용 오류: ${parsedResponse.error}`;
                 else if (!profileUpdate) failureReason = "user_profile_update 필드 없음";
-                else if (!apiReceivedConstellation) failureReason = "사용자소속성운 필드 없음 또는 빈 값";
-                else if (!isValidConstellationName) failureReason = `수신된 성운 '${apiReceivedConstellation}'이(가) CONSTELLATIONS_DATA에 정의되지 않음`;
+                else if (!apiReceivedConstellationRaw) failureReason = "사용자소속성운 필드 없음 또는 빈 값 (원본)"; // 원본 값으로 체크
+                else if (!apiReceivedConstellation) failureReason = "사용자소속성운 값 정제 후 빈 값";
+                else if (!isValidConstellationName) failureReason = `정제된 성운 '${apiReceivedConstellation}'이(가) CONSTELLATIONS_DATA에 정의되지 않음`;
                 else if (!apiReceivedSyncType) failureReason = "결정된싱크타입 필드 없음 또는 빈 값";
                 else if (!apiReceivedReason) failureReason = "사용자가성운에속한이유 필드 없음 또는 빈 값";
                 
                 console.error(`[sendApiRequest] 싱크타입 결정 실패: ${failureReason}. 응답:`, parsedResponse);
 
                 if (syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) {
-                    syncTypeResultRetryCount++; // 전역 재시도 카운트 증가
+                    syncTypeResultRetryCount++;
                     console.log(`[sendApiRequest] 싱크타입 결정 재시도 (${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RETRIES})`);
                     if (typingIndicatorElement) await hideTypingIndicator();
                     await new Promise(resolve => setTimeout(resolve, 1500 * (syncTypeResultRetryCount)));
-                    return sendApiRequest(retryCount); // 현재 retryCount를 전달 (어차피 싱크타입 재시도는 syncTypeResultRetryCount로 관리됨)
+                    return sendApiRequest(retryCount);
                 } else {
                     syncTypeResultRetryCount = 0; 
                     throw new Error(`싱크타입 결정 API 최종 실패: ${failureReason}`);
                 }
             }
-        } else { // 일반 API 응답 처리 (currentIsRequestingSyncType is false)
-            if (parsedResponse.user_profile_update) {
+        } else { 
+            // 일반 API 응답 처리 (currentIsRequestingSyncType is false)
+            // parsedResponse가 오류 객체일 수도 있음 (최종 재시도 실패 후)
+            if (parsedResponse && !parsedResponse.error && parsedResponse.user_profile_update) {
                 updateUserProfile(parsedResponse.user_profile_update);
             }
 
@@ -2974,25 +3007,20 @@ ${discSummary}
             }
         }
 
-    } catch (error) {
+    } catch (error) { // HTTP 오류, 파싱/구조 오류, 싱크타입 최종 실패 등 모든 예외 처리
         console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}):`, error);
         if (typingIndicatorElement) await hideTypingIndicator();
         const finalErrorMsgWithTags = `앗, 내부 시스템에 작은 문제가 생겼나 봐요! [exp008]<br>잠시 후 다시 시도해주시겠어요?<br><small>(오류: ${error.message.substring(0,120)}...)</small>`;
 
         let errorSuggestion = ["처음으로 돌아갈래요"];
-        const wasRequestingSyncTypeOnError = isRequestingSyncTypeResult; 
+        const wasRequestingSyncTypeOnError = currentIsRequestingSyncType; // 에러 발생 시점의 currentIsRequestingSyncType 상태
         
-        if (wasRequestingSyncTypeOnError) {
-            errorSuggestion = ["테스트 처음부터 다시 하기", "싱크타입 없이 진행하기"];
-        }
-
-        // 에러 발생 시, isRequestingSyncTypeResult와 syncTypeResultRetryCount를 리셋하는 것이 안전
+        // 중요: 에러 발생 시 모든 관련 상태 초기화
         isRequestingSyncTypeResult = false;
         syncTypeResultRetryCount = 0;
 
 
         await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, errorSuggestion, async (txt) => {
-            // 버튼 핸들러 내에서는 이미 위에서 플래그가 리셋되었으므로 추가 리셋 불필요
             if(txt === "처음으로 돌아갈래요" || txt === "테스트 처음부터 다시 하기") {
                 clearChatArea();
                 conversationHistory = [];
@@ -3019,8 +3047,17 @@ ${discSummary}
         });
     } finally {
         console.log("[sendApiRequest] finally 블록 실행.");
-        // 재귀 호출 중이 아닐 때 (즉, 현재 sendApiRequest 호출이 마지막이 될 때) isApiLoading 해제
-        if (!isRequestingSyncTypeResult || (isRequestingSyncTypeResult && syncTypeResultRetryCount === 0) ) {
+        // 현재 API 요청 사이클이 실제로 종료되었을 때만 로딩 해제
+        // isRequestingSyncTypeResult가 true이고 syncTypeResultRetryCount가 MAX_SYNC_TYPE_RETRIES보다 작으면 재시도 중이므로 로딩 유지
+        let stillProcessing = false;
+        if (isRequestingSyncTypeResult && syncTypeResultRetryCount > 0 && syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES) {
+            // 이 조건은 재귀 호출로 인해 이 finally가 실행되지 않아야 함.
+            // 하지만 만약의 경우를 대비하여, 재시도 예정이면 로딩 유지.
+             stillProcessing = true;
+        }
+
+
+        if (!stillProcessing) {
             isApiLoading = false;
             setSendButtonLoading(false);
             if (isInitialApiCallAfterObjectiveTest && !isRequestingSyncTypeResult) {
@@ -3029,7 +3066,8 @@ ${discSummary}
             }
         }
 
-        if (typingIndicatorElement && !isApiLoading) {
+
+        if (typingIndicatorElement && !isApiLoading) { // isApiLoading이 확실히 false일 때만
              await hideTypingIndicator();
         }
     }
