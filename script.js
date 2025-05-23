@@ -1531,7 +1531,7 @@ function clearChatArea() {
 
 async function displayCurrentStageUI() {
     console.log(`[displayCurrentStageUI] START - currentConsultationStage: ${currentConsultationStage}`);
-    updateFloatingMenuVisibility(); // 플로팅 메뉴 가시성 업데이트 (중요!)
+    updateFloatingMenuVisibility();
     let actionText = null;
     let assistantMsgWithTags = null;
 
@@ -1555,6 +1555,10 @@ async function displayCurrentStageUI() {
             setChatInputDisabled(true, "궁금한 타로 주제를 메뉴에서 선택해주세요.");
             if (rubyImageElement) rubyImageElement.classList.remove('blurred');
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
+            // ★★★ 1단계 메시지 표시 후 플로팅 메뉴 자동 열기 ★★★
+            if (!isFloatingMenuOpen) { // 이미 열려있지 않다면 자동 열기
+                showFloatingMenu();
+            }
             break;
 
         case 2:
@@ -1565,7 +1569,7 @@ async function displayCurrentStageUI() {
             }
             actionText = null;
             assistantMsgWithTags = `선택한 주제 '${currentSelectedTarotType}'에 대해 더 자세히 알아볼까?`;
-            const suggestionTextsStage2 = ["응", "다시 선택할래"]; // 버튼 텍스트 변경
+            const suggestionTextsStage2 = ["응", "다시 선택할래"];
             setChatInputDisabled(true, "버튼으로 답변해주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
             createSuggestionButtons(suggestionTextsStage2, handleButtonClick);
@@ -3464,50 +3468,47 @@ async function displayApiResponseElements(parsedResp) {
     const totalFloatingMenuSlides = 3; // 플로팅 바의 총 개수
 
     // --- 플로팅 메뉴 슬라이드 관련 상태 변수 ---
-    // let currentFloatingMenuSlideIndex = 0; // 이미 존재
-    // let visibleFloatingMenuSlides = 3; // 이미 존재 (updateFloatingMenuVisibility에서 관리)
+    // --- 플로팅 메뉴 슬라이드 관련 상태 변수 ---
+    // let currentFloatingMenuSlideIndex = 0; // (보이는 슬라이드 기준 인덱스)
+    // let visibleFloatingMenuSlides = 3; // (updateFloatingMenuVisibility에서 관리)
 
-    function handleFloatingMenuSlide(targetIndex, forceMove = false) {
+    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) { // 매개변수명 변경: targetVisibleIndex (보이는 슬라이드 기준)
         const slider = document.querySelector('.floating-menu-slider');
         const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); // DOM상의 모든 슬라이드
         const menuContainer = document.getElementById('floatingMenuContainer');
 
-        // 메뉴가 보이지 않거나, forceMove가 아닌데 이미 해당 슬라이드거나, 유효하지 않은 인덱스면 변경 없음
         if (!menuContainer.classList.contains('visible') ||
-            (!forceMove && targetIndex === currentFloatingMenuSlideIndex) ||
-            targetIndex < 0 || targetIndex >= visibleFloatingMenuSlides ) { // visibleFloatingMenuSlides 사용
+            (!forceMove && targetVisibleIndex === currentFloatingMenuSlideIndex) ||
+            targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
 
-            if (targetIndex < 0 || targetIndex >= visibleFloatingMenuSlides) {
-                console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetIndex}, 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
+            if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
+                console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
             }
             return;
         }
 
+        if (slider && allSlides.length >= visibleFloatingMenuSlides) {
+            let actualDomTargetIndex = targetVisibleIndex; // 목표하는 슬라이드의 실제 DOM 인덱스
+            let actualDomCurrentIndex = currentFloatingMenuSlideIndex; // 현재 슬라이드의 실제 DOM 인덱스
 
-        if (slider && allSlides.length >= visibleFloatingMenuSlides) { // allSlides.length는 항상 3이지만, visibleFloatingMenuSlides 기준으로 로직 수행
-            // 실제 DOM 슬라이드 인덱스를 계산 (1번이 숨겨졌을 때 targetIndex 0은 실제로는 DOM의 1번 인덱스)
-            let actualDomTargetIndex = targetIndex;
-            let actualDomCurrentIndex = currentFloatingMenuSlideIndex;
-
+            // 1번 슬라이드가 숨겨져 있을 때, 보이는 슬라이드 기준 인덱스를 DOM 인덱스로 변환
             if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
-                // 1번 슬라이드가 숨겨진 경우, 인자로 받은 targetIndex는 보이는 슬라이드 기준의 인덱스임.
-                // targetIndex 0 -> DOM 인덱스 1 (Page2)
-                // targetIndex 1 -> DOM 인덱스 2 (Page3)
-                actualDomTargetIndex = targetIndex + 1;
-                actualDomCurrentIndex = currentFloatingMenuSlideIndex +1; // 이전 current도 보이는 슬라이드 기준이었으므로 +1
+                actualDomTargetIndex = targetVisibleIndex + 1;
+                actualDomCurrentIndex = currentFloatingMenuSlideIndex + 1;
+            } else {
+                 // 3개 다 보일 때는 보이는 인덱스와 DOM 인덱스가 동일
+                 actualDomTargetIndex = targetVisibleIndex;
+                 actualDomCurrentIndex = currentFloatingMenuSlideIndex;
             }
 
-
             // 1. 이전 활성 슬라이드 페이드 아웃 (실제 DOM 인덱스 사용)
-            if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) { // 현재와 목표가 다를때만 페이드아웃
+            if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
-            // 2. 슬라이더 위치 이동 (보이는 슬라이드 수와 인덱스 기준)
-            // translateX 계산 시, (100 / visibleFloatingMenuSlides) 를 사용해야 함.
-            slider.style.transform = `translateX(-${targetIndex * (100 / visibleFloatingMenuSlides)}%)`;
-
+            // 2. 슬라이더 위치 이동 (보이는 슬라이드 수와 목표하는 보이는 슬라이드 인덱스 기준)
+            slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
 
             // 3. 새로운 목표 슬라이드 페이드 인 (실제 DOM 인덱스 사용)
             requestAnimationFrame(() => {
@@ -3516,17 +3517,17 @@ async function displayApiResponseElements(parsedResp) {
                 }
             });
 
-            currentFloatingMenuSlideIndex = targetIndex; // 현재 인덱스는 *보이는 슬라이드 기준*으로 저장
+            currentFloatingMenuSlideIndex = targetVisibleIndex; // 현재 인덱스는 *보이는 슬라이드 기준*으로 저장
 
             // 4. 인디케이터 업데이트 (보이는 인디케이터만 고려)
-            let visibleIndicatorIndex = 0;
-            indicators.forEach((dot, domIndex) => {
-                if (dot.style.display !== 'none') { // 보이는 인디케이터만 대상으로
-                    dot.classList.toggle('active', visibleIndicatorIndex === targetIndex);
-                    visibleIndicatorIndex++;
+            let visibleIndicatorCounter = 0;
+            indicators.forEach((dot) => {
+                if (dot.style.display !== 'none') { // DOM에서 보이는 인디케이터만 대상으로
+                    dot.classList.toggle('active', visibleIndicatorCounter === targetVisibleIndex);
+                    visibleIndicatorCounter++;
                 }
             });
-            console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetIndex}번 (DOM ${actualDomTargetIndex}번)`);
+            console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
         }
     }
      function setupEventListeners() {
@@ -3580,73 +3581,120 @@ async function displayApiResponseElements(parsedResp) {
             window.addEventListener('resize', adjustContainerHeight);
         }
 
-        // 플로팅 메뉴 뼈다귀 버튼 이벤트 리스너
         const floatingMenuButton = document.getElementById('floatingMenuButton');
         if (floatingMenuButton) {
             floatingMenuButton.addEventListener('click', toggleFloatingMenu);
         }
 
-        // 메뉴 오버레이 클릭 시 메뉴 닫기 이벤트 리스너
         const menuOverlay = document.getElementById('menuOverlay');
         if (menuOverlay) {
             menuOverlay.addEventListener('click', hideFloatingMenu);
         }
 
-        // 플로팅 메뉴 슬라이드 인디케이터 점들 이벤트 리스너
-        const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
-        indicatorDots.forEach(dot => {
-            dot.addEventListener('click', (event) => {
-                // event.currentTarget.dataset.slideTarget 에서 값을 가져오도록 수정
-                const targetIndexAttr = event.currentTarget.getAttribute('data-slide-target');
-                if (targetIndexAttr !== null) {
-                    const targetIndex = parseInt(targetIndexAttr, 10);
-                    if (!isNaN(targetIndex)) {
-                        handleFloatingMenuSlide(targetIndex);
-                    }
-                }
-            });
-        });
+// setupEventListeners 함수 내 인디케이터 클릭 부분 수정
+const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
+indicatorDots.forEach(dot => {
+    dot.addEventListener('click', (event) => {
+        const domTargetIndexAttr = event.currentTarget.getAttribute('data-slide-target'); // DOM 기준 0,1,2
+        if (domTargetIndexAttr !== null) {
+            const domTargetIndex = parseInt(domTargetIndexAttr, 10);
+            let targetVisibleIdx = domTargetIndex;
 
-        // --- 플로팅 메뉴 내부 아이템 클릭 이벤트 리스너 (수정된 부분) ---
-        // data-action 속성을 가진 모든 하위 요소를 대상으로 이벤트 위임 방식을 사용할 수도 있지만,
-        // 여기서는 개별적으로 추가하는 방식을 유지하되, 선택자를 더 명확히 합니다.
-        // 플로팅 메뉴 1번 바의 아이템들
+            // 1번 슬라이드가 숨겨진 경우 (visibleFloatingMenuSlides === 2)
+            // DOM 인덱스 1 (Page2)은 보이는 슬라이드 기준 0번
+            // DOM 인덱스 2 (Page3)은 보이는 슬라이드 기준 1번
+            if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
+                if (domTargetIndex === 1) targetVisibleIdx = 0; // Page2 클릭 시 보이는 인덱스 0
+                else if (domTargetIndex === 2) targetVisibleIdx = 1; // Page3 클릭 시 보이는 인덱스 1
+                else return; // 숨겨진 0번 인디케이터는 무시 (실제로는 display:none 처리됨)
+            }
+            // 3개 다 보일 때는 DOM 인덱스와 보이는 인덱스가 동일
+
+            if (!isNaN(targetVisibleIdx)) {
+                console.log(`[Indicator Click] DOM target: ${domTargetIndex}, Visible target for handler: ${targetVisibleIdx}`);
+                handleFloatingMenuSlide(targetVisibleIdx);
+            }
+        }
+    });
+});
+
         const floatingPage1Items = document.querySelectorAll('#floatingMenuPage1 .floating-image-list-item');
         floatingPage1Items.forEach(item => {
             item.addEventListener('click', (event) => {
                 const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 1 Item clicked. Action: ${action}`); // 클릭 로그 추가
+                console.log(`[Event Listener] Page 1 Item clicked. Action: ${action}`);
                 if (action) {
                     handleFloatingMenuItemClick(action);
                 }
             });
         });
 
-        // 플로팅 메뉴 2번 바의 아이템 (단일 이미지)
+        // --- 플로팅 메뉴 2, 3번 아이템 클릭 기능 임시 주석 처리 ---
+        /*
         const floatingPage2Image = document.querySelector('#floatingMenuPage2 .floating-single-image-container img');
         if (floatingPage2Image) {
             floatingPage2Image.addEventListener('click', (event) => {
                 const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 2 Item clicked. Action: ${action}`); // 클릭 로그 추가
+                console.log(`[Event Listener] Page 2 Item clicked. Action: ${action}`);
                 if (action) {
                     handleFloatingMenuItemClick(action);
                 }
             });
         }
 
-        // 플로팅 메뉴 3번 바의 아이템들
         const floatingPage3Items = document.querySelectorAll('#floatingMenuPage3 .floating-two-column-image-item');
         floatingPage3Items.forEach(item => {
             item.addEventListener('click', (event) => {
                 const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 3 Item clicked. Action: ${action}`); // 클릭 로그 추가
+                console.log(`[Event Listener] Page 3 Item clicked. Action: ${action}`);
                 if (action) {
                     handleFloatingMenuItemClick(action);
                 }
             });
         });
-        // --- 플로팅 메뉴 내부 아이템 클릭 이벤트 리스너 끝 ---
+        */
+        // --- 주석 처리 끝 ---
 
+        // --- 드래그/스와이프 슬라이드 기능 추가 ---
+        const sliderElement = document.querySelector('.floating-menu-slider');
+        if (sliderElement) {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            let टचिंग = false; // isTouching 변수명 변경 (한글 충돌 방지)
+            const swipeThreshold = 50; // 최소 스와이프 거리 (px)
+
+            sliderElement.addEventListener('touchstart', (event) => {
+                touchStartX = event.changedTouches[0].screenX;
+                टचिंग = true;
+            }, { passive: true });
+
+            sliderElement.addEventListener('touchmove', (event) => {
+                if (!टचिंग) return;
+                touchEndX = event.changedTouches[0].screenX;
+            }, { passive: true });
+
+            sliderElement.addEventListener('touchend', () => {
+                if (!टचING) return;
+                टचिंग = false;
+                const deltaX = touchEndX - touchStartX;
+
+                if (Math.abs(deltaX) > swipeThreshold) {
+                    if (deltaX < 0) { // 왼쪽으로 스와이프 (다음 슬라이드)
+                        if (currentFloatingMenuSlideIndex < visibleFloatingMenuSlides - 1) {
+                            handleFloatingMenuSlide(currentFloatingMenuSlideIndex + 1);
+                        }
+                    } else { // 오른쪽으로 스와이프 (이전 슬라이드)
+                        if (currentFloatingMenuSlideIndex > 0) {
+                            handleFloatingMenuSlide(currentFloatingMenuSlideIndex - 1);
+                        }
+                    }
+                }
+                // Reset X
+                touchStartX = 0;
+                touchEndX = 0;
+            });
+        }
+        // --- 드래그/스와이프 슬라이드 기능 끝 ---
 
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }
