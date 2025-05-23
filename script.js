@@ -3295,7 +3295,7 @@ async function displayApiResponseElements(parsedResp) {
                 break;
             case 'tarot_money_flow':
                 userMessageText = "오늘의 재물운이 궁금해!";
-                rubyActionText = "루비가 지폐를 세는 시늉을 하며"; // "적당히"
+                rubyActionText = "루비가 지폐를 세는 흉내를 내며"; // "적당히"
                 rubyAssistantMsg = "좋아! 돈의 흐름이 어디로 향하는지 한번 보자! 💸"; // "적당히"
                 selectedTarotTypeForProfile = TAROT_TYPES.MONEY_FLOW;
                 break;
