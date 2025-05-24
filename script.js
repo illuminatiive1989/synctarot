@@ -1326,19 +1326,16 @@ function extractAndParseJson(modelGeneratedText) {
             }
         }
 
+
         if (previousStage !== actualNewStage) {
             console.log(`[advanceConsultationStage] 단계 변경 실행: ${previousStage} → ${actualNewStage}`);
             currentConsultationStage = actualNewStage;
-            isSessionTimedOut = false;
+            isSessionTimedOut = false; 
 
-            // ★★★ 10단계로 처음 진입하는 경우에만 showStage10EntryEmoticon 플래그를 true로 설정 ★★★
             if (currentConsultationStage === 10 && previousStage !== 10) {
                 showStage10EntryEmoticon = true;
                 console.log("[advanceConsultationStage] 10단계로 처음 진입. showStage10EntryEmoticon = true 설정.");
             }
-            // else if (currentConsultationStage !== 10) {
-                // 10단계에서 벗어날 때 false로 할 필요는 없음. displayCurrentStageUI에서 사용 후 false로 바뀜.
-            // }
 
 
             if (currentConsultationStage === 10) {
@@ -1346,10 +1343,11 @@ function extractAndParseJson(modelGeneratedText) {
             } else {
                 clearSessionTimers();
             }
-            displayCurrentStageUI(); // 변경된 단계의 UI 표시
+            displayCurrentStageUI(); 
         } else {
             console.log(`[advanceConsultationStage] 단계 변경 없음. 현재 단계: ${currentConsultationStage}`);
         }
+        manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
     }
 
     // --- 메시지 버퍼링 및 자동 전송 관련 함수 ---
@@ -1587,45 +1585,110 @@ function handleChatInput() {
         }
     }
 
-    // ★★★ 신규 함수 (싱크타입 재테스트 최종 결정 플로우) ★★★
-    async function handleSyncTypeRetestFinalDecision(buttonText) {
-        console.log(`[handleSyncTypeRetestFinalDecision] 버튼 클릭: "${buttonText}"`);
-        if (isSessionTimedOut) return;
+   // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
+    function manageSyncRetestButtonVisibility() {
+        const container = document.getElementById('syncRetestButtonContainer');
+        if (!container) {
+            console.warn("[manageSyncRetestButtonVisibility] syncRetestButtonContainer 요소를 찾을 수 없습니다.");
+            return;
+        }
 
-        const userMessageElement = createTextMessageElement(buttonText, true);
-        if (section2) section2.appendChild(userMessageElement);
-        applyFadeIn(userMessageElement);
-        conversationHistory.push({ role: "user", parts: [{ text: buttonText }] });
-        scrollToBottom(true);
+        // 위치를 suggestionButtonsContainer와 동일하게 맞추기 위해 section5의 높이를 가져옴
+        const section5Height = section5 ? section5.offsetHeight : 80; // section5 없으면 기본값
+        container.style.bottom = `${section5Height}px`;
 
-        hideSuggestionButtons(true); // 기존 제안 버튼 숨김
 
-        if (buttonText === "응 테스트 다시 해줘!") {
-            const rubyMsg = "좋아, 다시 시작하자!"; // 선택적 루비 응답
-             // 재테스트 시작 전 프로필 초기화 및 저장
-            updateUserProfile({
-                "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
-                "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
-                "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
-                "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
-                "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
-                "시나리오": null
-            });
-            현재주관식질문인덱스 = 0;
-            currentObjectiveQuestionIndex = 0;
+        const shouldShow = currentConsultationStage === 10 &&
+                           userProfile.결정된싱크타입 &&
+                           userProfile.사용자소속성운;
 
-            await displayHardcodedUIElements(null, rubyMsg, [], handleButtonClick);
-            advanceConsultationStage(4); // 주관식 1번으로 이동
-
-        } else if (buttonText === "다시 본론으로 돌아가자") {
-            // 루비가 응답 없이 바로 API 호출로 넘어가도 되고, 간단한 응답 후 넘어가도 됨
-            // const rubyMsg = "알겠어, 이야기하던 걸 계속하자!";
-            // await displayHardcodedUIElements(null, rubyMsg, [], handleButtonClick);
-
-            messageBuffer = "싱크타입 테스트 다시 하지 않고, 기존 상담 이어가자!"; // API로 보낼 메시지
-            await sendApiRequest(); // 현재 10단계이므로, 이대로 API 호출
+        if (shouldShow) {
+            console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시 시도.");
+            if (!container.querySelector('.sync-retest-action-button')) {
+                const button = document.createElement('div');
+                button.classList.add('sync-retest-action-button'); // 새 CSS 클래스
+                button.textContent = "싱크타입 테스트 다시하고 싶어";
+                button.addEventListener('click', async () => {
+                    if (isSessionTimedOut) return;
+                    container.classList.remove('visible'); // 클릭 시 즉시 숨김
+                    // 애니메이션 효과를 위해 opacity, transform 직접 제어
+                    button.style.opacity = '0';
+                    button.style.transform = 'translateY(20px)';
+                    await handleSyncTypeRetestRequest();
+                });
+                container.innerHTML = '';
+                container.appendChild(button);
+                
+                // 버튼 애니메이션 적용
+                requestAnimationFrame(() => {
+                    button.style.opacity = '1';
+                    button.style.transform = 'translateY(0)';
+                });
+            }
+            if (!container.classList.contains('visible')) {
+                container.classList.add('visible');
+            }
+        } else {
+            console.log("[manageSyncRetestButtonVisibility] 조건 미충족 또는 해당 단계 아님. 버튼 숨김.");
+            if (container.classList.contains('visible')) {
+                const button = container.querySelector('.sync-retest-action-button');
+                if (button) {
+                    button.style.opacity = '0';
+                    button.style.transform = 'translateY(20px)';
+                }
+                // 트랜지션 후 container 숨김
+                setTimeout(() => {
+                    if (container && !shouldShow) { // shouldShow 조건을 다시 확인 (비동기 문제 방지)
+                        container.classList.remove('visible');
+                        // container.innerHTML = ''; // 버튼 제거는 다음 표시 때 하도록 둠 (깜빡임 방지)
+                    }
+                }, 300); // CSS transition duration과 일치
+            }
         }
     }
+    // ★★★ 신규 함수: 독립적인 싱크타입 재테스트 버튼 표시/숨김 ★★★
+    function displayIndependentSyncRetestButton() {
+        const container = document.getElementById('independentActionButtonContainer');
+        if (!container) {
+            console.warn("[displayIndependentSyncRetestButton] independentActionButtonContainer 요소를 찾을 수 없습니다.");
+            return;
+        }
+
+        // 조건: 10단계이고, 프로필에 싱크타입과 성운 정보가 있을 때
+        const shouldShow = currentConsultationStage === 10 &&
+                           userProfile.결정된싱크타입 &&
+                           userProfile.사용자소속성운;
+
+        if (shouldShow) {
+            console.log("[displayIndependentSyncRetestButton] 조건 충족. 버튼 표시 시도.");
+            // 버튼이 이미 있다면 중복 생성 방지
+            if (!container.querySelector('.custom-action-button')) {
+                const button = document.createElement('div');
+                button.classList.add('custom-action-button'); // CSS 스타일 적용을 위함
+                button.textContent = "싱크타입 테스트 다시하고 싶어";
+                button.addEventListener('click', async () => {
+                    if (isSessionTimedOut) return;
+                    // 버튼 클릭 시, 이 독립 버튼은 일단 숨김 (재테스트 플로우 시작 시 다른 UI가 나옴)
+                    container.classList.remove('visible');
+                    await handleSyncTypeRetestRequest();
+                });
+                container.innerHTML = ''; // 기존 내용 비우기 (혹시 모를 중복 방지)
+                container.appendChild(button);
+            }
+            if (!container.classList.contains('visible')) {
+                container.classList.add('visible');
+            }
+        } else {
+            console.log("[displayIndependentSyncRetestButton] 조건 미충족 또는 해당 단계 아님. 버튼 숨김.");
+            if (container.classList.contains('visible')) {
+                container.classList.remove('visible');
+                // 버튼 숨길 때 내용도 비워주는 것이 깔끔할 수 있음 (선택적)
+                // setTimeout(() => { if(!container.classList.contains('visible')) container.innerHTML = ''; }, 300); // transition 후
+            }
+        }
+    }
+
+
     async function showInactivityWarning() {
         if (isSessionTimedOut || currentConsultationStage !== 10) return; // 이미 타임아웃되었거나 대화 단계가 아니면 경고 안 함
         console.log("[SessionTimer] 비활성 경고 표시!");
@@ -1727,8 +1790,6 @@ async function displayCurrentStageUI() {
             existingObjectiveContainers.forEach(container => container.remove());
         }
     }
-    // ★★★ 단계별 UI 표시 전, 현재 제안 버튼들 숨김 (새로운 버튼 세트 표시 전 정리) ★★★
-    // hideSuggestionButtons(true); // 여기가 아니라, 각 case에서 필요시 호출 또는 createSuggestionButtons가 알아서 처리
 
     switch (currentConsultationStage) {
         case 1:
@@ -1744,11 +1805,10 @@ async function displayCurrentStageUI() {
             break;
 
         case 2:
-            hideSuggestionButtons(true); // 이전 단계 버튼 확실히 제거
+            hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 2");
             if (!currentSelectedTarotType) {
                 console.warn("[displayCurrentStageUI] Stage 2 entered without currentSelectedTarotType.");
-                 // 오류 상황 처리: 예를 들어 1단계로 돌려보내기
                 advanceConsultationStage(1);
                 return;
             }
@@ -1756,7 +1816,7 @@ async function displayCurrentStageUI() {
             assistantMsgWithTags = `선택한 주제 '${currentSelectedTarotType}'에 대해 더 자세히 알아볼까?`;
             const suggestionTextsStage2 = ["응", "다시 선택할래"];
             setChatInputDisabled(true, "버튼으로 답변해주세요.");
-            await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick); // 버튼은 아래 create에서
+            await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
             createSuggestionButtons(suggestionTextsStage2, handleButtonClick);
             break;
 
@@ -1856,7 +1916,6 @@ async function displayCurrentStageUI() {
             currentObjectiveQuestionIndex = 0;
             console.log(`[displayCurrentStageUI] Case 8: Initialized currentObjectiveQuestionIndex to ${currentObjectiveQuestionIndex}`);
 
-            // 객관식 시작 시 기존 답변 및 점수 초기화 후 저장
             updateUserProfile({
                 "객관식질문과답변": [], "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0
             });
@@ -1880,7 +1939,7 @@ async function displayCurrentStageUI() {
             console.log("[displayCurrentStageUI] Processing stage 9 (Sync Type result API call wait)");
             actionText = "루비가 두 손을 모아 기도하며";
             assistantMsgWithTags = "정말 고생많았어! 😉 모든 질문에 답해줬네.<br><br>그럼 이제 너의 선택을 종이에 적어서 우주로 띄워 보낼게 🌠 <br><br>잠시만 기다려줘.. 너의 싱크타입을 찾아서 올게!";
-            const suggestionTextsStage9 = ["응, 찾아줘!"]; // 또는 "응, 보내줘!"
+            const suggestionTextsStage9 = ["응, 찾아줘!"];
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
             createSuggestionButtons(suggestionTextsStage9, handleButtonClick);
@@ -1890,9 +1949,9 @@ async function displayCurrentStageUI() {
             console.log(`[displayCurrentStageUI] Processing stage 10 (Conversation).`);
             if (isSessionTimedOut) {
                 console.log("[displayCurrentStageUI] Session timed out. Skipping UI display for stage 10.");
+                manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
                 return;
             }
-            // 이전 단계에서 넘어올 때 버튼이 있었다면 숨김 (API 응답 후 새 버튼 생성 가능)
             hideSuggestionButtons(true);
 
             if (!isApiLoading) {
@@ -1900,34 +1959,22 @@ async function displayCurrentStageUI() {
                 if (hasSampleAnswerCurrently) {
                      setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
                      console.log("[displayCurrentStageUI] Stage 10: Sample answer likely present. Input enabled.");
-                     // 샘플 답변이 있으면, 그게 제안 버튼으로 표시될 것이므로,
-                     // "싱크타입 테스트 다시하고 싶어" 버튼은 일단 표시하지 않거나, 샘플 답변과 함께 표시할지 결정 필요.
-                     // 여기서는 샘플 답변이 우선.
                      const suggestionTextsFromApi = String(lastApiResponse.sampleanswer).split('|').map(s => s.trim()).filter(s => s);
                      createSuggestionButtons(suggestionTextsFromApi, (clickedText) => {
                         if (isSessionTimedOut) return;
                         chatInput.value = clickedText;
                         processUserInput();
                      });
-
                 } else {
                      setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
                      console.log("[displayCurrentStageUI] Stage 10: Normal conversation. Input enabled, attempting focus.");
                      setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100);
-
-                     // ★★★ 조건부 싱크타입 재테스트 버튼 표시 ★★★
-                     if (userProfile.결정된싱크타입 && userProfile.사용자소속성운 && userProfile.사용자가성운에속한이유) {
-                         console.log("[displayCurrentStageUI] Stage 10: 싱크타입 정보 존재. 재테스트 버튼 생성 시도.");
-                         // 기존 제안 버튼이 없을 때만 생성 (API sampleanswer가 우선)
-                         if (!suggestionButtonsContainer || !suggestionButtonsContainer.classList.contains('visible')) {
-                            createSuggestionButtons(["싱크타입 테스트 다시하고 싶어"], handleSyncTypeRetestRequest);
-                         }
-                     }
                 }
             } else {
                  console.log("[displayCurrentStageUI] Stage 10: API is loading. Input state managed by sendApiRequest.");
             }
             resetSessionTimers();
+            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
             break;
 
         default:
@@ -1943,11 +1990,8 @@ async function displayCurrentStageUI() {
             showStage10EntryEmoticon = false;
             isInitialApiCallAfterObjectiveTest = false;
             clearSessionTimers();
-            // userProfile 초기화는 initializeApp 또는 handleFloatingMenuItemClick('new_chat') 에서 처리
-            // 여기서는 단계만 변경하고 UI를 다시 그림
-            if (userProfile.결정된싱크타입) { // 싱크타입 정보가 있다면 그것도 초기화하는 것이 좋을 수 있음 (상황에 따라)
-                // updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null, "사용자가성운에속한이유": null, "시나리오": null });
-            }
+
+            updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null, "사용자가성운에속한이유": null, "시나리오": null });
 
 
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
@@ -2552,7 +2596,7 @@ async function handleButtonClick(buttonText) {
 
     userHasScrolledUp = false;
     scrollToBottom(true);
-    hideSuggestionButtons(); // ★★★ 클릭 시 항상 현재 제안 버튼 숨김 (새 버튼 생성 전) ★★★
+    hideSuggestionButtons(); 
     const userMessageElement = createTextMessageElement(buttonText, true);
     if(section2) section2.appendChild(userMessageElement);
     applyFadeIn(userMessageElement);
@@ -2572,20 +2616,20 @@ async function handleButtonClick(buttonText) {
 
     if (currentConsultationStage === 2) {
         if (buttonText === "응") {
-            // ★★★ 초기 프로필에 싱크타입 정보 있는지 확인 후 분기 ★★★
-            if (userProfile.사용자소속성운 && userProfile.결정된싱크타입 && userProfile.사용자가성운에속한이유) {
-                console.log("[handleButtonClick] Stage 2 '응': 기존 싱크타입 정보 감지. 시나리오 4로 진입 시도.");
+            if (userProfile.사용자소속성운 && userProfile.결정된싱크타입) { // 사용자가성운에속한이유 조건 제외
+                console.log("[handleButtonClick] Stage 2 '응': 기존 싱크타입 정보(성운,타입) 감지. 시나리오 4로 진입 시도.");
                 updateUserProfile({ "시나리오": "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행" });
                 
-                currentConsultationStage = 10; // API 호출 전 미리 10단계로 설정
+                currentConsultationStage = 10; 
                 showStage10EntryEmoticon = true;
-                isInitialApiCallAfterObjectiveTest = true; // 객관식 테스트를 거치지 않았으므로, 첫 API 호출처럼 동작
+                isInitialApiCallAfterObjectiveTest = true; 
                 
                 messageBuffer = `이전에 저장된 싱크타입 정보(성운: ${userProfile.사용자소속성운}, 싱크타입: ${userProfile.결정된싱크타입})를 바탕으로 선택한 주제 '${currentSelectedTarotType}'에 대한 타로 상담을 시작합니다. (시나리오 4)`;
                 await sendApiRequest(0);
-                return; // 여기서 함수 종료
+                manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+                return; 
             } else {
-                nextStage = 3; // 기존 싱크타입 정보 없으면 정상적으로 3단계 진행
+                nextStage = 3; 
             }
         } else if (buttonText === "다시 선택할래") {
             hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
@@ -2622,6 +2666,7 @@ async function handleButtonClick(buttonText) {
             isInitialApiCallAfterObjectiveTest = true;
             messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
             await sendApiRequest(0);
+            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
             return;
         }
     } else if (currentConsultationStage === 3.5) {
@@ -2666,13 +2711,14 @@ async function handleButtonClick(buttonText) {
                     isInitialApiCallAfterObjectiveTest = true;
                     messageBuffer = `사용자가 자신의 성운(${userProfile.사용자소속성운})과 싱크타입(${userProfile.결정된싱크타입})을 입력하고 타로를 시작합니다. (시나리오 4)`;
                     await sendApiRequest(0);
+                    manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
                     return;
                 }
             } else {
                  hardcodedAction = "루비가 당황하며";
                  hardcodedMsgWithTags = "앗, 뭔가 잘못 선택된 것 같아. [exp008] 다시 한번 골라줄래?";
                  await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-                 displayCurrentStageUI();
+                 displayCurrentStageUI(); 
                  return;
             }
         }
@@ -2695,6 +2741,7 @@ async function handleButtonClick(buttonText) {
             isInitialApiCallAfterObjectiveTest = true;
             messageBuffer = "사용자가 싱크타입 정보를 기억하지 못해 바로 타로를 시작합니다. (시나리오 2)";
             await sendApiRequest(0);
+            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
             return;
         }
     } else if (currentConsultationStage === 4) {
@@ -2706,7 +2753,7 @@ async function handleButtonClick(buttonText) {
             setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
         } else if (buttonText === "오오 정말? 좋아!") {
              현재주관식질문인덱스 = 0;
-             displayCurrentStageUI(); // 현재 단계(4) UI 다시 그림 (질문 표시)
+             displayCurrentStageUI();
              return;
         } else if (buttonText === "바쁘니깐 나중에할게") {
              scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
@@ -2722,6 +2769,7 @@ async function handleButtonClick(buttonText) {
              isInitialApiCallAfterObjectiveTest = true;
              messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
              await sendApiRequest(0);
+             manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
              return;
         }
     } else if (currentConsultationStage === 7) {
@@ -2732,28 +2780,24 @@ async function handleButtonClick(buttonText) {
         console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
         isRequestingSyncTypeResult = true;
         syncTypeResultRetryCount = 0;
-        currentConsultationStage = 10;
-        showStage10EntryEmoticon = false;
-        isInitialApiCallAfterObjectiveTest = false;
-        messageBuffer = "";
+        currentConsultationStage = 10; 
+        showStage10EntryEmoticon = false; 
+        isInitialApiCallAfterObjectiveTest = false; 
+        messageBuffer = ""; 
         console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
         await sendApiRequest(0);
         return;
     } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
-        // "싱크타입 테스트 다시하고 싶어" 버튼은 여기서 처리하지 않고,
-        // displayCurrentStageUI 또는 displayApiResponseElements에서 생성하고,
-        // 해당 버튼 클릭 시 handleSyncTypeRetestRequest를 호출하도록 변경됨.
-        // 따라서, 이 조건은 일반적인 API 응답 후 제안 버튼(sampleanswer)을 클릭했을 때 해당.
-        console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
+        console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼(sampleanswer) 클릭됨: "${buttonText}"`);
         messageBuffer = buttonText;
         await sendApiRequest(0);
+        manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
         return;
     }
 
 
     if (shouldDisplayHardcodedUI) {
         if (nextStage !== null && nextStage !== currentConsultationStage) {
-            // 이 경우는 거의 없을 것. nextStage가 있으면 UI 표시 후 바로 advance
             await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, hardcodedSuggestions, handleButtonClick);
             advanceConsultationStage(nextStage);
         } else {
@@ -2764,6 +2808,7 @@ async function handleButtonClick(buttonText) {
     } else {
         console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
     }
+    manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
 }
 
     async function processUserInput() {
@@ -3298,6 +3343,7 @@ async function displayApiResponseElements(parsedResp) {
     console.log("[displayApiResponseElements] API 응답 UI 표시 시작:", parsedResp);
     if (isSessionTimedOut) {
         console.log("[displayApiResponseElements] 세션 타임아웃. UI 요소 표시 건너뜀.");
+        manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
         return;
     }
 
@@ -3341,12 +3387,17 @@ async function displayApiResponseElements(parsedResp) {
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
+        // 일반 제안 버튼(sampleanswer)과 싱크타입 재테스트 버튼은 서로 독립적으로 표시될 수 있음
+        // (단, CSS에서 위치가 겹치지 않도록 잘 조정해야 함. 현재는 동일 위치에 z-index로 구분)
+
         if (parsedResp.tarocardview === true) {
+            hideSuggestionButtons(true); // 타로 카드 선택 UI가 나올 때는 일반 제안 버튼 숨김
             console.log("[displayApiResponseElements] tarocardview: true. 타로 카드 선택 UI 표시.");
             const cardsToSelect = (typeof parsedResp.cards_to_select === 'number' && parsedResp.cards_to_select > 0) ? parsedResp.cards_to_select : 3;
             displayTarotSelectionUI(cardsToSelect, handleMultipleCardSelection);
             setChatInputDisabled(true, `카드를 ${cardsToSelect}장 선택해주세요.`, true);
         } else if (parsedResp.sampleanswer && String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s).length > 0) {
+            // sampleanswer가 있으면, 기존처럼 suggestionButtonsContainer에 버튼 생성
             console.log(`[displayApiResponseElements] sampleanswer ('${parsedResp.sampleanswer}') 발견. 제안 버튼 생성 시도.`);
             setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
             const suggestionTexts = String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s);
@@ -3357,30 +3408,33 @@ async function displayApiResponseElements(parsedResp) {
             });
             console.log("[displayApiResponseElements] 샘플 답변 버튼 표시 완료.");
         } else if (currentConsultationStage === 10) {
-            console.log("[displayApiResponseElements] Stage 10: 일반 대화 응답. 입력창 활성화 및 포커스 시도.");
+            // sampleanswer 없고 10단계면, 일반 제안 버튼은 없음. 입력창만 활성화.
+            console.log("[displayApiResponseElements] Stage 10: 일반 대화 응답 (샘플 답변 없음). 입력창 활성화 및 포커스 시도.");
             setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
             if (chatInput && !chatInput.disabled && !isSessionTimedOut) {
                 setTimeout(() => chatInput.focus(), 50);
             }
-            // ★★★ API 응답 후, 샘플 답변 없을 때 조건부 싱크타입 재테스트 버튼 표시 ★★★
-            if (userProfile.결정된싱크타입 && userProfile.사용자소속성운 && userProfile.사용자가성운에속한이유) {
-                // 현재 다른 제안 버튼이 표시되지 않았을 경우에만 이 버튼을 표시
-                if (!suggestionButtonsContainer || !suggestionButtonsContainer.classList.contains('visible')) {
-                    console.log("[displayApiResponseElements] Stage 10: API 응답 후 싱크타입 정보 존재 & 다른 제안 없음. 재테스트 버튼 생성.");
-                    createSuggestionButtons(["싱크타입 테스트 다시하고 싶어"], handleSyncTypeRetestRequest);
-                } else {
-                    console.log("[displayApiResponseElements] Stage 10: API 응답 후 싱크타입 정보 존재하나, 이미 다른 제안 버튼(sampleanswer)이 표시되어 재테스트 버튼은 생략.");
-                }
-            }
         } else {
+            // 10단계가 아니면서 sampleanswer도 없고 tarocardview도 false인 경우
+            // (예: 단계 이동을 위한 중간 메시지)
+            // 이 경우 일반 제안 버튼은 표시하지 않음.
+            hideSuggestionButtons(true); // 확실히 숨김
             console.log(`[displayApiResponseElements] 현재 단계 ${currentConsultationStage}. sampleanswer 없고, tarocardview false. 입력창 상태는 displayCurrentStageUI 설정 따름.`);
         }
 
     } finally {
         console.log("[displayApiResponseElements] UI 처리 완료.");
+        if (currentConsultationStage === 10) { 
+            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+        } else {
+            // 10단계가 아니면 싱크타입 재테스트 버튼은 무조건 숨김
+            const container = document.getElementById('syncRetestButtonContainer');
+            if (container && container.classList.contains('visible')) {
+                container.classList.remove('visible');
+            }
+        }
     }
 }
-
     // --- 플로팅 메뉴 관련 함수 ---
     let isFloatingMenuOpen = false;
 

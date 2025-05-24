@@ -21,7 +21,7 @@ html, body {
    - .container (메인 UI 컨테이너): 2  -> 블러 적용 대상
      - #section2 (채팅 메시지 영역): 10
      - #section5 (하단 입력창): 15
-     - .suggestion-buttons-container: 20
+     - .suggestion-buttons-container (일반 제안 버튼): 18
      - .new-message-button: 25
      - #tooltip: 30
    - #menuOverlay (플로팅 메뉴 배경 오버레이): 90
@@ -29,6 +29,7 @@ html, body {
      - .floating-menu-indicator-container (슬라이드 인디케이터): 101
      - .floating-menu-slider (슬라이드 가능한 영역): 100
        - .floating-menu (개별 플로팅 바): 100
+   - #syncRetestButtonContainer (싱크타입 재테스트 버튼 컨테이너): 105 (플로팅 메뉴보다 위)
 */
 
 /* 섹션 3: 루비 배경 이미지 */
@@ -39,7 +40,7 @@ html, body {
     transform: translateX(-50%);
     width: 100%;
     max-width: 380px;
-    z-index: 1; /* .container 보다 낮게 */
+    z-index: 1;
     pointer-events: none;
 }
 #rubyImage {
@@ -65,25 +66,21 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    z-index: 2; /* #section3 보다 높게, 오버레이/메뉴보다 낮게 */
-    --bottom-area-total-height: 80px; /* JS에서 업데이트 */
-    transition: filter 0.3s ease-in-out; /* 블러 효과 트랜지션 */
+    z-index: 2;
+    --bottom-area-total-height: 80px;
+    transition: filter 0.3s ease-in-out;
 }
-
-/* 배경 블러 효과를 위한 클래스 */
 .container.menu-open-blur {
     filter: blur(5px);
-    pointer-events: none; /* 블러 시 상호작용 방지 */
+    pointer-events: none;
 }
 
-
-/* 섹션 2: 메시지, 액션, UI 요소 등이 표시되는 스크롤 영역 */
 #section2 {
     width: 100%;
     padding-top: 15px;
     padding-left: 15px;
     padding-right: 15px;
-    padding-bottom: calc(15px + 30px); /* 기본 패딩 15px + 추가 여백 30px = 총 45px */
+    padding-bottom: calc(15px + 30px); /* 기본 패딩 45px, JS에서 suggestion button 높이만큼 추가될 수 있음 */
     position: relative;
     z-index: 10;
     overflow-y: auto;
@@ -95,13 +92,11 @@ html, body {
     flex-grow: 1;
     min-height: 0;
 }
-/* 스크롤바 스타일 */
 #section2::-webkit-scrollbar { width: 6px; }
 #section2::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 3px; margin: 5px 0; }
 #section2::-webkit-scrollbar-thumb { background: #7A5AF1; border-radius: 3px; }
 #section2::-webkit-scrollbar-thumb:hover { background: #5e3ddb; }
 
-/* 액션 텍스트 스타일 */
 #section2 .action-text-in-chat {
     font-family: 'Nanum Pen Script', cursive;
     font-size: 1.6em;
@@ -127,7 +122,6 @@ html, body {
     transition: opacity 0.2s ease-out;
 }
 
-/* 일반 텍스트 메시지 (봇 메시지) */
 #section2 p:not(.user-message):not(.action-text-in-chat) {
     max-width: 100%;
     opacity: 0;
@@ -142,7 +136,6 @@ html, body {
     margin-right: auto;
     align-self: flex-start;
 }
-/* 객관식 질문 텍스트 (p 태그에 .question-text 클래스 추가 시) */
 #section2 p:not(.user-message):not(.action-text-in-chat).question-text {
     font-weight: 500;
     font-size: 1.05em;
@@ -152,7 +145,6 @@ html, body {
     padding: 5px 0;
 }
 
-/* 사용자 텍스트 메시지 */
 #section2 p.user-message {
     background-color: #7A5AF1;
     color: white;
@@ -168,18 +160,14 @@ html, body {
     line-height: 1.5;
     word-wrap: break-word;
 }
-/* 메시지 내 강조 텍스트 (<b>, <strong>) */
 #section2 p b, #section2 p strong {
     font-weight: bold;
     color: #FFD700;
 }
-/* 메시지 내 이탤릭 텍스트 (<i>, <em>) */
 #section2 p i, #section2 p em {
     font-style: italic;
 }
 
-
-/* --- 시각적 요소 스타일 (이모티콘 및 카드 이미지 프레임) --- */
 .visual-elements-frame {
     align-self: center;
     max-width: 90%;
@@ -199,44 +187,33 @@ html, body {
     margin-right: auto;
     position: relative;
 }
-
-/* 프레임 내부의 모든 이미지에 대한 기본 설정 */
 .visual-elements-frame img {
     display: block;
     object-fit: contain;
 }
-
-/* 이모티콘 이미지 크기 (프레임 내부) */
 .visual-elements-frame img[src^="expressions/"] {
     width: 80px;
     height: 80px;
     max-width: 100%;
     border-radius: 0;
 }
-
-/* 타로 카드 및 싱크타입 카드 이미지 크기 통합 */
 .visual-elements-frame img[src^="images/major_"],
 .visual-elements-frame img[src^="images/wands_"],
 .visual-elements-frame img[src^="images/cups_"],
 .visual-elements-frame img[src^="images/swords_"],
 .visual-elements-frame img[src^="images/pentacles_"],
-.visual-elements-frame img[src^="images/sync/"] { /* 싱크타입 카드 경로 추가 */
-    max-width: 120px;   /* 카드 한 장 표시 시 최대 너비 */
-    max-height: 220px;  /* 카드 한 장 표시 시 최대 높이 */
-    border-radius: 8px; /* 카드 이미지 모서리 */
+.visual-elements-frame img[src^="images/sync/"] {
+    max-width: 120px;
+    max-height: 220px;
+    border-radius: 8px;
 }
-
-.visual-elements-frame img.reversed-card { /* 역방향 카드 */
+.visual-elements-frame img.reversed-card {
     transform: rotate(180deg);
 }
-/* JS createCardImageElement에서 생성하는 div.image-balloon 스타일 */
 .visual-elements-frame .image-balloon {
     padding: 0;
 }
 
-
-
-/* 타이핑 인디케이터 */
 .typing-indicator-wrapper {
     margin-left: 0;
     margin-right: auto;
@@ -259,7 +236,6 @@ html, body {
 .typing-indicator span:nth-child(3) { animation-delay: 0s; }
 @keyframes typing-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
 
-/* 섹션 5: 하단 입력창 영역 */
 #section5 {
     background-color: #2A2333;
     padding: 15px 10px;
@@ -267,22 +243,20 @@ html, body {
     align-items: center;
     z-index: 15;
     border-top: 1px solid #4A3F55;
-    gap: 8px; /* 버튼 간 간격 */
-    height: 80px; /* JS에서 --section5-height 변수와 이 값 사용 */
+    gap: 8px;
+    height: 80px;
     flex-shrink: 0;
     width: 100%;
     position: relative;
 }
-
-/* 플로팅 메뉴 버튼 스타일 */
 #floatingMenuButton {
-    flex-shrink: 0; /* 버튼 크기 고정 */
-    width: 50px; /* 너비 */
-    height: 50px; /* 높이 */
-    background-color: #4A3F55; /* 입력창과 비슷한 배경색 */
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    background-color: #4A3F55;
     color: white;
     border-radius: 8px;
-    font-size: 1.5em; /* 아이콘 크기 조절 */
+    font-size: 1.5em;
     cursor: pointer;
     border: none;
     text-align: center;
@@ -295,15 +269,14 @@ html, body {
     padding: 0;
 }
 #floatingMenuButton:hover {
-    background-color: #5a4a8f; /* 호버 시 색상 변경 */
+    background-color: #5a4a8f;
 }
 #floatingMenuButton .icon-bone {
     display: inline-block;
     line-height: 1;
 }
-
 #chatInput {
-    flex-grow: 1; /* 남은 공간을 모두 차지하도록 */
+    flex-grow: 1;
     padding: 10px 15px;
     border-radius: 8px;
     border: none;
@@ -315,7 +288,7 @@ html, body {
     overflow-y: auto;
     resize: none;
     -webkit-appearance: none; -moz-appearance: none; appearance: none;
-    min-width: 100px; /* 너무 작아지지 않도록 최소 너비 설정 */
+    min-width: 100px;
 }
 #chatInput::placeholder { color: #a09aac; }
 #chatInput:disabled {
@@ -323,10 +296,8 @@ html, body {
     color: #b0aec0;
     cursor: not-allowed;
 }
-
-/* 보내기 버튼 */
 #sendButton {
-    flex-shrink: 0; /* 버튼 크기 고정 */
+    flex-shrink: 0;
     min-width: 70px;
     padding: 0 15px;
     background-color: #7A5AF1;
@@ -362,7 +333,6 @@ html, body {
   40% { transform: scale(1.0); opacity: 1; }
 }
 
-/* 툴팁 */
 #tooltip {
     background-color: rgba(0, 0, 0, 0.8); color: white; text-align: center;
     border-radius: 6px; padding: 6px 12px; position: absolute;
@@ -373,7 +343,6 @@ html, body {
 }
 #tooltip.visible { opacity: 1; }
 
-/* 새 메시지 알림 버튼 */
 .new-message-button {
     position: absolute;
     bottom: calc(var(--bottom-area-total-height) + 10px);
@@ -397,37 +366,30 @@ html, body {
 }
 .new-message-button:hover { background-color: #5e3ddb; }
 
-
-/* 제안 버튼 (Suggestion Buttons) */
+/* 일반 제안 버튼 (Suggestion Buttons) */
 .suggestion-buttons-container {
     position: fixed;
-    bottom: 0; /* JS에서 section5 높이만큼 밀어올릴 예정 */
+    /* bottom은 JS에서 section5 높이만큼 설정 */
     left: 50%;
     width: 100%;
-    max-width: 430px; /* container 최대 너비와 일치 */
+    max-width: 430px;
     padding: 10px 15px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
-    z-index: 18; /* section5(15)보다는 높고, new-message-button(25)보다는 낮게 */
+    z-index: 18;
     box-sizing: border-box;
     opacity: 0;
-    transform: translateY(100%) translateX(-50%); /* 초기에는 아래로 숨김 */
+    transform: translateY(100%) translateX(-50%);
     transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-    pointer-events: none; /* 숨겨져 있을 때는 클릭 안 되도록 */
+    pointer-events: none;
 }
-
 .suggestion-buttons-container.visible {
     opacity: 1;
-    transform: translateY(0) translateX(-50%); /* 제자리로 나타남 */
+    transform: translateY(0) translateX(-50%);
     pointer-events: auto;
 }
-
-:root {
-    --section5-height: 80px; /* JS에서 이 값을 section5의 실제 높이로 업데이트 */
-}
-
 .suggestion-button {
     background-color: #4A3F55;
     color: #d3cce3;
@@ -440,8 +402,8 @@ html, body {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0; /* JS에서 애니메이션으로 보이게 함 */
-    transform: translateY(20px); /* JS에서 애니메이션으로 보이게 함 */
+    opacity: 0;
+    transform: translateY(20px);
     transition: opacity 0.3s ease-out, transform 0.3s ease-out, background-color 0.2s ease, color 0.2s ease;
 }
 .suggestion-button:hover {
@@ -449,7 +411,53 @@ html, body {
     color: white;
 }
 
-/* 타로 카드 선택 UI 컨테이너 (#tarotSelectionArea) */
+/* ★★★ 신규: 싱크타입 재테스트 버튼 컨테이너 스타일 ★★★ */
+.sync-retest-button-container {
+    position: fixed;
+    /* bottom은 JS에서 section5 높이만큼 설정 (suggestion-buttons-container와 동일 위치) */
+    left: 50%;
+    width: 100%;
+    max-width: 430px; /* container 최대 너비와 일치 */
+    padding: 10px 15px; /* suggestion-buttons-container와 동일하게 */
+    display: flex;
+    justify-content: center; /* 버튼 하나만 중앙 정렬 */
+    gap: 8px; /* 여러 개일 경우 대비 */
+    z-index: 105; /* 플로팅 메뉴(100)보다 높게, 다른 일반 제안 버튼과 겹칠 수 있으므로 더 높게 */
+    box-sizing: border-box;
+    opacity: 0;
+    transform: translateY(100%) translateX(-50%); /* 초기에는 아래로 숨김 */
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    pointer-events: none; /* 숨겨져 있을 때는 클릭 안 되도록 */
+}
+.sync-retest-button-container.visible {
+    opacity: 1;
+    transform: translateY(0) translateX(-50%); /* 제자리로 나타남 */
+    pointer-events: auto;
+}
+/* 싱크타입 재테스트 버튼 개별 스타일 (suggestion-button과 유사하게 또는 차별화) */
+.sync-retest-button-container .sync-retest-action-button {
+    background-color: #FF6B6B; /* 눈에 띄는 다른 색상 */
+    color: white;
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    opacity: 0; /* JS에서 애니메이션으로 보이게 함 */
+    transform: translateY(20px); /* JS에서 애니메이션으로 보이게 함 */
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out, background-color 0.2s ease, color 0.2s ease;
+}
+.sync-retest-button-container .sync-retest-action-button:hover {
+    background-color: #e05252;
+}
+.sync-retest-button-container .sync-retest-action-button:active {
+    transform: scale(0.96) translateY(20px); /* 클릭 시 살짝 작아지는 효과 */
+}
+
+
 .tarot-selection-container {
     width: 100%;
     padding: 10px 0;
@@ -458,32 +466,31 @@ html, body {
     align-items: center;
     gap: 15px;
     border-radius: 12px;
-    position: relative; /* 내부 요소들의 기준점 */
+    position: relative;
 }
 .tarot-card-list {
     display: flex;
-    overflow-x: auto; /* 가로 스크롤 */
-    padding-top: 15px; /* 위쪽 여백 */
-    padding-left: 15px; /* 왼쪽 여백 (첫 카드 왼쪽 공간) */
-    padding-right: 15px; /* 오른쪽 여백 (마지막 카드 오른쪽 공간) */
-    padding-bottom: 25px; /* 아래쪽 여백 (스크롤바 공간 및 미적 여유) */
-    gap: 12px; /* 카드 사이 간격 */
-    width: 100%; /* 컨테이너 너비에 맞춤 */
-    -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
-    scrollbar-width: thin; /* 스크롤바 두께 (Firefox) */
-    scrollbar-color: #7A5AF1 rgba(0,0,0,0.1); /* 스크롤바 색상 (Firefox) */
+    overflow-x: auto;
+    padding-top: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 25px;
+    gap: 12px;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #7A5AF1 rgba(0,0,0,0.1);
 }
-/* Webkit 기반 브라우저 스크롤바 스타일 */
 .tarot-card-list::-webkit-scrollbar { height: 8px; }
 .tarot-card-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
 .tarot-card-list::-webkit-scrollbar-thumb { background: #6a4ad1; border-radius: 4px; }
 .tarot-card-list::-webkit-scrollbar-thumb:hover { background: #5e3ddb; }
 
 .tarot-card-item {
-    flex-shrink: 0; /* 카드가 부모 너비에 맞춰 줄어들지 않도록 */
+    flex-shrink: 0;
     width: 100px;
     height: 160px;
-    background-color: #3d334e; /* 카드 뒷면 또는 플레이스홀더 색상 */
+    background-color: #3d334e;
     border: 2px solid transparent;
     border-radius: 8px;
     cursor: pointer;
@@ -491,28 +498,26 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* 내부 이미지가 카드를 벗어나지 않도록 */
-    position: relative; /* 오버레이의 기준점 */
+    overflow: hidden;
+    position: relative;
 }
 .tarot-card-item:hover {
-    transform: translateY(-5px) scale(1.03); /* 호버 시 살짝 위로 뜨는 효과 */
+    transform: translateY(-5px) scale(1.03);
 }
 .tarot-card-item.selected {
-    border-color: #FFD700; /* 선택 시 테두리 색상 */
-    transform: scale(1.05); /* 선택 시 살짝 커지는 효과 */
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); /* 선택 시 그림자 효과 */
+    border-color: #FFD700;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
 }
 .tarot-card-item img {
-    width: 90%; /* 카드 내부 이미지 크기 */
+    width: 90%;
     height: 90%;
-    object-fit: contain; /* 이미지 비율 유지하며 채우기 */
-    border-radius: 5px; /* 이미지 모서리도 살짝 둥글게 */
+    object-fit: contain;
+    border-radius: 5px;
 }
-
-/* 카드 이름 오버레이 */
 .tarot-card-item:hover .card-name-overlay,
 .tarot-card-item.selected .card-name-overlay {
-    opacity: 1; /* 호버 또는 선택 시 보이도록 */
+    opacity: 1;
 }
 .tarot-card-item .card-name-overlay {
     position: absolute;
@@ -524,25 +529,23 @@ html, body {
     color: white;
     background-color: rgba(0,0,0,0.6);
     padding: 3px 5px;
-    opacity: 0; /* 기본적으로 숨김 */
+    opacity: 0;
     transition: opacity 0.2s ease-in-out;
-    pointer-events: none; /* 오버레이가 클릭 방해하지 않도록 */
+    pointer-events: none;
     border-radius: 0 0 5px 5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 90%; /* 카드 너비보다 살짝 작게 */
-    margin: 0 auto; /* 중앙 정렬 */
+    max-width: 90%;
+    margin: 0 auto;
 }
-
-/* 타로 카드 선택 완료 버튼 */
 .tarot-selection-confirm-button {
     padding: 10px 20px;
     font-size: 0.95em;
     background-color: #7A5AF1;
     color: white;
     border: none;
-    border-radius: 20px; /* 둥근 버튼 */
+    border-radius: 20px;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -555,88 +558,80 @@ html, body {
     opacity: 0.7;
 }
 
-/* 객관식 질문 UI 컨테이너 */
 .objective-questions-container {
     width: 100%;
-    padding: 15px; /* 내부 여백 */
+    padding: 15px;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    gap: 20px; /* 질문 아이템 간 간격 */
-    position: relative; /* 필요한 경우 z-index 또는 position 기준점 */
+    gap: 20px;
+    position: relative;
 }
 .objective-question-item {
     padding-bottom: 15px;
-    border-bottom: 1px solid #5a4a8f; /* 질문 아이템 구분선 */
+    border-bottom: 1px solid #5a4a8f;
 }
 .objective-question-item:last-child {
-    border-bottom: none; /* 마지막 아이템은 구분선 없음 */
+    border-bottom: none;
     padding-bottom: 0;
 }
 .objective-question-item .options-group {
     display: flex;
-    flex-direction: column; /* 옵션들을 세로로 나열 */
-    gap: 10px; /* 옵션 간 간격 */
+    flex-direction: column;
+    gap: 10px;
 }
 .objective-question-item .radio-label {
     display: flex;
     align-items: center;
     padding: 8px 12px;
-    background-color: #4A3F55; /* 옵션 배경색 */
+    background-color: #4A3F55;
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.9em;
-    color: #d3cce3; /* 옵션 텍스트 색상 */
-    opacity: 0; /* JS에서 애니메이션으로 등장 */
-    transform: translateY(10px); /* JS에서 애니메이션으로 등장 */
+    color: #d3cce3;
+    opacity: 0;
+    transform: translateY(10px);
     transition: opacity 0.4s ease-out, transform 0.4s ease-out, background-color 0.2s ease;
 }
-.objective-question-item .radio-label.visible { /* JS에서 이 클래스 추가/제거 */
+.objective-question-item .radio-label.visible {
     opacity: 1;
     transform: translateY(0);
 }
 .objective-question-item .radio-label:hover {
-    background-color: #5a4a8f; /* 옵션 호버 시 배경색 변경 */
+    background-color: #5a4a8f;
 }
 .objective-question-item .radio-label input[type="radio"] {
-    margin-right: 10px; /* 라디오 버튼과 텍스트 사이 간격 */
-    accent-color: #7A5AF1; /* 라디오 버튼 선택 시 색상 */
-    transform: scale(1.2); /* 라디오 버튼 크기 살짝 키움 */
-}
-.objective-questions-confirm-button {
-    display: none; /* 현재는 사용하지 않음. 필요시 JS로 제어 */
+    margin-right: 10px;
+    accent-color: #7A5AF1;
+    transform: scale(1.2);
 }
 
-/* 확인 메시지 컨테이너 (예: 객관식 완료 후) */
 .confirmation-message-container {
     text-align: center;
     padding: 15px;
     background-color: rgba(0,0,0,0.1);
     border-radius: 10px;
-    position: relative; /* z-index 적용을 위해 */
+    position: relative;
     z-index: 12;
 }
 .confirmation-message-container p {
-    background-color: transparent; /* 부모 스타일 상속 방지 */
+    background-color: transparent;
     border-radius: 0;
     padding: 0;
     max-width: 100%;
-    opacity: 1; /* 항상 보이도록 */
-    align-self: center; /* 수직 중앙 정렬 (flex 아이템일 경우) */
+    opacity: 1;
+    align-self: center;
     text-align: center;
     color: white;
     margin-left: auto;
     margin-right: auto;
 }
 
-/* 초기 숨김 클래스 (JS에서 제거) */
 .initial-hidden {
     opacity: 0;
     pointer-events: none;
 }
 
-
-/* --- 플로팅 메뉴 (슬라이드형) 스타일 --- */
 .menu-overlay {
     position: fixed;
     top: 0;
@@ -655,7 +650,6 @@ html, body {
     transition-delay: 0s;
 }
 
-/* 플로팅 메뉴 전체를 감싸는 컨테이너 */
 #floatingMenuContainer {
     position: fixed;
     top: calc( (100vh - (var(--section5-height) + 10px) ) * 0.2 + env(safe-area-inset-top, 0px) );
@@ -681,7 +675,6 @@ html, body {
     transition-delay: 0s;
 }
 
-/* 슬라이드 인디케이터 컨테이너 */
 .floating-menu-indicator-container {
     display: flex;
     justify-content: center;
@@ -702,7 +695,6 @@ html, body {
     background-color: #7A5AF1;
 }
 
-/* 3개의 플로팅 바를 담는 슬라이더 영역 */
 .floating-menu-slider {
     display: flex;
     width: 300%;
@@ -712,63 +704,56 @@ html, body {
     min-height: 0;
 }
 
-/* 개별 플로팅 바 (페이지) 스타일 */
 .floating-menu {
     width: calc(100% / 3);
     flex-shrink: 0;
     padding: 15px;
-    overflow-y: auto; /* ★★★ 각 바 내부 스크롤 가능하도록 ★★★ */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px; /* 내부 아이템 기본 간격 */
+    gap: 10px;
     color: white;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
 }
-
-/* 플로팅 메뉴 스크롤바 스타일 */
 .floating-menu::-webkit-scrollbar { width: 5px; }
 .floating-menu::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 2.5px; }
 .floating-menu::-webkit-scrollbar-thumb { background: #7A5AF1; border-radius: 2.5px; }
 .floating-menu::-webkit-scrollbar-thumb:hover { background: #5e3ddb; }
 
-/* 플로팅 메뉴 내 상단 텍스트 */
 .floating-menu-title {
     font-size: 1.1em;
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 15px; /* 제목과 내용 간 간격 늘림 */
+    margin-bottom: 15px;
     flex-shrink: 0;
 }
 
-/* --- 1번 플로팅 바 (#floatingMenuPage1) 특별 스타일: 한 줄에 이미지 한 장씩 --- */
-#floatingMenuPage1 .floating-image-list-item { /* 개별 이미지 아이템 (버튼 역할) */
-    width: 100%; /* 컨테이너 폭 전체 사용 */
-    margin-bottom: 10px; /* 이미지 간 세로 간격 */
+#floatingMenuPage1 .floating-image-list-item {
+    width: 100%;
+    margin-bottom: 10px;
     cursor: pointer;
     border-radius: 10px;
-    overflow: hidden; /* 이미지 모서리 둥글게 적용되도록 */
-    background-color: #4E445A; /* 이미지 로딩 전 배경 또는 패딩 영역 색상 */
+    overflow: hidden;
+    background-color: #4E445A;
     transition: background-color 0.2s ease;
 }
 #floatingMenuPage1 .floating-image-list-item:hover {
     background-color: #5A506A;
 }
 #floatingMenuPage1 .floating-image-list-item:last-child {
-    margin-bottom: 0; /* 마지막 아이템 하단 마진 제거 */
+    margin-bottom: 0;
 }
 #floatingMenuPage1 .floating-image-list-item img {
-    width: 100%; /* 부모(.floating-image-list-item) 너비에 맞춤 */
-    height: auto; /* 이미지 비율 유지 */
-    display: block; /* 이미지 하단 여백 제거 */
-    max-height: 80px; /* 이미지 최대 높이 제한 (배너 형태 고려) */
-    object-fit: cover; /* 이미지가 영역을 채우도록 (잘릴 수 있음, contain으로 변경 가능) */
-    border-radius: 8px; /* 이미지 자체도 살짝 둥글게 */
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
 }
 
-
-/* 플로팅 메뉴 내 단일 이미지 - 2번 바용 */
 .floating-single-image-container {
     display: flex;
     justify-content: center;
@@ -782,16 +767,14 @@ html, body {
     max-height: 220px;
     object-fit: contain;
     border-radius: 8px;
-    cursor: pointer; /* 클릭 가능하게 할 경우 */
+    cursor: pointer;
 }
 
-/* 플로팅 메뉴 내 2열 이미지 - 3번 바용 */
 .floating-two-column-image-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     width: 100%;
-    /* flex-grow: 1; overflow-y: auto; 제거 -> .floating-menu에서 스크롤 처리 */
 }
 .floating-two-column-image-item {
     background-color: #4E445A;
@@ -815,12 +798,10 @@ html, body {
     border-radius: 6px;
 }
 
-/* JS에서 특정 플로팅 바를 숨기기 위한 클래스 (1번 바에 사용) */
 .floating-menu.hidden-by-stage {
     display: none !important;
 }
 
-/* iPhone X 등 노치 디자인 대응을 위한 safe area paddings */
 body {
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
