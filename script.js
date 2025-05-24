@@ -1623,7 +1623,7 @@ function extractAndParseJson(modelGeneratedText) {
         } else {
             console.log(`[advanceConsultationStage] 단계 변경 없음. 현재 단계: ${currentConsultationStage}`);
         }
-        manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+         // ★★★ 변경된 함수 호출 ★★★
     }
 
     // --- 메시지 버퍼링 및 자동 전송 관련 함수 ---
@@ -1900,96 +1900,97 @@ function handleChatInput() {
             await sendApiRequest(); // 현재 10단계이므로, 이대로 API 호출
         }
         // 이 버튼 클릭 후에는 '싱크타입 테스트 다시해 다시하고 싶어' 버튼은 어차피 manage 함수에서 조건에 따라 숨겨짐
-        manageSyncRetestButtonVisibility(); // 상태 변경 후 버튼 가시성 업데이트
+         // 상태 변경 후 버튼 가시성 업데이트
     }
 
-    // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
-    function manageSyncRetestButtonVisibility() {
-        const container = document.getElementById('syncRetestButtonContainer');
-        if (!container) {
-            console.warn("[manageSyncRetestButtonVisibility] syncRetestButtonContainer 요소를 찾을 수 없습니다.");
-            return;
-        }
+    // // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
+    // function manageSyncRetestButtonVisibility() {
+    //     const container = document.getElementById('syncRetestButtonContainer');
+    //     if (!container) {
+    //         console.warn("[manageSyncRetestButtonVisibility] syncRetestButtonContainer 요소를 찾을 수 없습니다.");
+    //         return;
+    //     }
 
-        const section5Height = section5 ? section5.offsetHeight : 80;
-        container.style.bottom = `${section5Height}px`;
+    //     const section5Height = section5 ? section5.offsetHeight : 80;
+    //     container.style.bottom = `${section5Height}px`;
 
-        let targetVisibleSlideIndexForPage2 = -1;
-        if (visibleFloatingMenuSlides === 3) {
-            targetVisibleSlideIndexForPage2 = 1; 
-        } else if (visibleFloatingMenuSlides === 2) {
-            targetVisibleSlideIndexForPage2 = 0; 
-        }
+    //     let targetVisibleSlideIndexForPage2 = -1;
+    //     if (visibleFloatingMenuSlides === 3) {
+    //         targetVisibleSlideIndexForPage2 = 1; 
+    //     } else if (visibleFloatingMenuSlides === 2) {
+    //         targetVisibleSlideIndexForPage2 = 0; 
+    //     }
 
-        const shouldShow = isFloatingMenuOpen &&
-                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
-                           currentConsultationStage === 10 &&
-                           userProfile.결정된싱크타입 &&
-                           userProfile.사용자소속성운;
+    //     const shouldShow = isFloatingMenuOpen &&
+    //                        currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
+    //                        currentConsultationStage === 10 &&
+    //                        userProfile.결정된싱크타입 &&
+    //                        userProfile.사용자소속성운;
         
-        let button = container.querySelector('.sync-retest-action-button');
+    //     let button = container.querySelector('.sync-retest-action-button');
 
-        if (shouldShow) {
-            console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시/갱신 시도.");
-            if (!button) { // 버튼이 아예 없으면 새로 생성
-                console.log("[manageSyncRetestButtonVisibility] 버튼 없음. 새로 생성합니다.");
-                button = document.createElement('div');
-                button.classList.add('sync-retest-action-button');
-                button.textContent = "싱크타입 테스트 다시하고 싶어";
-                button.addEventListener('click', async () => {
-                    if (isSessionTimedOut) return;
+    //     if (shouldShow) {
+    //         console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시/갱신 시도.");
+    //         if (!button) { // 버튼이 아예 없으면 새로 생성
+    //             console.log("[manageSyncRetestButtonVisibility] 버튼 없음. 새로 생성합니다.");
+    //             button = document.createElement('div');
+    //             button.classList.add('sync-retest-action-button');
+    //             button.textContent = "싱크타입 테스트 다시하고 싶어";
+    //             button.addEventListener('click', async () => {
+    //                 if (isSessionTimedOut) return;
                     
-                    // 버튼 클릭 시 애니메이션과 함께 숨김 처리
-                    button.style.opacity = '0';
-                    button.style.transform = 'translateY(20px)';
-                    setTimeout(() => {
-                        if(container.classList.contains('visible')) container.classList.remove('visible');
-                    }, 300); // CSS transition과 일치
+    //                 // 버튼 클릭 시 애니메이션과 함께 숨김 처리
+    //                 button.style.opacity = '0';
+    //                 button.style.transform = 'translateY(20px)';
+    //                 setTimeout(() => {
+    //                     if(container.classList.contains('visible')) container.classList.remove('visible');
+    //                 }, 300); // CSS transition과 일치
                     
-                    hideFloatingMenu(); // 플로팅 메뉴도 닫음
-                    await handleSyncTypeRetestRequest();
-                });
-                container.innerHTML = ''; // 기존 내용 확실히 비우기
-                container.appendChild(button);
-            }
+    //                 hideFloatingMenu(); // 플로팅 메뉴도 닫음
+    //                 await handleSyncTypeRetestRequest();
+    //             });
+    //             container.innerHTML = ''; // 기존 내용 확실히 비우기
+    //             container.appendChild(button);
+    //         }
             
-            // 버튼(재생성되었거나 기존 버튼)에 애니메이션 효과를 주며 보이게 함
-            // visible 클래스 추가 전에 opacity와 transform을 초기화해야 애니메이션이 반복됨
-            button.style.opacity = '0';
-            button.style.transform = 'translateY(20px)';
+    //         // 버튼(재생성되었거나 기존 버튼)에 애니메이션 효과를 주며 보이게 함
+    //         // visible 클래스 추가 전에 opacity와 transform을 초기화해야 애니메이션이 반복됨
+    //         button.style.opacity = '0';
+    //         button.style.transform = 'translateY(20px)';
             
-            if (!container.classList.contains('visible')) {
-                container.classList.add('visible');
-            }
+    //         if (!container.classList.contains('visible')) {
+    //             container.classList.add('visible');
+    //         }
             
-            requestAnimationFrame(() => {
-                button.style.opacity = '1';
-                button.style.transform = 'translateY(0)';
-            });
+    //         requestAnimationFrame(() => {
+    //             button.style.opacity = '1';
+    //             button.style.transform = 'translateY(0)';
+    //         });
 
-        } else {
-            // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentSlide: ${currentFloatingMenuSlideIndex}, targetSlide: ${targetVisibleSlideIndexForPage2}, stage: ${currentConsultationStage}`);
-            if (container.classList.contains('visible')) {
-                if (button) { // 버튼이 존재하면 숨김 애니메이션 적용
-                    button.style.opacity = '0';
-                    button.style.transform = 'translateY(20px)';
-                }
-                setTimeout(() => {
-                    // shouldShow 조건을 다시 확인 (타이머 실행 시점에 상태가 바뀌었을 수 있으므로)
-                    const recheckShouldShow = isFloatingMenuOpen &&
-                                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
-                                           currentConsultationStage === 10 &&
-                                           userProfile.결정된싱크타입 &&
-                                           userProfile.사용자소속성운;
-                    if (container && !recheckShouldShow) { 
-                        container.classList.remove('visible');
-                        // 버튼 자체를 DOM에서 제거할 필요는 없음. 다음 표시 때 재사용.
-                        // container.innerHTML = ''; // 이 줄은 버튼을 계속 유지하기 위해 주석 처리
-                    }
-                }, 300); 
-            }
-        }
-    }
+    //     } else {
+    //         // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentSlide: ${currentFloatingMenuSlideIndex}, targetSlide: ${targetVisibleSlideIndexForPage2}, stage: ${currentConsultationStage}`);
+    //         if (container.classList.contains('visible')) {
+    //             if (button) { // 버튼이 존재하면 숨김 애니메이션 적용
+    //                 button.style.opacity = '0';
+    //                 button.style.transform = 'translateY(20px)';
+    //             }
+    //             setTimeout(() => {
+    //                 // shouldShow 조건을 다시 확인 (타이머 실행 시점에 상태가 바뀌었을 수 있으므로)
+    //                 const recheckShouldShow = isFloatingMenuOpen &&
+    //                                        currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
+    //                                        currentConsultationStage === 10 &&
+    //                                        userProfile.결정된싱크타입 &&
+    //                                        userProfile.사용자소속성운;
+    //                 if (container && !recheckShouldShow) { 
+    //                     container.classList.remove('visible');
+    //                     // 버튼 자체를 DOM에서 제거할 필요는 없음. 다음 표시 때 재사용.
+    //                     // container.innerHTML = ''; // 이 줄은 버튼을 계속 유지하기 위해 주석 처리
+    //                 }
+    //             }, 300); 
+    //         }
+    //     }
+    // }
+
     // ★★★ 신규 함수: 독립적인 싱크타입 재테스트 버튼 표시/숨김 ★★★
     function displayIndependentSyncRetestButton() {
         const container = document.getElementById('independentActionButtonContainer');
@@ -2293,7 +2294,7 @@ async function displayCurrentStageUI() {
             console.log(`[displayCurrentStageUI] Processing stage 10 (Conversation).`);
             if (isSessionTimedOut) {
                 console.log("[displayCurrentStageUI] Session timed out. Skipping UI display for stage 10.");
-                manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
+                 // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
                 return;
             }
             hideSuggestionButtons(true);
@@ -2318,7 +2319,7 @@ async function displayCurrentStageUI() {
                  console.log("[displayCurrentStageUI] Stage 10: API is loading. Input state managed by sendApiRequest.");
             }
             resetSessionTimers();
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+             // ★★★ 변경된 함수 호출 ★★★
             break;
 
         default:
@@ -2970,7 +2971,7 @@ async function handleButtonClick(buttonText) {
                 
                 messageBuffer = `이전에 저장된 싱크타입 정보(성운: ${userProfile.사용자소속성운}, 싱크타입: ${userProfile.결정된싱크타입})를 바탕으로 선택한 주제 '${currentSelectedTarotType}'에 대한 타로 상담을 시작합니다. (시나리오 4)`;
                 await sendApiRequest(0);
-                manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+                 // ★★★ 변경된 함수 호출 ★★★
                 return; 
             } else {
                 nextStage = 3; 
@@ -3010,7 +3011,7 @@ async function handleButtonClick(buttonText) {
             isInitialApiCallAfterObjectiveTest = true;
             messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
             await sendApiRequest(0);
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+             // ★★★ 변경된 함수 호출 ★★★
             return;
         }
     } else if (currentConsultationStage === 3.5) {
@@ -3055,7 +3056,7 @@ async function handleButtonClick(buttonText) {
                     isInitialApiCallAfterObjectiveTest = true;
                     messageBuffer = `사용자가 자신의 성운(${userProfile.사용자소속성운})과 싱크타입(${userProfile.결정된싱크타입})을 입력하고 타로를 시작합니다. (시나리오 4)`;
                     await sendApiRequest(0);
-                    manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+                     // ★★★ 변경된 함수 호출 ★★★
                     return;
                 }
             } else {
@@ -3085,7 +3086,7 @@ async function handleButtonClick(buttonText) {
             isInitialApiCallAfterObjectiveTest = true;
             messageBuffer = "사용자가 싱크타입 정보를 기억하지 못해 바로 타로를 시작합니다. (시나리오 2)";
             await sendApiRequest(0);
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+             // ★★★ 변경된 함수 호출 ★★★
             return;
         }
     } else if (currentConsultationStage === 4) {
@@ -3113,7 +3114,7 @@ async function handleButtonClick(buttonText) {
              isInitialApiCallAfterObjectiveTest = true;
              messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
              await sendApiRequest(0);
-             manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+              // ★★★ 변경된 함수 호출 ★★★
              return;
         }
     } else if (currentConsultationStage === 7) {
@@ -3135,7 +3136,7 @@ async function handleButtonClick(buttonText) {
         console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼(sampleanswer) 클릭됨: "${buttonText}"`);
         messageBuffer = buttonText;
         await sendApiRequest(0);
-        manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+         // ★★★ 변경된 함수 호출 ★★★
         return;
     }
 
@@ -3152,7 +3153,7 @@ async function handleButtonClick(buttonText) {
     } else {
         console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
     }
-    manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+     // ★★★ 변경된 함수 호출 ★★★
 }
 
     async function processUserInput() {
@@ -3687,7 +3688,7 @@ async function displayApiResponseElements(parsedResp) {
     console.log("[displayApiResponseElements] API 응답 UI 표시 시작:", parsedResp);
     if (isSessionTimedOut) {
         console.log("[displayApiResponseElements] 세션 타임아웃. UI 요소 표시 건너뜀.");
-        manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
+         // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
         return;
     }
 
@@ -3769,7 +3770,7 @@ async function displayApiResponseElements(parsedResp) {
     } finally {
         console.log("[displayApiResponseElements] UI 처리 완료.");
         if (currentConsultationStage === 10) { 
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+             // ★★★ 변경된 함수 호출 ★★★
         } else {
             // 10단계가 아니면 싱크타입 재테스트 버튼은 무조건 숨김
             const container = document.getElementById('syncRetestButtonContainer');
@@ -3809,21 +3810,20 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
-            // --- #floatingMenuPage2 내용 설정 부분 수정 ---
             const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
             const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
-            const page2ImageContainer = floatingMenuPage2.querySelector('.sync-type-image-container'); // 수정된 선택자
-            const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content'); // 수정된 선택자
+            const page2ImageContainer = floatingMenuPage2.querySelector('.sync-type-image-container');
+            const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content');
+            const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer'); // 버튼 컨테이너 선택
 
-            // 기존 내용 초기화
             if (page2ImageContainer) page2ImageContainer.innerHTML = '';
             if (page2DescriptionContent) page2DescriptionContent.innerHTML = '';
-
+            if (page2ButtonContainer) page2ButtonContainer.innerHTML = ''; // 버튼 컨테이너도 초기화
 
             if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
                 if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
 
-                if (page2ImageContainer && page2DescriptionContent) { // 두 컨테이너 모두 있는지 확인
+                if (page2ImageContainer && page2DescriptionContent) {
                     const userSyncTypeKorean = userProfile.결정된싱크타입;
                     const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[userSyncTypeKorean];
 
@@ -3831,34 +3831,43 @@ async function displayApiResponseElements(parsedResp) {
                         const syncImg = document.createElement('img');
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
                         syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
-                        syncImg.dataset.action = "show_my_synctype_info"; // 이미지 클릭 시 액션
+                        syncImg.dataset.action = "show_my_synctype_info";
                         page2ImageContainer.appendChild(syncImg);
 
                         const syncDescText = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
-                        // 설명을 p 태그로 감싸거나, 줄바꿈을 <br>로 변환하여 삽입
-                        // 각 줄을 p 태그로 감싸면 CSS에서 p 태그에 대한 스타일링(예: margin)을 추가로 할 수 있습니다.
-                        page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join(''); // 빈 줄도 p태그로 감싸 공간 유지
+                        page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join('');
                     } else {
-                        // 이미지를 불러올 수 없을 때 표시할 내용 (선택적)
                         page2ImageContainer.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">싱크타입 이미지를<br>표시할 수 없습니다.</p>';
                         page2DescriptionContent.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">세부 정보 없음</p>';
                         console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
-            } else {
-                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입"; // 기본 타이틀
-                if (page2ImageContainer && page2DescriptionContent) { // 두 컨테이너 모두 있는지 확인
+
+                // ★★★ 조건부로 #floatingMenuPage2 내부에 재테스트 버튼 생성 ★★★
+                if (page2ButtonContainer && currentConsultationStage === 10) { // 10단계이고, 싱크타입이 있을 때만
+                    const retestButton = document.createElement('button');
+                    retestButton.classList.add('menu-sync-retest-button'); // 새로운 CSS 클래스 적용
+                    retestButton.textContent = "싱크타입 테스트 다시하고 싶어";
+                    retestButton.addEventListener('click', async () => {
+                        if (isSessionTimedOut) return;
+                        hideFloatingMenu(); // 버튼 클릭 시 플로팅 메뉴 닫음
+                        await handleSyncTypeRetestRequest(); // 기존 재테스트 요청 함수 호출
+                    });
+                    page2ButtonContainer.appendChild(retestButton);
+                }
+
+            } else { // 싱크타입 정보가 없을 때
+                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
+                if (page2ImageContainer && page2DescriptionContent) {
                     const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/menu/recommended_tarot_today.png"; // 기본 이미지
+                    defaultImg.src = "images/menu/recommended_tarot_today.png";
                     defaultImg.alt = "싱크타입 정보가 아직 없어요. 테스트를 통해 알아보세요!";
                     defaultImg.dataset.action = "start_sync_type_test_from_menu";
                     page2ImageContainer.appendChild(defaultImg);
-
                     page2DescriptionContent.innerHTML = '<p>아직 싱크타입 정보가 없어요.<br>테스트를 통해 알아보세요!</p>';
                 }
+                // 싱크타입 정보가 없으면 재테스트 버튼은 생성하지 않음
             }
-            // --- #floatingMenuPage2 내용 설정 부분 수정 끝 ---
-
 
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
@@ -3888,7 +3897,7 @@ async function displayApiResponseElements(parsedResp) {
 
             if (chatInput) chatInput.blur();
             hideTooltip();
-            manageSyncRetestButtonVisibility();
+            //  // 이 호출은 삭제
         }
     }
     function hideFloatingMenu() {
@@ -3902,7 +3911,7 @@ async function displayApiResponseElements(parsedResp) {
             mainContainer.classList.remove('menu-open-blur'); 
             isFloatingMenuOpen = false;
             console.log("[FloatingMenu] 메뉴 닫힘");
-            manageSyncRetestButtonVisibility(); // ★★★ 메뉴 닫힐 때 버튼 상태 업데이트 (숨김) ★★★
+             // ★★★ 메뉴 닫힐 때 버튼 상태 업데이트 (숨김) ★★★
         }
     }
     function getRandomItem(arr) {
@@ -4156,7 +4165,7 @@ async function displayApiResponseElements(parsedResp) {
                 console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
             }
             // 유효하지 않은 슬라이드 이동 시에도 버튼 상태는 현재 기준으로 한번 더 업데이트
-            manageSyncRetestButtonVisibility(); // ★★★ 유효하지 않은 이동 시도 시에도 버튼 상태 업데이트 ★★★
+             // ★★★ 유효하지 않은 이동 시도 시에도 버튼 상태 업데이트 ★★★
             return;
         }
 
@@ -4194,7 +4203,7 @@ async function displayApiResponseElements(parsedResp) {
                 }
             });
             console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
-            manageSyncRetestButtonVisibility(); // ★★★ 슬라이드 변경 후 버튼 상태 업데이트 ★★★
+             // ★★★ 슬라이드 변경 후 버튼 상태 업데이트 ★★★
         }
     }
 
