@@ -16,7 +16,7 @@
 
     <div class="container initial-hidden">
         <div id="section2">
-           
+           <!-- 채팅 메시지들이 동적으로 추가될 영역 -->
         </div>
 
         <div class="new-message-button" id="newMessageButton">
@@ -44,7 +44,6 @@
             <!-- 1번 플로팅 바 (1단계 전용) -->
             <div class="floating-menu" id="floatingMenuPage1">
                 <div class="floating-menu-title">오늘은 어떤 운명의 카드가 궁금해?</div>
-                <!-- data-action 값들 구체화 -->
                 <div class="floating-image-list-item" data-action="tarot_today_fortune">
                     <img src="images/menu/banner_today_fortune.png" alt="오늘, 좋은일이 생길까?">
                 </div>
@@ -77,14 +76,26 @@
                 </div>
             </div>
 
-            <!-- 2번 플로팅 바 (항상 표시) -->
+            <!-- 2번 플로팅 바 (항상 표시) - 개선된 구조 적용 -->
             <div class="floating-menu" id="floatingMenuPage2">
                 <div class="floating-menu-title">나의 성운과 싱크타입</div>
-                <div class="floating-single-image-container">
-                    <img src="images/menu/recommended_tarot_today.png" alt="오늘 당신에게 추천하는 특별한 타로 카드입니다." data-action="start_recommended_tarot">
+                <div class="sync-type-display-area">
+                    <div class="sync-type-image-container">
+                        <!-- JS가 여기에 <img src="..." alt="..." data-action="..."> 추가 -->
+                        <!-- 예시 (JS에서 동적 생성 시 이 부분은 비워둡니다):
+                        <img src="images/sync/example_synctype_card.png" alt="나의 싱크타입 이미지" data-action="show_my_synctype_info">
+                        -->
+                    </div>
+                    <div class="sync-type-description-scroll-container">
+                        <div class="sync-type-description-content">
+                            <!-- JS가 여기에 <p>설명...</p> 또는 직접 텍스트 추가 -->
+                            <!-- 예시 (JS에서 동적 생성 시 이 부분은 비워둡니다):
+                            <p>이 싱크타입은 매우 특별하며...</p>
+                            <p>주요 특징은 다음과 같습니다...</p>
+                            -->
+                        </div>
+                    </div>
                 </div>
-                <!-- <div class="floating-menu-item" data-action="retest_sync_from_menu_2">싱크타입 다시 테스트하기 (메뉴 내)</div> -->
-                <!-- 위 버튼은 JS에서 제어되므로 일단 주석 또는 삭제 -->
             </div>
 
             <!-- 3번 플로팅 바 (항상 표시) -->
@@ -102,7 +113,7 @@
         </div>
     </div>
 
-    <!-- ★★★ 신규: 독립 액션 버튼 컨테이너 (싱크타입 재테스트용) ★★★ -->
+    <!-- 싱크타입 재테스트 버튼 컨테이너 -->
     <div id="syncRetestButtonContainer" class="sync-retest-button-container">
         <!-- JS를 통해 여기에 '싱크타입 테스트 다시하고 싶어' 버튼이 동적으로 추가됩니다. -->
     </div>
