@@ -4231,7 +4231,7 @@ async function displayApiResponseElements(parsedResp) {
                 }
                 // 애니메이션 후 슬라이더의 transition 스타일을 초기화하여 다음 인터랙션에 영향 없도록 (선택적)
                 // slider.style.transition = ''; // 또는 CSS에 정의된 기본값으로 돌려놓기
-            }, slideTransitionDuration); // 애니메이션 시간과 동일하게 설정
+            }, slideTransitionDuration); // 애니메이션 시간과 동일하게 설정정
 
             requestAnimationFrame(() => {
                 if (allSlides[actualDomTargetIndex]) {
