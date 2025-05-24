@@ -1585,7 +1585,49 @@ function handleChatInput() {
         }
     }
 
-   // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
+    // ★★★ 신규 함수 (싱크타입 재테스트 최종 결정 플로우) ★★★
+    async function handleSyncTypeRetestFinalDecision(buttonText) {
+        console.log(`[handleSyncTypeRetestFinalDecision] 버튼 클릭: "${buttonText}"`);
+        if (isSessionTimedOut) return;
+
+        const userMessageElement = createTextMessageElement(buttonText, true);
+        if (section2) section2.appendChild(userMessageElement);
+        applyFadeIn(userMessageElement);
+        conversationHistory.push({ role: "user", parts: [{ text: buttonText }] });
+        scrollToBottom(true);
+
+        hideSuggestionButtons(true); // 기존 제안 버튼 숨김
+
+        if (buttonText === "응 테스트 다시 해줘!") {
+            const rubyMsg = "좋아, 다시 시작하자!"; // 선택적 루비 응답
+             // 재테스트 시작 전 프로필 초기화 및 저장
+            updateUserProfile({
+                "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
+                "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
+                "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
+                "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
+                "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
+                "시나리오": null
+            });
+            현재주관식질문인덱스 = 0;
+            currentObjectiveQuestionIndex = 0;
+
+            await displayHardcodedUIElements(null, rubyMsg, [], handleButtonClick);
+            advanceConsultationStage(4); // 주관식 1번으로 이동
+
+        } else if (buttonText === "다시 본론으로 돌아가자") {
+            // 루비가 응답 없이 바로 API 호출로 넘어가도 되고, 간단한 응답 후 넘어가도 됨
+            // const rubyMsg = "알겠어, 이야기하던 걸 계속하자!";
+            // await displayHardcodedUIElements(null, rubyMsg, [], handleButtonClick);
+
+            messageBuffer = "싱크타입 테스트 다시 하지 않고, 기존 상담 이어가자!"; // API로 보낼 메시지
+            await sendApiRequest(); // 현재 10단계이므로, 이대로 API 호출
+        }
+        // 이 버튼 클릭 후에는 '싱크타입 테스트 다시하고 싶어' 버튼은 어차피 manage 함수에서 조건에 따라 숨겨짐
+        manageSyncRetestButtonVisibility(); // 상태 변경 후 버튼 가시성 업데이트
+    }
+
+    // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
     function manageSyncRetestButtonVisibility() {
         const container = document.getElementById('syncRetestButtonContainer');
         if (!container) {
@@ -1593,33 +1635,42 @@ function handleChatInput() {
             return;
         }
 
-        // 위치를 suggestionButtonsContainer와 동일하게 맞추기 위해 section5의 높이를 가져옴
-        const section5Height = section5 ? section5.offsetHeight : 80; // section5 없으면 기본값
+        const section5Height = section5 ? section5.offsetHeight : 80;
         container.style.bottom = `${section5Height}px`;
 
+        // 플로팅 메뉴 2번 바(나의 성운과 싱크타입, ID: floatingMenuPage2)의 DOM 인덱스 확인
+        // visibleFloatingMenuSlides가 3이면 Page2는 인덱스 1
+        // visibleFloatingMenuSlides가 2이면 Page2는 인덱스 0 (보이는 것 기준, 실제 DOM 인덱스는 1)
+        let targetVisibleSlideIndexForPage2 = -1;
+        if (visibleFloatingMenuSlides === 3) { // Page1, Page2, Page3 모두 보일 때
+            targetVisibleSlideIndexForPage2 = 1; // Page2는 두 번째 슬라이드 (인덱스 1)
+        } else if (visibleFloatingMenuSlides === 2) { // Page1 숨겨지고 Page2, Page3만 보일 때
+            targetVisibleSlideIndexForPage2 = 0; // Page2는 첫 번째로 보이는 슬라이드 (인덱스 0)
+        }
 
-        const shouldShow = currentConsultationStage === 10 &&
-                           userProfile.결정된싱크타입 &&
-                           userProfile.사용자소속성운;
+        const shouldShow = isFloatingMenuOpen && // 플로팅 메뉴가 열려있고
+                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 && // 현재 슬라이드가 Page2이고
+                           currentConsultationStage === 10 && // 10단계이고
+                           userProfile.결정된싱크타입 && // 싱크타입 정보가 있고
+                           userProfile.사용자소속성운; // 성운 정보가 있을 때
 
         if (shouldShow) {
             console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시 시도.");
             if (!container.querySelector('.sync-retest-action-button')) {
                 const button = document.createElement('div');
-                button.classList.add('sync-retest-action-button'); // 새 CSS 클래스
+                button.classList.add('sync-retest-action-button');
                 button.textContent = "싱크타입 테스트 다시하고 싶어";
                 button.addEventListener('click', async () => {
                     if (isSessionTimedOut) return;
-                    container.classList.remove('visible'); // 클릭 시 즉시 숨김
-                    // 애니메이션 효과를 위해 opacity, transform 직접 제어
-                    button.style.opacity = '0';
-                    button.style.transform = 'translateY(20px)';
+                    // 버튼 클릭 시 즉시 숨김 처리 (애니메이션은 CSS 담당)
+                    container.classList.remove('visible');
+                    // 플로팅 메뉴도 닫아주는 것이 자연스러울 수 있음
+                    hideFloatingMenu();
                     await handleSyncTypeRetestRequest();
                 });
                 container.innerHTML = '';
                 container.appendChild(button);
                 
-                // 버튼 애니메이션 적용
                 requestAnimationFrame(() => {
                     button.style.opacity = '1';
                     button.style.transform = 'translateY(0)';
@@ -1629,20 +1680,18 @@ function handleChatInput() {
                 container.classList.add('visible');
             }
         } else {
-            console.log("[manageSyncRetestButtonVisibility] 조건 미충족 또는 해당 단계 아님. 버튼 숨김.");
+            // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentFloatingMenuSlideIndex: ${currentFloatingMenuSlideIndex}, targetVisibleSlideIndexForPage2: ${targetVisibleSlideIndexForPage2}, currentConsultationStage: ${currentConsultationStage}`);
             if (container.classList.contains('visible')) {
                 const button = container.querySelector('.sync-retest-action-button');
                 if (button) {
                     button.style.opacity = '0';
                     button.style.transform = 'translateY(20px)';
                 }
-                // 트랜지션 후 container 숨김
                 setTimeout(() => {
-                    if (container && !shouldShow) { // shouldShow 조건을 다시 확인 (비동기 문제 방지)
+                    if (container && !shouldShow) {
                         container.classList.remove('visible');
-                        // container.innerHTML = ''; // 버튼 제거는 다음 표시 때 하도록 둠 (깜빡임 방지)
                     }
-                }, 300); // CSS transition duration과 일치
+                }, 300);
             }
         }
     }
@@ -3453,10 +3502,10 @@ async function displayApiResponseElements(parsedResp) {
         const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
         if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
-            updateFloatingMenuVisibility(); // 먼저 가시성 업데이트 (visibleFloatingMenuSlides 값 설정)
+            updateFloatingMenuVisibility(); 
 
             allSlides.forEach(slide => {
-                slide.style.opacity = '0'; // 모든 슬라이드 일단 숨김
+                slide.style.opacity = '0'; 
             });
 
             menuContainer.classList.add('visible');
@@ -3467,25 +3516,22 @@ async function displayApiResponseElements(parsedResp) {
 
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-            let initialTargetIndex = 0; // 보이는 슬라이드 기준 첫번째
-            let initialDomIndex = 0;    // DOM 기준 첫번째
+            let initialTargetIndex = 0; 
+            let initialDomIndex = 0;    
 
-            if (visibleFloatingMenuSlides === 2) { // 1번 슬라이드가 숨겨진 상태라면
-                // initialTargetIndex는 0 (보이는 것 중 첫번째)
-                initialDomIndex = 1; // DOM에서는 Page2가 첫번째로 보임
-                slider.style.transform = `translateX(0%)`; // Page2가 시작점이므로 slider는 0%
-            } else { // 3개 다 보일 때
-                // initialTargetIndex는 0
-                initialDomIndex = 0; // DOM에서도 Page1이 첫번째
+            if (visibleFloatingMenuSlides === 2) { 
+                initialDomIndex = 1; 
+                slider.style.transform = `translateX(0%)`; 
+            } else { 
+                initialDomIndex = 0; 
                 slider.style.transform = `translateX(0%)`;
             }
 
             if (allSlides[initialDomIndex]) {
                 allSlides[initialDomIndex].style.opacity = '1';
             }
-            currentFloatingMenuSlideIndex = initialTargetIndex; // 보이는 슬라이드 기준으로 현재 인덱스 저장
+            currentFloatingMenuSlideIndex = initialTargetIndex; 
 
-            // 인디케이터 업데이트
             let visibleIndicatorCount = 0;
             indicators.forEach((dot) => {
                 if (dot.style.display !== 'none') {
@@ -3497,6 +3543,7 @@ async function displayApiResponseElements(parsedResp) {
 
             if (chatInput) chatInput.blur();
             hideTooltip();
+            manageSyncRetestButtonVisibility(); // ★★★ 메뉴 열릴 때 버튼 상태 업데이트 ★★★
         }
     }
 
@@ -3508,9 +3555,10 @@ async function displayApiResponseElements(parsedResp) {
         if (menuContainer && overlay && mainContainer) {
             menuContainer.classList.remove('visible');
             overlay.classList.remove('visible');
-            mainContainer.classList.remove('menu-open-blur'); // 배경 블러 해제
+            mainContainer.classList.remove('menu-open-blur'); 
             isFloatingMenuOpen = false;
             console.log("[FloatingMenu] 메뉴 닫힘");
+            manageSyncRetestButtonVisibility(); // ★★★ 메뉴 닫힐 때 버튼 상태 업데이트 (숨김) ★★★
         }
     }
     function getRandomItem(arr) {
@@ -3716,10 +3764,10 @@ async function displayApiResponseElements(parsedResp) {
     // let currentFloatingMenuSlideIndex = 0; // (보이는 슬라이드 기준 인덱스)
     // let visibleFloatingMenuSlides = 3; // (updateFloatingMenuVisibility에서 관리)
 
-    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) { // 매개변수명 변경: targetVisibleIndex (보이는 슬라이드 기준)
+    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) { 
         const slider = document.querySelector('.floating-menu-slider');
         const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); // DOM상의 모든 슬라이드
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); 
         const menuContainer = document.getElementById('floatingMenuContainer');
 
         if (!menuContainer.classList.contains('visible') ||
@@ -3729,6 +3777,8 @@ async function displayApiResponseElements(parsedResp) {
             if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
                 console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
             }
+            // 유효하지 않은 슬라이드 이동 시에도 버튼 상태는 현재 기준으로 한번 더 업데이트
+            manageSyncRetestButtonVisibility(); // ★★★ 유효하지 않은 이동 시도 시에도 버튼 상태 업데이트 ★★★
             return;
         }
 
@@ -3766,8 +3816,11 @@ async function displayApiResponseElements(parsedResp) {
                 }
             });
             console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
+            manageSyncRetestButtonVisibility(); // ★★★ 슬라이드 변경 후 버튼 상태 업데이트 ★★★
         }
     }
+
+    
      function setupEventListeners() {
         if (sendButton) sendButton.addEventListener('click', () => {
             if (isSessionTimedOut) {
