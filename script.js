@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const SESSION_TIMEOUT_DURATION = 120 * 60 * 1000; // 3분
     const INACTIVITY_WARNING_DURATION = 60 * 60 * 1000; // 2분
     let isSessionTimedOut = false; // 세션 종료 여부 플래그
-    let hasSeenSyncTypeExplanationViaButton = false; // ★★★ 추가: "싱크타입이 뭐라구?" 버튼 클릭 여부 플래그 ★★★
+    let shouldShowSyncTypeInfoButton = true; // 싱크타입 설명 버튼("아니 잠깐! 싱크타입이 뭐라구?") 표시 여부
 
     console.log("[ 초기화 ] 주요 상태 변수 초기화 완료. 현재 단계:", currentConsultationStage);
 
@@ -1556,8 +1556,7 @@ async function displayCurrentStageUI() {
             setChatInputDisabled(true, "궁금한 타로 주제를 메뉴에서 선택해주세요.");
             if (rubyImageElement) rubyImageElement.classList.remove('blurred');
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            // ★★★ 1단계 메시지 표시 후 플로팅 메뉴 자동 열기 ★★★
-            if (!isFloatingMenuOpen) { // 이미 열려있지 않다면 자동 열기
+            if (!isFloatingMenuOpen) {
                 showFloatingMenu();
             }
             break;
@@ -1616,7 +1615,8 @@ async function displayCurrentStageUI() {
         case 4:
             hideSuggestionButtons(true);
             console.log(`[displayCurrentStageUI] Processing stage 4 (Subjective question ${현재주관식질문인덱스 + 1})`);
-            let suggestionTextsStage4 = [];
+            let suggestionTextsStage4 = []; // 버튼 텍스트 배열 초기화
+
             if (현재주관식질문인덱스 === 0) {
                 actionText = "루비가 테스트 준비를 하며";
                 assistantMsgWithTags = `좋아 그럼 바로 테스트를 시작하자!<br><br>테스트는 <b>주관식 질문 ${MAX_SUBJECTIVE_QUESTIONS}개와, 객관식 질문 ${MAX_OBJECTIVE_QUESTIONS}개</b> 답변으로 진행돼.<br><br>BigFive 성격심리학과, 융의 감정이론, 그리고 다양한 내부적 요인에 따라 너의 싱크타입을 선택받게 될거야.<br><br>그럼.. 첫번째 질문을 바로 시작할게!<br>신중히 대답해줘!<br><br>`;
@@ -1629,15 +1629,16 @@ async function displayCurrentStageUI() {
                 const currentQuestionText = 주관식질문세트[현재주관식질문인덱스];
                 updateUserProfile({ [`주관식질문${현재주관식질문인덱스 + 1}`]: currentQuestionText });
                 assistantMsgWithTags += `<b style="color:#FFD700;">${currentQuestionText}</b><br><br>※채팅으로 신중하게 입력해주세요`;
-                
-                // ★★★ 수정된 조건: hasSeenSyncTypeExplanationViaButton 플래그 확인 ★★★
-                if (현재주관식질문인덱스 === 0 && !hasSeenSyncTypeExplanationViaButton) {
+
+                await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
+
+                // ★★★ 수정된 부분: 첫 번째 주관식 질문이고, shouldShowSyncTypeInfoButton가 true일 때만 버튼 생성 ★★★
+                if (현재주관식질문인덱스 === 0 && shouldShowSyncTypeInfoButton) {
                     suggestionTextsStage4 = ["아니 잠깐! 싱크타입이 뭐라구?"];
-                    await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
                     createSuggestionButtons(suggestionTextsStage4, handleButtonClick);
-                } else {
-                    await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
                 }
+                // suggestionTextsStage4가 비어있으면 createSuggestionButtons는 아무것도 안 함 (내부 로직에 따름)
+
                 setChatInputDisabled(false, "여기에 답변을 입력해주세요...");
                 setTimeout(() => { if (chatInput && !isSessionTimedOut) chatInput.focus(); }, 100);
             } else {
@@ -1737,17 +1738,13 @@ async function displayCurrentStageUI() {
             isFirstBotMessageDisplayed = false;
             showStage10EntryEmoticon = false;
             isInitialApiCallAfterObjectiveTest = false;
-            hasSeenSyncTypeExplanationViaButton = false; // ★★★ 플래그 초기화 ★★★
+            shouldShowSyncTypeInfoButton = true; // ★★★ 추가: 기본 케이스(오류로 인한 초기화)에서도 플래그 초기화 ★★★
             clearSessionTimers();
             updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
 
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTextsDefault, (clickedText) => {
-                if (clickedText === "응, 처음으로") {
-                    advanceConsultationStage(1); 
-                }
-            });
+            createSuggestionButtons(suggestionTextsDefault, handleButtonClick);
             break;
     }
     manageSendButtonState();
@@ -2380,13 +2377,12 @@ async function handleButtonClick(buttonText) {
         } else if (buttonText === "다시 선택할래") {
             hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
             await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-            
-            currentConsultationStage = 1; 
-            if (rubyImageElement) rubyImageElement.classList.remove('blurred'); 
-            currentSelectedTarotType = null; 
-            updateUserProfile({ "사용자의고민": null }); 
-            advanceConsultationStage(1); 
-            return; 
+            currentConsultationStage = 1;
+            if (rubyImageElement) rubyImageElement.classList.remove('blurred');
+            currentSelectedTarotType = null;
+            updateUserProfile({ "사용자의고민": null });
+            advanceConsultationStage(1);
+            return;
         }
     } else if (currentConsultationStage === 3) {
         if (buttonText === "당연하지") {
@@ -2397,6 +2393,8 @@ async function handleButtonClick(buttonText) {
             hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
             shouldDisplayHardcodedUI = true;
         } else if (buttonText === "오오 정말? 좋아!") {
+            // ★★★ 수정: 싱크타입 설명 후 '좋아!'를 누르면 다음에는 설명 버튼 안 나오게 ★★★
+            shouldShowSyncTypeInfoButton = false;
             현재주관식질문인덱스 = 0;
             nextStage = 4;
         } else if (buttonText === "바쁘니깐 나중에할게") {
@@ -2468,6 +2466,8 @@ async function handleButtonClick(buttonText) {
             }
         }
         if (buttonText === "응, 다시 테스트할게") {
+            // ★★★ 수정: 다시 테스트할 때도 설명 버튼이 보이도록 플래그 초기화 ★★★
+            shouldShowSyncTypeInfoButton = true;
             tempSelectedConstellation = null;
             현재주관식질문인덱스 = 0;
             nextStage = 4;
@@ -2490,18 +2490,20 @@ async function handleButtonClick(buttonText) {
         }
     } else if (currentConsultationStage === 4) {
         if (buttonText === "아니 잠깐! 싱크타입이 뭐라구?") {
-            hasSeenSyncTypeExplanationViaButton = true; // ★★★ 플래그 설정 ★★★
-            console.log("[handleButtonClick] '아니 잠깐! 싱크타입이 뭐라구?' 버튼 클릭. hasSeenSyncTypeExplanationViaButton = true 설정.");
             hardcodedAction = "루비가 다시 한번 설명하며";
             hardcodedMsgWithTags = "싱크타입에 대해 다시 한번 설명해 줄게. 😊<br><br>이건 <b>다양한 심리학 이론과 우주의 기운</b>을 통해 너의 <b>본질적인 유형</b>을 찾아내는 과정이야.<br>이렇게 발견된 너의 <b>'영혼의 쌍둥이'</b> 같은 싱크타입은 타로 카드의 해석 정확도를 높이는 데 중요한 역할을 해. ✨<br><br>바로 테스트를 통해 너의 싱크타입을 알아볼래?";
             hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
             shouldDisplayHardcodedUI = true;
+            // ★★★ 수정: "아니 잠깐!" 버튼 클릭 시 플래그를 false로 설정 ★★★
+            shouldShowSyncTypeInfoButton = false;
             setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
         } else if (buttonText === "오오 정말? 좋아!") {
-             // hasSeenSyncTypeExplanationViaButton 플래그는 여기서 변경하지 않음.
-             현재주관식질문인덱스 = 0; // "오오 정말? 좋아!"를 누르면 항상 첫번째 주관식 질문부터 시작 (스테이지 4 재진입)
-             displayCurrentStageUI(); // 4단계 UI를 다시 그리도록 함 (hasSeenSyncTypeExplanationViaButton 값에 따라 "싱크타입이 뭐라구?" 버튼 표시 여부 결정됨)
-             return;
+             // ★★★ 수정: 싱크타입 설명 후 '좋아!'를 누르면 다음에는 설명 버튼 안 나오게 ★★★
+             shouldShowSyncTypeInfoButton = false;
+             현재주관식질문인덱스 = 0;
+             // nextStage = 4; // 현재 이미 4단계이므로 displayCurrentStageUI()를 직접 호출
+             displayCurrentStageUI(); // displayCurrentStageUI는 내부적으로 shouldShowSyncTypeInfoButton를 참조함
+             return; // 이 경우 추가적인 advanceConsultationStage 호출 방지
         } else if (buttonText === "바쁘니깐 나중에할게") {
              scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
              updateUserProfile({ "시나리오": scenarioToSet });
@@ -3267,11 +3269,11 @@ async function handleSessionTimeout() {
     clearSessionTimers(); 
 
     setChatInputDisabled(true, "대화가 종료되었습니다.");
-    hideSuggestionButtons(true); 
+    hideSuggestionButtons(true);
 
     const timeoutMsg = "바쁜 일이 있는거지? 내일 다시 보자 😁";
     
-    await displayHardcodedUIElements("루비가 아쉬운 표정으로 꼬리를 흔들며", timeoutMsg, ["새로운 상담 시작하기"], async (buttonText) => { 
+    await displayHardcodedUIElements("루비가 아쉬운 표정으로 꼬리를 흔들며", timeoutMsg, ["새로운 상담 시작하기"], async (buttonText) => {
         if (buttonText === "새로운 상담 시작하기") {
             console.log("[SessionTimer] 새로운 상담 시작 요청.");
             
@@ -3281,10 +3283,7 @@ async function handleSessionTimeout() {
             userProfile = initializeUserProfile();
             currentConsultationStage = 0; 
             isSessionTimedOut = false; 
-            isFirstBotMessageDisplayed = false; 
-            showStage10EntryEmoticon = false;
-            isInitialApiCallAfterObjectiveTest = false;
-            hasSeenSyncTypeExplanationViaButton = false; // ★★★ 플래그 초기화 ★★★
+            shouldShowSyncTypeInfoButton = true; // ★★★ 추가: 세션 타임아웃 후 새 상담 시 플래그 초기화 ★★★
             
             advanceConsultationStage(1); 
         }
