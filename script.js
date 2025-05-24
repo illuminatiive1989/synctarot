@@ -551,22 +551,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             "DISC_C_점수": 0,
 
             "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null,
+            "맞춤싱크타입이름": null, // ★★★ 신규 항목 추가 ★★★
             "사용자의감정상태": null,
             "선택된타로카드들": [],
+            "지금까지수집된타로카드": [], // ★★★ 신규 항목 추가 ★★★
             "시나리오": null
         };
 
         const loadedProfile = loadUserProfileFromLocal();
         if (loadedProfile) {
             console.log("[initializeUserProfile] 로드된 프로필을 기본 프로필에 병합합니다.");
-            // 로드된 프로필의 각 키에 대해 기본 프로필을 업데이트
-            // 이렇게 하면 나중에 defaultProfile에 새 키가 추가되어도, 로컬에는 없는 이전 프로필 로드시 오류 방지
             Object.keys(defaultProfile).forEach(key => {
                 if (loadedProfile.hasOwnProperty(key)) {
                     defaultProfile[key] = loadedProfile[key];
                 }
             });
-            // 로드된 프로필에만 있는 (defaultProfile에 없는) 추가적인 키도 병합 (미래 확장 대비)
             Object.keys(loadedProfile).forEach(key => {
                 if (!defaultProfile.hasOwnProperty(key)) {
                     defaultProfile[key] = loadedProfile[key];
@@ -2963,7 +2962,7 @@ async function handleButtonClick(buttonText) {
         if (buttonText === "응") {
             if (userProfile.사용자소속성운 && userProfile.결정된싱크타입) { // 사용자가성운에속한이유 조건 제외
                 console.log("[handleButtonClick] Stage 2 '응': 기존 싱크타입 정보(성운,타입) 감지. 시나리오 4로 진입 시도.");
-                updateUserProfile({ "시나리오": "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행" });
+                updateUserProfile({ "시나리오": "시나리오 4 - 사용자 싱크타입을 바탕으로 타로 진행" });
                 
                 currentConsultationStage = 10; 
                 showStage10EntryEmoticon = true;
@@ -3038,7 +3037,7 @@ async function handleButtonClick(buttonText) {
                     shouldDisplayHardcodedUI = true;
                     tempSelectedConstellation = null;
                 } else {
-                    scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
+                    scenarioToSet = "시나리오 4 - 사용자 싱크타입을 바탕으로 타로 진행";
                     updateUserProfile({
                         "사용자소속성운": tempSelectedConstellation,
                         "결정된싱크타입": cleanButtonText,
@@ -3365,15 +3364,7 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
     const MAX_RETRIES = 3;
     const MAX_SYNC_TYPE_RETRIES = 3;
     const RETRY_DELAY_BASE = 3000;
-
-    // Vercel 서버리스 함수 엔드포인트 (새로 추가 또는 변경)
-    const PROXY_API_URL = '/api/callGoogleAPI'; // 실제 생성한 서버리스 함수 경로로 변경하세요.
-
-    // API_KEY 상수는 클라이언트에서 더 이상 직접 사용하지 않습니다.
-    // const API_KEY = 'AIzaSyDSAA6rbNdD3tV1W_u0nIll0XyTe63rU_k'; // 이 줄 삭제 또는 주석 처리
-    // const MODEL_NAME = 'gemini-2.5-flash-preview-04-17'; // 모델명은 서버리스 함수 또는 여기서 관리 가능 (여기서는 유지)
-    // const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`; // 이 줄 삭제 또는 주석 처리
-
+    const PROXY_API_URL = '/api/callGoogleAPI';
 
     if (isApiLoading && retryCount === 0 && !isRequestingSyncTypeResult && !isInternalRecursiveCall) {
         console.log("[sendApiRequest] 이전 API 요청 처리 중 (외부 최초 호출 시 중복 방지). 새 요청 무시.");
@@ -3416,11 +3407,16 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
 
     try {
         console.log(`[sendApiRequest] 실제 API 요청 전송 시도. 현재 단계: ${currentConsultationStage}, isRequestingSyncTypeResult (호출 시점): ${currentIsRequestingSyncType}`);
-        const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType); // 이 systemInstructionText는 requestBodyContent에 포함됨
+        const systemInstructionText = getActiveSystemPrompt(currentIsRequestingSyncType);
 
         let userProfileItemsString = "";
         const profileKeysToIterate = Object.keys(userProfile);
         profileKeysToIterate.forEach(key => {
+            // ★★★ '지금까지수집된타로카드'는 API로 보내지 않도록 조건 추가 ★★★
+            if (key === "지금까지수집된타로카드") {
+                return; // API 전송에서 이 항목은 건너뜀
+            }
+
             const value = userProfile[key];
             let displayValue;
             if (key === "객관식질문과답변" && Array.isArray(value)) {
@@ -3429,6 +3425,7 @@ async function sendApiRequest(retryCount = 0, isInternalRecursiveCall = false) {
             } else if (key.startsWith("DISC_") && typeof value === 'number') { displayValue = `${value}점`; }
             else if (key.startsWith("주관식답변") && value) { const questionNumber = key.replace("주관식답변", ""); const questionKey = `주관식질문${questionNumber}`; const questionText = userProfile[questionKey] || "해당 질문 없음"; displayValue = `(질문: ${questionText.substring(0,30)}...) ${String(value).trim() || "답변 없음"}`; }
             else if (key.startsWith("주관식질문")) { return; }
+            // ★★★ '맞춤싱크타입이름'도 일반 문자열처럼 처리되어 API로 전송됨 ★★★
             else { displayValue = (value !== null && value !== undefined && String(value).trim() !== "") ? String(value).trim() : "수집안됨"; }
             userProfileItemsString += `${key}: ${displayValue}\n`;
         });
@@ -3445,13 +3442,10 @@ ${discSummary}
         if (currentIsRequestingSyncType) { contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] }); }
         else { contentsForAPI.push(...conversationHistory.map(turn => ({ role: turn.role, parts: turn.parts }))); contentsForAPI.push({ role: "user", parts: [{ text: currentUserTurnTextForApiContent }] }); }
 
-        // requestBodyContent는 이제 서버리스 함수로 전달될 페이로드입니다.
-        // 서버리스 함수가 Google API에 필요한 형식으로 이를 가공하거나 그대로 전달합니다.
         const requestBodyContent = {
-            system_instruction: { parts: [{ text: systemInstructionText }] }, // 서버리스 함수가 이 부분을 사용하거나, 아니면 contents만 받을 수도 있음
+            system_instruction: { parts: [{ text: systemInstructionText }] },
             contents: contentsForAPI,
-            generationConfig: { temperature: 0.7, topP: 0.9 }, // 이 부분도 서버리스 함수로 전달
-            
+            generationConfig: { temperature: 0.7, topP: 0.9 },
         };
 
         if (isFirstAttemptForThisType) {
@@ -3462,14 +3456,13 @@ ${discSummary}
 
         if (!currentIsRequestingSyncType && suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) { hideSuggestionButtons(true); }
 
-        // ★★★ 여기가 핵심 변경: fetch 대상이 PROXY_API_URL로 변경 ★★★
-        const response = await fetch(PROXY_API_URL, { // 서버리스 함수 호출
+        const response = await fetch(PROXY_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBodyContent) // 서버리스 함수로 전송할 데이터
+            body: JSON.stringify(requestBodyContent)
         });
 
-        const responseTextRaw = await response.text(); // 서버리스 함수의 응답을 받음
+        const responseTextRaw = await response.text();
         if (isFirstAttemptForThisType) {
             console.log("================ API RESPONSE RAW (FROM PROXY) START ================");
             console.log("[sendApiRequest] API 원본 응답 (프록시로부터):", responseTextRaw);
@@ -3477,17 +3470,14 @@ ${discSummary}
         }
         console.log("[sendApiRequest] API 응답 상태 코드 (프록시로부터):", response.status);
 
-        // --- 이하 재시도 및 응답 처리 로직은 이전과 거의 동일하게 유지 ---
-        // (단, 에러 발생 시 재귀 호출 시 isInternalRecursiveCall = true 전달)
-
         if (!response.ok) {
             const errorDetail = `HTTP 상태 ${response.status} (프록시): ${response.statusText}. 응답 미리보기: ${responseTextRaw.substring(0, 200)}...`;
             if (response.status >= 500 && response.status <= 599) {
                 if (currentEffectiveRetry < maxEffectiveRetries - 1) {
                     console.warn(`[sendApiRequest] 프록시 HTTP ${response.status} 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
-                    if (typingIndicatorElement) await hideTypingIndicator(); 
+                    if (typingIndicatorElement) await hideTypingIndicator();
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                    if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                    if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); }
                     else { return sendApiRequest(retryCount + 1, true); }
                 }
             }
@@ -3495,7 +3485,7 @@ ${discSummary}
         }
 
         try {
-            const responseData = JSON.parse(responseTextRaw); // 서버리스 함수의 응답을 파싱 (Google API 응답과 동일한 구조여야 함)
+            const responseData = JSON.parse(responseTextRaw);
             if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content &&
                 responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0] &&
                 typeof responseData.candidates[0].content.parts[0].text === 'string') {
@@ -3507,12 +3497,12 @@ ${discSummary}
                 console.warn(`[sendApiRequest] 프록시 응답 내용 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); }
                 else { return sendApiRequest(retryCount + 1, true); }
             }
             throw new Error(`프록시 API 응답 파싱/구조 최종 오류: ${e.message}`);
         }
-        
+
         parsedResponse = extractAndParseJson(modelGeneratedText);
 
         if (parsedResponse && parsedResponse.error) {
@@ -3521,7 +3511,7 @@ ${discSummary}
                 console.warn(`[sendApiRequest] extractAndParseJson 오류. 재시도 (${currentEffectiveRetry + 2}/${maxEffectiveRetries})...`);
                 if (typingIndicatorElement) await hideTypingIndicator();
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (currentEffectiveRetry + 1)));
-                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); } 
+                if (currentIsRequestingSyncType) { syncTypeResultRetryCount++; return sendApiRequest(retryCount, true); }
                 else { return sendApiRequest(retryCount + 1, true); }
             }
             console.warn(`[sendApiRequest] extractAndParseJson 최종 오류 (프록시 응답): ${parsedResponse.error}.`);
@@ -3529,9 +3519,7 @@ ${discSummary}
 
         lastApiResponse = parsedResponse;
 
-        // --- 이하 싱크타입 결정 / 일반 응답 처리 로직 ---
         if (currentIsRequestingSyncType) {
-            // ... (싱크타입 결정 성공/실패/재시도 로직 - 이전과 동일) ...
             console.log("[sendApiRequest] 싱크타입 결정 API 응답 처리 중:", parsedResponse);
             const profileUpdate = parsedResponse ? parsedResponse.user_profile_update : null;
             let apiReceivedConstellationRaw = profileUpdate ? String(profileUpdate.사용자소속성운 || "").trim() : null;
@@ -3547,27 +3535,28 @@ ${discSummary}
             const isValidConstellationName = apiReceivedConstellation && CONSTELLATIONS_DATA.hasOwnProperty(apiReceivedConstellation);
             console.log(`[sendApiRequest_Debug] CONSTELLATIONS_DATA에 정제된 값 ('${apiReceivedConstellation}') 키 존재 여부: ${isValidConstellationName}`);
 
-            if (parsedResponse && !parsedResponse.error && profileUpdate && 
-                apiReceivedConstellation && isValidConstellationName && 
+            if (parsedResponse && !parsedResponse.error && profileUpdate &&
+                apiReceivedConstellation && isValidConstellationName &&
                 apiReceivedSyncType && apiReceivedReason) {
-                
+
                 const scenario1 = "시나리오 1 - 싱크타입 테스트 풀이 필요";
                 profileUpdate.시나리오 = scenario1;
+                // '맞춤싱크타입이름'도 profileUpdate에 포함되어 오면 여기서 같이 업데이트됨
                 updateUserProfile(profileUpdate);
                 console.log(`[sendApiRequest] 싱크타입 결정 성공 및 시나리오 1 설정. 프로필 업데이트:`, userProfile);
 
-                isRequestingSyncTypeResult = false; 
-                syncTypeResultRetryCount = 0; 
+                isRequestingSyncTypeResult = false;
+                syncTypeResultRetryCount = 0;
                 showStage10EntryEmoticon = true;
                 isInitialApiCallAfterObjectiveTest = true;
                 messageBuffer = `나의 싱크타입은 '${userProfile.결정된싱크타입}'(${userProfile.사용자소속성운} 성운)이구나! 나는 ${userProfile.시나리오} 상황이야. 내 성향에 맞는 타로 운세를 봐줘!`;
-                
-                if (typingIndicatorElement) await hideTypingIndicator();
-                isApiLoading = false; 
-                console.log("[sendApiRequest] 싱크타입 결정 후 일반 API 호출 직전, isApiLoading = false");
-                return sendApiRequest(0, true); // 일반 API 호출, isInternalRecursiveCall = true
 
-            } else { 
+                if (typingIndicatorElement) await hideTypingIndicator();
+                isApiLoading = false;
+                console.log("[sendApiRequest] 싱크타입 결정 후 일반 API 호출 직전, isApiLoading = false");
+                return sendApiRequest(0, true);
+
+            } else {
                 let failureReason = "알 수 없는 이유";
                 if (parsedResponse && parsedResponse.error) failureReason = `응답 파싱/내용 오류: ${parsedResponse.error}`;
                 else if (!profileUpdate) failureReason = "user_profile_update 필드 없음";
@@ -3576,7 +3565,7 @@ ${discSummary}
                 else if (!isValidConstellationName) failureReason = `정제된 성운 '${apiReceivedConstellation}'이(가) CONSTELLATIONS_DATA에 정의되지 않음`;
                 else if (!apiReceivedSyncType) failureReason = "결정된싱크타입 필드 없음 또는 빈 값";
                 else if (!apiReceivedReason) failureReason = "사용자가성운에속한이유 필드 없음 또는 빈 값";
-                
+
                 console.error(`[sendApiRequest] 싱크타입 결정 실패 (내용 검증): ${failureReason}. 응답:`, parsedResponse);
 
                 if (syncTypeResultRetryCount < MAX_SYNC_TYPE_RETRIES - 1) {
@@ -3584,18 +3573,15 @@ ${discSummary}
                     console.log(`[sendApiRequest] 싱크타입 결정 내용 검증 실패. 재시도 (${syncTypeResultRetryCount + 1}/${MAX_SYNC_TYPE_RETRIES})`);
                     if (typingIndicatorElement) await hideTypingIndicator();
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_BASE * (syncTypeResultRetryCount)));
-                    return sendApiRequest(retryCount, true); 
+                    return sendApiRequest(retryCount, true);
                 } else {
-                    syncTypeResultRetryCount = 0; 
+                    syncTypeResultRetryCount = 0;
                     throw new Error(`싱크타입 결정 API 최종 실패 (내용 검증): ${failureReason}`);
                 }
             }
-        } else { 
-            // ... (일반 API 응답 처리 로직 - 이전과 동일) ...
+        } else {
             if (parsedResponse && !parsedResponse.error && parsedResponse.user_profile_update) {
-                if (parsedResponse.user_profile_update.시나리오 === undefined || parsedResponse.user_profile_update.시나리오 === null) {
-                    // delete parsedResponse.user_profile_update.시나리오;
-                }
+                // '맞춤싱크타입이름'이 여기서 업데이트될 수 있음
                 updateUserProfile(parsedResponse.user_profile_update);
             }
 
@@ -3618,8 +3604,8 @@ ${discSummary}
             }
 
             if (typingIndicatorElement) await hideTypingIndicator();
-            await displayApiResponseElements(parsedResponse); 
-            
+            await displayApiResponseElements(parsedResponse);
+
             if (parsedResponse && !parsedResponse.error) {
                  conversationHistory.push({ role: "model", parts: [{ text: modelGeneratedText }] });
             }
@@ -3642,18 +3628,18 @@ ${discSummary}
             }
         }
 
-    } catch (error) { // 최종 에러 처리
+    } catch (error) {
         console.error(`[sendApiRequest] API 호출 또는 응답 처리 중 최종 오류 (시도: ${currentEffectiveRetry + 1}/${maxEffectiveRetries}):`, error);
         if (typingIndicatorElement) await hideTypingIndicator();
         const finalErrorMsgWithTags = `앗, 내부 시스템에 작은 문제가 생겼나 봐요! [exp008]<br>잠시 후 다시 시도해주시겠어요?<br><small>(오류: ${error.message.substring(0,120)}...)</small>`;
         let errorSuggestion = ["처음으로 돌아갈래요"];
-        const wasRequestingSyncTypeOnError = currentIsRequestingSyncType; 
+        const wasRequestingSyncTypeOnError = currentIsRequestingSyncType;
         isRequestingSyncTypeResult = false; syncTypeResultRetryCount = 0;
         await displayHardcodedUIElements("루비가 매우 당황하며", finalErrorMsgWithTags, errorSuggestion, async (txt) => {
             if(txt === "처음으로 돌아갈래요" || txt === "테스트 처음부터 다시 하기") {
                 clearChatArea(); conversationHistory = []; userProfile = initializeUserProfile(); currentConsultationStage = 0;
                 isSessionTimedOut = false; isFirstBotMessageDisplayed = false; showStage10EntryEmoticon = false; isInitialApiCallAfterObjectiveTest = false;
-                if (wasRequestingSyncTypeOnError) { loadedPrompts = {}; await initializeApp(); } 
+                if (wasRequestingSyncTypeOnError) { loadedPrompts = {}; await initializeApp(); }
                 else { advanceConsultationStage(1); }
             } else if (txt === "싱크타입 없이 진행하기") {
                 currentConsultationStage = 10; showStage10EntryEmoticon = true; isInitialApiCallAfterObjectiveTest = true;
@@ -3663,10 +3649,10 @@ ${discSummary}
                 isApiLoading = false; await sendApiRequest(0, true);
             }
         });
-        isApiLoading = false; 
+        isApiLoading = false;
     } finally {
         console.log("[sendApiRequest] finally 블록 실행.");
-        const isStillRecursiveCallPending = (currentIsRequestingSyncType && !isRequestingSyncTypeResult); // 현재가 싱크타입이었고, 다음이 일반 API일 예정
+        const isStillRecursiveCallPending = (currentIsRequestingSyncType && !isRequestingSyncTypeResult);
 
         if (!isStillRecursiveCallPending) {
             isApiLoading = false;
@@ -3688,7 +3674,7 @@ async function displayApiResponseElements(parsedResp) {
     console.log("[displayApiResponseElements] API 응답 UI 표시 시작:", parsedResp);
     if (isSessionTimedOut) {
         console.log("[displayApiResponseElements] 세션 타임아웃. UI 요소 표시 건너뜀.");
-         // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
+        // manageSyncRetestButtonVisibility(); // 이미 삭제됨
         return;
     }
 
@@ -3703,14 +3689,38 @@ async function displayApiResponseElements(parsedResp) {
 
         const cardImageId = parsedResp.img;
         if (cardImageId) {
-            const cardEl = createCardImageElement(cardImageId);
+            const cardEl = createCardImageElement(cardImageId); // 이 함수는 타로/싱크 카드 모두 처리
             if (cardEl) {
                 const frame = document.createElement('div');
                 frame.classList.add('visual-elements-frame');
                 frame.appendChild(cardEl);
                 if(section2) section2.appendChild(frame);
                 applyFadeIn(frame);
-                lastShownRubyCardImageId = cardImageId;
+                lastShownRubyCardImageId = cardImageId; // 마지막으로 '표시된' 이미지 ID (타로 또는 싱크)
+
+                // ★★★ '지금까지수집된타로카드' 기록 로직 추가 ★★★
+                // ALL_TAROT_CARD_IDS 목록에 있는지 확인 (정방향/역방향 모두 고려)
+                const normalizedCardIdForCollection = cardImageId.toLowerCase().trim();
+                if (ALL_TAROT_CARD_IDS.includes(normalizedCardIdForCollection)) {
+                    // 싱크타입 캐릭터 카드가 아니어야 함
+                    const isSyncCharacterCard = SYNC_TYPE_CHARACTER_CARD_IDS.some(syncId => normalizedCardIdForCollection.startsWith(syncId.replace('_character_card', '')));
+
+                    if (!isSyncCharacterCard) {
+                        if (!userProfile.지금까지수집된타로카드.includes(normalizedCardIdForCollection)) {
+                            userProfile.지금까지수집된타로카드.push(normalizedCardIdForCollection);
+                            console.log(`[displayApiResponseElements] 타로 카드 수집: ${normalizedCardIdForCollection}. 현재 수집된 카드:`, userProfile.지금까지수집된타로카드);
+                            saveUserProfileToLocal(); // 변경사항 저장
+                        } else {
+                            console.log(`[displayApiResponseElements] 이미 수집된 타로 카드: ${normalizedCardIdForCollection}`);
+                        }
+                    } else {
+                        console.log(`[displayApiResponseElements] '${normalizedCardIdForCollection}'는 싱크타입 캐릭터 카드이므로 수집 목록에 추가하지 않음.`);
+                    }
+                } else {
+                     console.log(`[displayApiResponseElements] '${normalizedCardIdForCollection}'는 ALL_TAROT_CARD_IDS 목록에 없는 카드이거나 싱크타입 카드. 수집 목록에 추가하지 않음.`);
+                }
+                // ★★★ 기록 로직 끝 ★★★
+
                 scrollToBottom();
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
@@ -3732,17 +3742,13 @@ async function displayApiResponseElements(parsedResp) {
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 일반 제안 버튼(sampleanswer)과 싱크타입 재테스트 버튼은 서로 독립적으로 표시될 수 있음
-        // (단, CSS에서 위치가 겹치지 않도록 잘 조정해야 함. 현재는 동일 위치에 z-index로 구분)
-
         if (parsedResp.tarocardview === true) {
-            hideSuggestionButtons(true); // 타로 카드 선택 UI가 나올 때는 일반 제안 버튼 숨김
+            hideSuggestionButtons(true);
             console.log("[displayApiResponseElements] tarocardview: true. 타로 카드 선택 UI 표시.");
             const cardsToSelect = (typeof parsedResp.cards_to_select === 'number' && parsedResp.cards_to_select > 0) ? parsedResp.cards_to_select : 3;
             displayTarotSelectionUI(cardsToSelect, handleMultipleCardSelection);
             setChatInputDisabled(true, `카드를 ${cardsToSelect}장 선택해주세요.`, true);
         } else if (parsedResp.sampleanswer && String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s).length > 0) {
-            // sampleanswer가 있으면, 기존처럼 suggestionButtonsContainer에 버튼 생성
             console.log(`[displayApiResponseElements] sampleanswer ('${parsedResp.sampleanswer}') 발견. 제안 버튼 생성 시도.`);
             setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
             const suggestionTexts = String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s);
@@ -3753,31 +3759,21 @@ async function displayApiResponseElements(parsedResp) {
             });
             console.log("[displayApiResponseElements] 샘플 답변 버튼 표시 완료.");
         } else if (currentConsultationStage === 10) {
-            // sampleanswer 없고 10단계면, 일반 제안 버튼은 없음. 입력창만 활성화.
             console.log("[displayApiResponseElements] Stage 10: 일반 대화 응답 (샘플 답변 없음). 입력창 활성화 및 포커스 시도.");
             setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
             if (chatInput && !chatInput.disabled && !isSessionTimedOut) {
                 setTimeout(() => chatInput.focus(), 50);
             }
         } else {
-            // 10단계가 아니면서 sampleanswer도 없고 tarocardview도 false인 경우
-            // (예: 단계 이동을 위한 중간 메시지)
-            // 이 경우 일반 제안 버튼은 표시하지 않음.
-            hideSuggestionButtons(true); // 확실히 숨김
+            hideSuggestionButtons(true);
             console.log(`[displayApiResponseElements] 현재 단계 ${currentConsultationStage}. sampleanswer 없고, tarocardview false. 입력창 상태는 displayCurrentStageUI 설정 따름.`);
         }
 
     } finally {
         console.log("[displayApiResponseElements] UI 처리 완료.");
-        if (currentConsultationStage === 10) { 
-             // ★★★ 변경된 함수 호출 ★★★
-        } else {
-            // 10단계가 아니면 싱크타입 재테스트 버튼은 무조건 숨김
-            const container = document.getElementById('syncRetestButtonContainer');
-            if (container && container.classList.contains('visible')) {
-                container.classList.remove('visible');
-            }
-        }
+        // if (currentConsultationStage === 10) { // 이 부분은 삭제됨
+            // manageSyncRetestButtonVisibility();
+        // }
     }
 }
     // --- 플로팅 메뉴 관련 함수 ---
@@ -3814,11 +3810,11 @@ async function displayApiResponseElements(parsedResp) {
             const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
             const page2ImageContainer = floatingMenuPage2.querySelector('.sync-type-image-container');
             const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content');
-            const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer'); // 버튼 컨테이너 선택
+            const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer');
 
             if (page2ImageContainer) page2ImageContainer.innerHTML = '';
             if (page2DescriptionContent) page2DescriptionContent.innerHTML = '';
-            if (page2ButtonContainer) page2ButtonContainer.innerHTML = ''; // 버튼 컨테이너도 초기화
+            if (page2ButtonContainer) page2ButtonContainer.innerHTML = '';
 
             if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
                 if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
@@ -3843,15 +3839,14 @@ async function displayApiResponseElements(parsedResp) {
                     }
                 }
 
-                // ★★★ 조건부로 #floatingMenuPage2 내부에 재테스트 버튼 생성 ★★★
-                if (page2ButtonContainer && currentConsultationStage === 10) { // 10단계이고, 싱크타입이 있을 때만
+                if (page2ButtonContainer && currentConsultationStage === 10) {
                     const retestButton = document.createElement('button');
-                    retestButton.classList.add('menu-sync-retest-button'); // 새로운 CSS 클래스 적용
-                    retestButton.textContent = "아무래도 다시 싱크테스트를 해야될 것 같아!";
+                    retestButton.classList.add('menu-sync-retest-button');
+                    retestButton.textContent = "싱크타입 테스트 다시하고 싶어";
                     retestButton.addEventListener('click', async () => {
                         if (isSessionTimedOut) return;
-                        hideFloatingMenu(); // 버튼 클릭 시 플로팅 메뉴 닫음
-                        await handleSyncTypeRetestRequest(); // 기존 재테스트 요청 함수 호출
+                        hideFloatingMenu();
+                        await handleSyncTypeRetestRequest();
                     });
                     page2ButtonContainer.appendChild(retestButton);
                 }
@@ -3860,13 +3855,14 @@ async function displayApiResponseElements(parsedResp) {
                 if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
                 if (page2ImageContainer && page2DescriptionContent) {
                     const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/menu/recommended_tarot_today.png";
-                    defaultImg.alt = "싱크타입 정보가 아직 없어요. 테스트를 통해 알아보세요!";
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu";
+                    // ★★★ 이미지 경로 및 alt, data-action 수정 ★★★
+                    defaultImg.src = "images/sync/Notsync.png"; // 여기에 새 이미지 경로 적용
+                    defaultImg.alt = "싱크타입을 아직 발견하지 못했어요. 테스트로 찾아보세요!"; // alt 텍스트 수정
+                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; // data-action은 유지하거나 필요에 따라 변경
                     page2ImageContainer.appendChild(defaultImg);
-                    page2DescriptionContent.innerHTML = '<p>아직 싱크타입 정보가 없어요.<br>테스트를 통해 알아보세요!</p>';
+
+                    page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>'; // 설명 텍스트도 적절히 수정
                 }
-                // 싱크타입 정보가 없으면 재테스트 버튼은 생성하지 않음
             }
 
             const slider = document.querySelector('.floating-menu-slider');
@@ -3897,7 +3893,6 @@ async function displayApiResponseElements(parsedResp) {
 
             if (chatInput) chatInput.blur();
             hideTooltip();
-            //  // 이 호출은 삭제
         }
     }
     function hideFloatingMenu() {
