@@ -778,64 +778,72 @@ html, body {
 
 /* 플로팅 메뉴 2번 바 (나의 싱크타입) 스타일 수정 */
 #floatingMenuPage2 {
-    display: flex; /* 내부 요소 정렬을 위해 flex 사용 */
-    flex-direction: column; /* 타이틀, 이미지 컨테이너, 설명 래퍼를 수직으로 쌓음 */
-    align-items: center; /* 가로 중앙 정렬 */
-    padding-bottom: 20px; 
-    gap: 0; /* 개별 마진으로 간격 제어 */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 내부 요소들 수평 중앙 정렬 */
+    justify-content: flex-start; /* 위에서부터 배치 */
+    padding: 15px; /* 페이지 전체 패딩 */
+    gap: 0px; /* 요소 간 간격은 각 요소의 마진으로 제어 */
+    overflow: hidden; /* 이 페이지 자체의 스크롤은 방지 (내부에서 스크롤) */
+    height: 100%; /* 부모인 .floating-menu 높이를 꽉 채움 */
 }
 #floatingMenuPage2 .floating-menu-title {
     color: #FFD700; 
-    margin-bottom: 20px; /* 타이틀과 이미지 컨테이너 사이 간격 */
-    flex-shrink: 0;
+    margin-bottom: 15px; /* 타이틀과 이미지/설명 컨테이너 사이 간격 */
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: 500;
+    flex-shrink: 0; /* 타이틀 높이가 줄어들지 않도록 함 */
 }
 /* 이미지와 설명 오버레이를 담는 컨테이너 */
 #floatingMenuPage2 .floating-single-image-container {
     position: relative; /* 설명 오버레이의 기준점 */
-    display: flex; /* 내부 이미지 중앙 정렬용 */
+    display: flex;
     justify-content: center;
     align-items: center;
-    width: 70%; /* 플로팅 메뉴 2번 바 너비의 70% */
-    max-width: 280px; /* 최대 이미지 너비 */
-    margin: 0 auto; /* 좌우 중앙 정렬 */
-    flex-shrink: 0; /* 크기 유지 */
-    /* 이 컨테이너의 높이는 내부 이미지에 의해 결정되도록 height/aspect-ratio 제거 */
+    width: 100%; /* 페이지 너비 전체 사용 */
+    /* height는 내부 이미지에 따라 유동적으로 결정되도록 명시적 height 제거 */
+    margin-bottom: 10px; /* 이미지 컨테이너와 다음 요소(있다면) 사이의 간격 */
+    flex-shrink: 0; /* 컨테이너 크기가 내용에 따라 줄어들지 않도록 함 */
 }
-#floatingMenuPage2 .floating-single-image-container img { /* 싱크타입 카드 이미지 */
-    width: 100%; /* 부모(.floating-single-image-container) 너비에 맞춤 */
-    height: auto;
+#floatingMenuPage2 .floating-single-image-container img {
+    display: block;
+    width: 70%; /* 컨테이너 너비의 70% (플로팅 메뉴 너비의 70%) */
+    max-width: 250px; /* 이미지의 절대적인 최대 너비 (조절 가능) */
+    height: auto;   /* 이미지 비율 유지 */
     object-fit: contain;
     border-radius: 8px;
     cursor: pointer;
-    opacity: 0.4; /* ★★★ 이미지 반투명하게 ★★★ */
-    display: block; /* 이미지 하단 여백 제거 */
+    opacity: 0.4; /* 이미지 반투명 효과 */
+    transition: opacity 0.3s ease; /* 부드러운 효과 (필요시) */
 }
 /* 설명 래퍼는 이제 이미지 위에 겹쳐짐 */
 #floatingMenuPage2 .sync-type-description-wrapper {
-    position: absolute;
-    top: 0; /* 이미지 컨테이너 상단에 맞춤 */
+    position: absolute; /* 이미지 컨테이너 기준 절대 위치 */
+    top: 0;
     left: 0;
-    width: 100%;
-    height: 100%; /* 이미지 컨테이너 높이에 맞춤 */
+    width: 100%; /* 이미지 컨테이너 너비와 동일하게 */
+    height: 100%; /* 이미지 컨테이너 높이와 동일하게 */
     display: flex;
-    flex-direction: column; /* 내부 p태그 정렬용 */
-    justify-content: center; /* 세로 중앙 (또는 flex-start, flex-end) */
-    align-items: center; /* 가로 중앙 */
-    padding: 15px; /* 내부 여백 */
+    flex-direction: column;
+    justify-content: center; /* 설명 텍스트를 수직 중앙에 배치 */
+    align-items: center; /* 설명 텍스트를 수평 중앙에 배치 */
+    padding: 20px; /* 내부 텍스트와 오버레이 가장자리 사이 여백 */
     box-sizing: border-box;
-    overflow-y: auto; /* 내용 길면 스크롤 */
-    /* background-color: rgba(0,0,0,0.3); */ /* 필요하다면 설명 배경 살짝 어둡게 */
-    pointer-events: none; /* 설명 영역이 이미지 클릭을 막지 않도록 (JS에서 이미지에 이벤트 위임) */
-                                /* 단, 스크롤이 필요하면 auto로 변경해야 함. 이 경우 이미지 클릭과 충돌 가능성 */
+    overflow-y: auto; /* 내용이 넘치면 스크롤 */
+    pointer-events: auto; /* ★★★ 스크롤 가능하도록 auto로 변경 ★★★ */
+    /* background-color: rgba(0, 0, 0, 0.15); */ /* 디버깅 또는 가독성을 위한 배경 (선택 사항) */
+    border-radius: 8px; /* 이미지가 둥글다면 설명 오버레이도 맞춰줌 */
 }
 #floatingMenuPage2 .sync-type-description {
     font-size: 0.9em;
-    color: #FFFFFF; /* 이미지 위에 잘 보이도록 흰색 또는 밝은 색 */
+    color: #FFFFFF;
     text-align: center;
-    line-height: 1.6;
+    line-height: 1.5;
     width: 100%;
-    text-shadow: 0px 0px 3px rgba(0,0,0,0.7); /* 텍스트 가독성 향상 */
-    pointer-events: auto; /* 설명 텍스트 자체는 스크롤 가능하도록 */
+    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8); /* 텍스트 가독성 향상 */
+    /* pointer-events: auto; wrapper에서 관리하므로 여기선 필요 없음 */
+    /* max-height 와 overflow-y는 wrapper로 이동 */
 }
 #floatingMenuPage2 .sync-type-description-wrapper::-webkit-scrollbar {
     width: 5px;
