@@ -3797,10 +3797,10 @@ async function displayApiResponseElements(parsedResp) {
         const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
         if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
-            updateFloatingMenuVisibility(); 
+            updateFloatingMenuVisibility();
 
             allSlides.forEach(slide => {
-                slide.style.opacity = '0'; 
+                slide.style.opacity = '0';
             });
 
             menuContainer.classList.add('visible');
@@ -3809,83 +3809,74 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
+            // --- #floatingMenuPage2 내용 설정 부분 수정 ---
             const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
             const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
-            const page2ImageContainer = floatingMenuPage2.querySelector('.floating-single-image-container');
-            
-            if (page2ImageContainer) {
-                const existingImg = page2ImageContainer.querySelector('img');
-                if (existingImg) existingImg.remove();
-                const existingDescP = page2ImageContainer.querySelector('p.sync-type-description');
-                if (existingDescP) existingDescP.remove();
-            }
+            const page2ImageContainer = floatingMenuPage2.querySelector('.sync-type-image-container'); // 수정된 선택자
+            const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content'); // 수정된 선택자
+
+            // 기존 내용 초기화
+            if (page2ImageContainer) page2ImageContainer.innerHTML = '';
+            if (page2DescriptionContent) page2DescriptionContent.innerHTML = '';
+
 
             if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
                 if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
-                
-                if (page2ImageContainer) {
+
+                if (page2ImageContainer && page2DescriptionContent) { // 두 컨테이너 모두 있는지 확인
                     const userSyncTypeKorean = userProfile.결정된싱크타입;
-                    // ★★★ SYNC_TYPE_KOR_TO_ID_MAP을 사용하여 정확한 ID 조회 ★★★
                     const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[userSyncTypeKorean];
 
                     if (syncTypeCardId) {
                         const syncImg = document.createElement('img');
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
                         syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
-                        syncImg.dataset.action = "show_my_synctype_info";
+                        syncImg.dataset.action = "show_my_synctype_info"; // 이미지 클릭 시 액션
                         page2ImageContainer.appendChild(syncImg);
 
-                        const syncDesc = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
-                        const descP = document.createElement('p');
-                        descP.classList.add('sync-type-description');
-                        descP.style.fontSize = "0.85em";
-                        descP.style.color = "#d3cce3";
-                        descP.style.marginTop = "10px";
-                        descP.style.textAlign = "center";
-                        descP.innerHTML = syncDesc.replace(/\n/g, "<br>");
-                        page2ImageContainer.appendChild(descP);
+                        const syncDescText = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
+                        // 설명을 p 태그로 감싸거나, 줄바꿈을 <br>로 변환하여 삽입
+                        // 각 줄을 p 태그로 감싸면 CSS에서 p 태그에 대한 스타일링(예: margin)을 추가로 할 수 있습니다.
+                        page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join(''); // 빈 줄도 p태그로 감싸 공간 유지
                     } else {
-                        page2ImageContainer.innerHTML = '<p>싱크타입 이미지를 불러올 수 없습니다.</p>';
+                        // 이미지를 불러올 수 없을 때 표시할 내용 (선택적)
+                        page2ImageContainer.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">싱크타입 이미지를<br>표시할 수 없습니다.</p>';
+                        page2DescriptionContent.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">세부 정보 없음</p>';
                         console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
             } else {
                 if (page2Title) page2Title.textContent = "나의 성운과 싱크타입"; // 기본 타이틀
-                if (page2ImageContainer) {
+                if (page2ImageContainer && page2DescriptionContent) { // 두 컨테이너 모두 있는지 확인
                     const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/menu/recommended_tarot_today.png"; 
-                    defaultImg.alt = "싱크타입 정보가 아직 없어요.";
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; 
+                    defaultImg.src = "images/menu/recommended_tarot_today.png"; // 기본 이미지
+                    defaultImg.alt = "싱크타입 정보가 아직 없어요. 테스트를 통해 알아보세요!";
+                    defaultImg.dataset.action = "start_sync_type_test_from_menu";
                     page2ImageContainer.appendChild(defaultImg);
-                    
-                    const defaultDescP = document.createElement('p');
-                    defaultDescP.classList.add('sync-type-description');
-                    defaultDescP.style.fontSize = "0.85em";
-                    defaultDescP.style.color = "#d3cce3";
-                    defaultDescP.style.marginTop = "10px";
-                    defaultDescP.style.textAlign = "center";
-                    defaultDescP.textContent = "아직 싱크타입 정보가 없어요. 테스트를 통해 알아보세요!";
-                    page2ImageContainer.appendChild(defaultDescP);
+
+                    page2DescriptionContent.innerHTML = '<p>아직 싱크타입 정보가 없어요.<br>테스트를 통해 알아보세요!</p>';
                 }
             }
+            // --- #floatingMenuPage2 내용 설정 부분 수정 끝 ---
+
 
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-            let initialTargetIndex = 0; 
-            let initialDomIndex = 0;    
+            let initialTargetIndex = 0;
+            let initialDomIndex = 0;
 
-            if (visibleFloatingMenuSlides === 2) { 
-                initialDomIndex = 1; 
-                slider.style.transform = `translateX(0%)`; 
-            } else { 
-                initialDomIndex = 0; 
+            if (visibleFloatingMenuSlides === 2) {
+                initialDomIndex = 1;
+                slider.style.transform = `translateX(0%)`;
+            } else {
+                initialDomIndex = 0;
                 slider.style.transform = `translateX(0%)`;
             }
 
             if (allSlides[initialDomIndex]) {
                 allSlides[initialDomIndex].style.opacity = '1';
             }
-            currentFloatingMenuSlideIndex = initialTargetIndex; 
+            currentFloatingMenuSlideIndex = initialTargetIndex;
 
             let visibleIndicatorCount = 0;
             indicators.forEach((dot) => {
@@ -3897,7 +3888,7 @@ async function displayApiResponseElements(parsedResp) {
 
             if (chatInput) chatInput.blur();
             hideTooltip();
-            manageSyncRetestButtonVisibility(); 
+            manageSyncRetestButtonVisibility();
         }
     }
     function hideFloatingMenu() {
