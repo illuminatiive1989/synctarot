@@ -654,67 +654,80 @@ html, body {
 
 .floating-menu-slider {
     display: flex;
-    width: 300%;
-    /* transition: transform 0.4s ease-in-out; */ /* JS에서 제어 */
-    overflow: hidden;
+    width: 300%; /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
+    /* transition: transform 0.4s ease-in-out; /* JS에서 직접 제어 */
+    overflow: hidden; /* 슬라이더 자체의 넘침은 숨김 */
     flex-grow: 1;
-    min-height: 0;
+    min-height: 0; /* flex 아이템이 부모를 넘어서는 것을 방지 */
 }
 
 .floating-menu {
-    width: calc(100% / 3);
+    width: calc(100% / 3); /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
     flex-shrink: 0;
-    overflow-y: auto;
+    /* overflow-y: auto; /* 이제 .page-content-area 또는 .sync-type-display-area 에서 스크롤 제어 */
     display: flex;
     flex-direction: column;
     color: white;
-    opacity: 0;
+    opacity: 0; /* JS에서 현재 슬라이드만 보이도록 제어 */
     transition: opacity 0.3s ease-in-out;
-    position: relative;
-}
-.floating-menu:not(#floatingMenuPage2) {
-    padding: 15px;
-    gap: 10px;
-}
-#floatingMenuPage2 {
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    position: relative; /* 내부 요소의 position:absolute 기준점 (Page2용) */
+    padding: 0; /* 모든 floating-menu의 기본 패딩 제거. 내부에서 개별 설정 */
 }
 
-
-.floating-menu::-webkit-scrollbar { width: 5px; }
-.floating-menu::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 2.5px; }
-.floating-menu::-webkit-scrollbar-thumb { background: #7A5AF1; border-radius: 2.5px; }
-.floating-menu::-webkit-scrollbar-thumb:hover { background: #5e3ddb; }
+.floating-menu::-webkit-scrollbar { /* 이 스크롤바는 이제 .page-content-area 등에 적용될 수 있음 */
+    width: 5px;
+}
+.floating-menu::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 2.5px;
+}
+.floating-menu::-webkit-scrollbar-thumb {
+    background: #7A5AF1;
+    border-radius: 2.5px;
+}
+.floating-menu::-webkit-scrollbar-thumb:hover {
+    background: #5e3ddb;
+}
 
 .floating-menu-title {
     font-size: 1.1em;
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 15px; 
+    margin-bottom: 10px; /* ★★★ 타이틀과 콘텐츠 영역 사이의 기본 간격 ★★★ */
     flex-shrink: 0;
-    padding: 15px 15px 0 15px; 
+    padding: 15px 15px 0 15px; /* 모든 타이틀에 동일한 상단 및 좌우 패딩 */
 }
+
+/* ★★★ 신규: Page1과 Page3의 콘텐츠 영역 스타일 ★★★ */
+.page-content-area {
+    flex-grow: 1; /* 타이틀 제외한 나머지 공간 차지 */
+    overflow-y: auto; /* 내용 넘칠 시 스크롤 */
+    padding: 0 15px 15px 15px; /* 타이틀과의 간격(margin-bottom) 고려, 좌우하단 패딩 */
+    display: flex; /* 내부 아이템 정렬을 위해 */
+    flex-direction: column;
+    gap: 10px; /* Page1의 리스트 아이템 간격 */
+    min-height: 0; /* flex 아이템 내용이 부모를 밀어내는 것 방지 */
+}
+.page-content-area::-webkit-scrollbar { width: 5px; }
+.page-content-area::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 2.5px; }
+.page-content-area::-webkit-scrollbar-thumb { background: #6a6078; border-radius: 2.5px; }
 
 
 #floatingMenuPage1 .floating-image-list-item {
     width: 100%;
-    margin-bottom: 10px;
+    /* margin-bottom: 10px; /* .page-content-area의 gap으로 대체 */
     cursor: pointer;
     border-radius: 10px;
     overflow: hidden;
     background-color: #4E445A;
     transition: background-color 0.2s ease;
+    flex-shrink: 0; /* 아이템 크기 유지 */
 }
 #floatingMenuPage1 .floating-image-list-item:hover {
     background-color: #5A506A;
 }
-#floatingMenuPage1 .floating-image-list-item:last-child {
-    margin-bottom: 0;
-}
+/* #floatingMenuPage1 .floating-image-list-item:last-child { margin-bottom: 0; } 삭제, 패딩으로 처리 */
 #floatingMenuPage1 .floating-image-list-item img {
     width: 100%;
     height: auto;
@@ -724,17 +737,18 @@ html, body {
     border-radius: 8px;
 }
 
-
+/* #floatingMenuPage2 관련 스타일은 이전과 거의 동일하게 유지 (타이틀 마진 조정으로 간격 확보) */
+/* .sync-type-display-area의 margin-top은 제거하거나, 타이틀의 margin-bottom과 조율 */
 .sync-type-display-area {
     flex-grow: 1;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 15px 10px 15px;
+    padding: 0 15px 10px 15px; /* 상단 패딩 0, 하단 패딩 유지 */
     overflow: hidden;
     min-height: 0;
-    margin-top: 5px; /* ★★★ 타이틀 아래 콘텐츠 영역에 약간의 상단 마진 추가 ★★★ */
+    /* margin-top: 5px; /* 이전에 추가했던 부분. 타이틀의 margin-bottom으로 조절하므로 제거 또는 주석 */
 }
 
 .sync-type-image-container {
@@ -826,11 +840,11 @@ html, body {
     opacity: 0.7;
 }
 
-
+/* Page3의 그리드 컨테이너는 .page-content-area 내부에 위치 */
 .floating-two-column-image-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 10px; /* 아이템 간 간격 */
     width: 100%;
 }
 .floating-two-column-image-item {

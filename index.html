@@ -41,45 +41,47 @@
         </div>
 
         <div class="floating-menu-slider">
-            <!-- 1번 플로팅 바 (1단계 전용) -->
+            <!-- 1번 플로팅 바 - 구조 변경 -->
             <div class="floating-menu" id="floatingMenuPage1">
                 <div class="floating-menu-title">오늘은 어떤 운명의 카드가 궁금해?</div>
-                <div class="floating-image-list-item" data-action="tarot_today_fortune">
-                    <img src="images/menu/banner_today_fortune.png" alt="오늘, 좋은일이 생길까?">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_love_crush">
-                    <img src="images/menu/banner_love_crush.png" alt="그 애가 날 좋아할까?">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_pet_mood">
-                    <img src="images/menu/banner_pet_mood.png" alt="반려동물의 오늘 기분이 궁금해">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_lotto">
-                    <img src="images/menu/banner_lotto.png" alt="로또번호가 진짜 궁금해">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_is_this_some">
-                    <img src="images/menu/banner_is_this_some.png" alt="이거 썸타는건가?">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_money_flow">
-                    <img src="images/menu/banner_money_flow.png" alt="오늘의 재물운이 궁금해!">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_exam_luck">
-                    <img src="images/menu/banner_exam_luck.png" alt="얼마 안남은 시험, 잘 볼수 있을까?">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_relationship_luck">
-                    <img src="images/menu/banner_relationship_luck.png" alt="오늘의 대인관계운이 궁금해">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_health_luck">
-                    <img src="images/menu/banner_health_luck.png" alt="건강운이 궁금해">
-                </div>
-                <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                    <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
+                <div class="page-content-area"> <!-- ★★★ 콘텐츠 래퍼 추가 ★★★ -->
+                    <div class="floating-image-list-item" data-action="tarot_today_fortune">
+                        <img src="images/menu/banner_today_fortune.png" alt="오늘, 좋은일이 생길까?">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_love_crush">
+                        <img src="images/menu/banner_love_crush.png" alt="그 애가 날 좋아할까?">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_pet_mood">
+                        <img src="images/menu/banner_pet_mood.png" alt="반려동물의 오늘 기분이 궁금해">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_lotto">
+                        <img src="images/menu/banner_lotto.png" alt="로또번호가 진짜 궁금해">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_is_this_some">
+                        <img src="images/menu/banner_is_this_some.png" alt="이거 썸타는건가?">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_money_flow">
+                        <img src="images/menu/banner_money_flow.png" alt="오늘의 재물운이 궁금해!">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_exam_luck">
+                        <img src="images/menu/banner_exam_luck.png" alt="얼마 안남은 시험, 잘 볼수 있을까?">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_relationship_luck">
+                        <img src="images/menu/banner_relationship_luck.png" alt="오늘의 대인관계운이 궁금해">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_health_luck">
+                        <img src="images/menu/banner_health_luck.png" alt="건강운이 궁금해">
+                    </div>
+                    <div class="floating-image-list-item" data-action="tarot_salary_increase">
+                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
+                    </div>
                 </div>
             </div>
 
-            <!-- 2번 플로팅 바 (항상 표시) - 개선된 구조 적용 -->
+            <!-- 2번 플로팅 바 (기존 구조 유지 - sync-type-display-area가 page-content-area 역할) -->
             <div class="floating-menu" id="floatingMenuPage2">
                 <div class="floating-menu-title">나의 성운과 싱크타입</div>
-                <div class="sync-type-display-area">
+                <div class="sync-type-display-area"> <!-- 이 div가 page-content-area와 유사한 역할 -->
                     <div class="sync-type-image-container">
                         <!-- JS가 여기에 <img src="..." alt="..." data-action="..."> 추가 -->
                     </div>
@@ -89,32 +91,27 @@
                         </div>
                     </div>
                 </div>
-                <!-- ★★★ 신규: 싱크타입 재테스트 버튼을 위한 컨테이너 추가 ★★★ -->
                 <div class="floating-menu-action-button-container" id="floatingMenuPage2ButtonContainer">
                     <!-- JS를 통해 여기에 '싱크타입 테스트 다시하고 싶어' 버튼이 동적으로 추가됩니다. -->
                 </div>
             </div>
 
-            <!-- 3번 플로팅 바 (항상 표시) -->
+            <!-- 3번 플로팅 바 - 구조 변경 -->
             <div class="floating-menu" id="floatingMenuPage3">
                 <div class="floating-menu-title">싱크타입 콜렉션</div>
-                <div class="floating-two-column-image-container">
-                    <div class="floating-two-column-image-item" data-action="friend_apollo"><img src="images/menu/friend_apollo.png" alt="루비의 친구 아폴로 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_luna"><img src="images/menu/friend_luna.png" alt="루비의 친구 루나 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_stellan"><img src="images/menu/friend_stellan.png" alt="루비의 친구 스텔란 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="friend_cosmo"><img src="images/menu/friend_cosmo.png" alt="루비의 친구 코스모 만나보기"></div>
-                    <div class="floating-two-column-image-item" data-action="more_friends"><img src="images/menu/friend_more.png" alt="더 많은 친구들 보기"></div>
-                    <div class="floating-two-column-image-item" data-action="ruby_story"><img src="images/menu/ruby_story_icon.png" alt="루비의 이야기"></div>
+                <div class="page-content-area"> <!-- ★★★ 콘텐츠 래퍼 추가 ★★★ -->
+                    <div class="floating-two-column-image-container">
+                        <div class="floating-two-column-image-item" data-action="friend_apollo"><img src="images/menu/friend_apollo.png" alt="루비의 친구 아폴로 만나보기"></div>
+                        <div class="floating-two-column-image-item" data-action="friend_luna"><img src="images/menu/friend_luna.png" alt="루비의 친구 루나 만나보기"></div>
+                        <div class="floating-two-column-image-item" data-action="friend_stellan"><img src="images/menu/friend_stellan.png" alt="루비의 친구 스텔란 만나보기"></div>
+                        <div class="floating-two-column-image-item" data-action="friend_cosmo"><img src="images/menu/friend_cosmo.png" alt="루비의 친구 코스모 만나보기"></div>
+                        <div class="floating-two-column-image-item" data-action="more_friends"><img src="images/menu/friend_more.png" alt="더 많은 친구들 보기"></div>
+                        <div class="floating-two-column-image-item" data-action="ruby_story"><img src="images/menu/ruby_story_icon.png" alt="루비의 이야기"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- ★★★ 기존의 독립적인 syncRetestButtonContainer는 삭제합니다. ★★★ -->
-    <!--
-    <div id="syncRetestButtonContainer" class="sync-retest-button-container">
-    </div>
-    -->
 
     <script src="script.js"></script> <!-- 최종 JavaScript 파일 경로 -->
 </body>
