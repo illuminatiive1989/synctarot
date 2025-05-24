@@ -670,47 +670,47 @@ html, body {
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     position: relative;
-    padding: 0; 
+    padding: 0;
 }
 
-/* ★★★ 모든 플로팅 메뉴 내부 스크롤 가능 영역에 대한 공통 스크롤바 스타일 ★★★ */
+/* ★★★ 공통 스크롤바 스타일 - 각 스크롤 컨테이너에 적용 ★★★ */
 .page-content-area::-webkit-scrollbar,
 .sync-type-description-scroll-container::-webkit-scrollbar {
-    width: 6px; 
+    width: 6px;
 }
 .page-content-area::-webkit-scrollbar-track,
 .sync-type-description-scroll-container::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05); 
+    background: rgba(255,255,255,0.05);
     border-radius: 3px;
-    /* margin-top: 5px; /* 스크롤 트랙의 상단 마진 -> 각 컨테이너의 padding으로 제어 */
-    /* margin-bottom: 5px; /* 스크롤 트랙의 하단 마진 -> 각 컨테이너의 padding으로 제어 */
+    /* margin-top 과 margin-bottom 은 스크롤바 트랙에 직접 적용하면 스크롤바 자체가 뜨게 됩니다. */
+    /* 컨테이너의 padding으로 조절하는 것이 일반적입니다. */
 }
 .page-content-area::-webkit-scrollbar-thumb,
 .sync-type-description-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(220, 210, 240, 0.3); 
+    background: rgba(220, 210, 240, 0.3);
     border-radius: 3px;
 }
 .page-content-area::-webkit-scrollbar-thumb:hover,
 .sync-type-description-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(220, 210, 240, 0.5); 
+    background: rgba(220, 210, 240, 0.5);
 }
-
 
 .floating-menu-title {
     font-size: 1.1em;
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 10px; 
+    margin-bottom: 10px;
     flex-shrink: 0;
-    padding: 15px 15px 0 15px; 
+    padding: 15px 15px 0 15px; /* 모든 타이틀에 동일한 상단(15px) 및 좌우(15px) 패딩, 하단 패딩 0 */
 }
 
-.page-content-area { /* Page1, Page3의 콘텐츠 영역 */
+.page-content-area { /* Page1, Page3의 콘텐츠 스크롤 영역 */
     flex-grow: 1;
     overflow-y: auto;
-    /* padding: 0 15px 15px 15px; /* 기존 패딩 유지. 스크롤바 위치는 스크롤바 스타일에서 margin으로 조정 불가 */
-    padding: 0 9px 15px 15px; /* ★★★ 오른쪽 패딩을 줄여 스크롤바 공간 확보 (15px - 6px = 9px) ★★★ */
+    /* padding: 0 15px 15px 15px; /* 상단0, 좌15, 우15, 하15 */
+    /* ★★★ 스크롤바와 콘텐츠 간의 오른쪽 여백을 위해 padding-right 조정 ★★★ */
+    padding: 0 9px 15px 15px; /* 상단0, 좌15, 우9(15-6), 하15 */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -744,8 +744,10 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 15px 10px 15px; 
-    overflow: hidden; 
+    /* padding: 0 15px 10px 15px; /* 상단0, 좌15, 우15, 하10 */
+    /* ★★★ Page2의 이 영역은 내부의 .sync-type-description-scroll-container가 패딩을 가짐 ★★★ */
+    padding: 0 0 10px 0; /* 상단0, 좌0, 우0, 하10 (버튼 컨테이너와의 간격) */
+    overflow: hidden;
     min-height: 0;
 }
 
@@ -776,10 +778,11 @@ html, body {
     position: relative;
     z-index: 102;
     width: 100%;
-    height: 100%; 
-    overflow-y: auto; 
-    /* padding: 15px; /* 기존 패딩 유지. 스크롤바 위치는 스크롤바 스타일에서 margin으로 조정 불가 */
-    padding: 15px 9px 15px 15px; /* ★★★ 오른쪽 패딩을 줄여 스크롤바 공간 확보 (15px - 6px = 9px) ★★★ */
+    height: 100%;
+    overflow-y: auto;
+    /* padding: 15px 9px 15px 15px; /* 상15, 좌15, 우9(15-6), 하15 */
+    /* ★★★ Page2 설명 영역의 패딩을 Page1,3의 .page-content-area와 유사하게 맞춤 ★★★ */
+    padding: 0 9px 15px 15px; /* 상단0 (타이틀의 margin-bottom으로 간격), 좌15, 우9, 하15 */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -802,7 +805,7 @@ html, body {
 }
 
 .floating-menu-action-button-container { /* Page2 버튼 컨테이너 */
-    padding: 0 15px 15px 15px; 
+    padding: 0 15px 15px 15px;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
