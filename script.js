@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ★★★ 신규: 싱크타입별 설명 데이터 (모든 싱크타입 포함) ★★★
     const SYNC_TYPE_DESCRIPTIONS = {
         // 루미네시아
-        "젠틀빔": "설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br><b>설명</b>이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.",
+        "젠틀빔": "<br><br>설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br><b>설명</b>이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.",
         "버블퍼프": "설명이 들어갈 부분입니다.",
         "스텔라 터틀": "설명이 들어갈 부분입니다.",
         "문 스눗": "설명이 들어갈 부분입니다.",
@@ -4202,7 +4202,6 @@ async function displayApiResponseElements(parsedResp) {
                  actualDomCurrentIndex = currentFloatingMenuSlideIndex;
             }
 
-            // ★★★ 슬라이드 시작 전 버튼 비활성화 ★★★
             const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer');
             let retestButtonInMenu = null;
             if (page2ButtonContainer) {
@@ -4217,21 +4216,38 @@ async function displayApiResponseElements(parsedResp) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
-            // CSS transition duration과 동일하거나 약간 길게 설정 (예: 0.4s -> 400ms)
-            const slideTransitionDuration = 400;
-            slider.style.transition = `transform ${slideTransitionDuration}ms ease-in-out`; // JS에서 직접 duration 제어
-            slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
+            // CSS transition duration을 CSS 파일에서 직접 가져오거나, 여기서 일관되게 정의합니다.
+            // 예를 들어 CSS에서 transition: transform 0.4s ease-in-out; 이라면 400ms 입니다.
+            // 여기서는 CSS에 정의된 값을 따른다고 가정하고, transitionend 이벤트를 사용합니다.
+            // slider.style.transition = `transform 400ms ease-in-out`; // CSS와 동일하게 명시적 설정 가능
 
-            // 슬라이드 애니메이션 완료 후 버튼 활성화
-            setTimeout(() => {
-                if (retestButtonInMenu) {
-                    retestButtonInMenu.disabled = false;
-                    console.log("[FloatingMenuSlide] 재테스트 버튼 활성화.");
+            // transitionend 이벤트 리스너 정의 (한 번만 실행되도록)
+            const onSlideEnd = (event) => {
+                // event.propertyName으로 'transform' 트랜지션인지 확인할 수 있음
+                if (event.target === slider && event.propertyName === 'transform') {
+                    if (retestButtonInMenu) {
+                        retestButtonInMenu.disabled = false;
+                        console.log("[FloatingMenuSlide] 재테스트 버튼 활성화 (transitionend).");
+                    }
+                    slider.removeEventListener('transitionend', onSlideEnd); // 이벤트 리스너 제거
                 }
-                // 슬라이더의 transition을 원래 CSS 정의로 되돌리거나, 계속 JS에서 제어
-                // slider.style.transition = ''; // CSS에 정의된 transition으로 복원
-            }, slideTransitionDuration);
+            };
 
+            slider.addEventListener('transitionend', onSlideEnd);
+
+            // 만약을 위해 일정 시간 후 강제로 활성화하는 fallback 타이머 (선택적)
+            // 이는 transitionend 이벤트가 어떤 이유로 발생하지 않을 경우를 대비함.
+            const fallbackTimeoutDuration = 500; // CSS transition 시간보다 약간 길게
+            setTimeout(() => {
+                if (retestButtonInMenu && retestButtonInMenu.disabled) { // 여전히 비활성화 상태라면
+                    retestButtonInMenu.disabled = false;
+                    console.warn("[FloatingMenuSlide] 재테스트 버튼 활성화 (fallback timeout). transitionend 이벤트가 발생하지 않았을 수 있습니다.");
+                    slider.removeEventListener('transitionend', onSlideEnd); // 리스너 확실히 제거
+                }
+            }, fallbackTimeoutDuration);
+
+
+            slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
 
             requestAnimationFrame(() => {
                 if (allSlides[actualDomTargetIndex]) {

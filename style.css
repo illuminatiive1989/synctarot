@@ -655,7 +655,7 @@ html, body {
 .floating-menu-slider {
     display: flex;
     width: 300%;
-    transition: transform 0.4s ease-in-out;
+    /* transition: transform 0.4s ease-in-out; /* JS에서 직접 제어하므로 여기서 제거 또는 주석 */
     overflow: hidden;
     flex-grow: 1;
     min-height: 0;
@@ -673,13 +673,12 @@ html, body {
     position: relative;
 }
 .floating-menu:not(#floatingMenuPage2) {
-    padding: 15px; /* Page2를 제외한 나머지 페이지에 기본 패딩 */
-    gap: 10px;     /* Page2를 제외한 나머지 페이지에 기본 gap */
+    padding: 15px;
+    gap: 10px;
 }
-/* Page2는 padding:0으로 설정되어 있으므로, 타이틀에 직접 패딩을 줘야 함 */
 #floatingMenuPage2 {
     padding: 0;
-    overflow: hidden; /* 내부 스크롤은 자식에서 */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -695,12 +694,10 @@ html, body {
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 10px; /* 모든 타이틀의 하단 마진 동일하게 */
+    margin-bottom: 15px; /* ★★★ 타이틀과 아래 내용 간의 간격을 늘립니다 (예: 15px 또는 20px) ★★★ */
     flex-shrink: 0;
-    padding: 15px 15px 0 15px; /* ★★★ 모든 타이틀에 동일한 상단 및 좌우 패딩 적용 ★★★ */
-                                /* margin-bottom이 있으므로 하단 패딩은 0 */
+    padding: 15px 15px 0 15px; 
 }
-/* 기존의 #floatingMenuPage1, #floatingMenuPage3에 대한 padding-top은 위에서 통합 */
 
 
 #floatingMenuPage1 .floating-image-list-item {
@@ -734,7 +731,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 15px 10px 15px; /* 상단 패딩 제거, 하단 패딩 추가 (버튼과의 간격) */
+    padding: 0 15px 10px 15px;
     overflow: hidden;
     min-height: 0;
 }
@@ -794,7 +791,7 @@ html, body {
 }
 
 .floating-menu-action-button-container {
-    padding: 0 15px 15px 15px; /* 상단 패딩 0으로 수정, 좌우하단 패딩 유지 */
+    padding: 0 15px 15px 15px;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
@@ -821,6 +818,13 @@ html, body {
 }
 .menu-sync-retest-button:active {
     transform: scale(0.97);
+}
+/* 버튼 비활성화 시 스타일 (JS에서 disabled 속성 제어) */
+.menu-sync-retest-button:disabled {
+    background-color: #3a3047; /* 비활성화 시 배경색 */
+    color: #6a6078;       /* 비활성화 시 글자색 */
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 
