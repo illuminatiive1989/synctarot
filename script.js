@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         "스타하이브": "설명이 들어갈 부분입니다.",
         "아머드 슬러그": "설명이 들어갈 부분입니다.",
         "아이봇": "설명이 들어갈 부분입니다.",
-        "엘더스퀴드": "설명이 들어갈 부분입니다.",
+        "엘더스퀴드": "엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다<br>엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다<br><br>엘더스퀴드는 짱이다 진짜 최고다 짱이다엘더스퀴드는 짱이다 진짜 최고다 짱이다<b>dd</b>.",
         "스테드패스트 로보베어": "설명이 들어갈 부분입니다.",
         "플래로우": "설명이 들어갈 부분입니다.",
         // 크로니카
@@ -3828,19 +3828,21 @@ async function displayApiResponseElements(parsedResp) {
             const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
             const page2ImageContainer = floatingMenuPage2.querySelector('.floating-single-image-container');
             
+            // 기존 이미지, 설명 래퍼, 설명 p 태그 제거
             if (page2ImageContainer) {
                 const existingImg = page2ImageContainer.querySelector('img');
                 if (existingImg) existingImg.remove();
-                const existingDescP = page2ImageContainer.querySelector('p.sync-type-description');
-                if (existingDescP) existingDescP.remove();
             }
+            // 설명 래퍼는 floatingMenuPage2 바로 밑에 있을 수 있으므로, page2ImageContainer와 별개로 제거
+            const existingDescWrapper = floatingMenuPage2.querySelector('.sync-type-description-wrapper');
+            if (existingDescWrapper) existingDescWrapper.remove();
+
 
             if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
                 if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
                 
-                if (page2ImageContainer) {
+                if (page2ImageContainer) { // 이미지 컨테이너는 유지
                     const userSyncTypeKorean = userProfile.결정된싱크타입;
-                    // ★★★ SYNC_TYPE_KOR_TO_ID_MAP을 사용하여 정확한 ID 조회 ★★★
                     const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[userSyncTypeKorean];
 
                     if (syncTypeCardId) {
@@ -3848,40 +3850,49 @@ async function displayApiResponseElements(parsedResp) {
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
                         syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
                         syncImg.dataset.action = "show_my_synctype_info";
-                        page2ImageContainer.appendChild(syncImg);
-
-                        const syncDesc = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
-                        const descP = document.createElement('p');
-                        descP.classList.add('sync-type-description');
-                        descP.style.fontSize = "0.85em";
-                        descP.style.color = "#d3cce3";
-                        descP.style.marginTop = "10px";
-                        descP.style.textAlign = "center";
-                        descP.innerHTML = syncDesc.replace(/\n/g, "<br>");
-                        page2ImageContainer.appendChild(descP);
+                        page2ImageContainer.appendChild(syncImg); // 이미지 컨테이너에 이미지 추가
                     } else {
-                        page2ImageContainer.innerHTML = '<p>싱크타입 이미지를 불러올 수 없습니다.</p>';
+                        page2ImageContainer.innerHTML = '<p>싱크타입 이미지를 표시할 수 없습니다.</p>';
                         console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
-            } else {
-                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입"; // 기본 타이틀
+
+                // 설명을 위한 새 래퍼 생성 및 추가 (타이틀 아래, 이미지 컨테이너 위 또는 아래 - 여기서는 이미지 컨테이너가 먼저 나오도록)
+                const descWrapper = document.createElement('div');
+                descWrapper.classList.add('sync-type-description-wrapper');
+                // page2Title.insertAdjacentElement('afterend', descWrapper); // 타이틀 바로 다음에 설명 래퍼
+                // 또는 이미지 컨테이너 다음에 추가 (이미지가 설명보다 위에 오도록)
+                if(page2ImageContainer) page2ImageContainer.insertAdjacentElement('afterend', descWrapper);
+                else page2Title.insertAdjacentElement('afterend', descWrapper);
+
+
+                const syncDesc = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
+                const descP = document.createElement('p');
+                descP.classList.add('sync-type-description');
+                // descP.style.marginTop = '30px'; // JS에서 직접 설정하는 대신 CSS로 (wrapper의 padding-top으로 제어)
+                descP.innerHTML = syncDesc.replace(/\n/g, '<br>');
+                descWrapper.appendChild(descP); // 설명 래퍼에 설명 p 태그 추가
+
+            } else { // 싱크타입 정보가 없을 때
+                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
                 if (page2ImageContainer) {
+                    page2ImageContainer.innerHTML = ''; // 이미지 컨테이너 내용 비우기
                     const defaultImg = document.createElement('img');
                     defaultImg.src = "images/menu/recommended_tarot_today.png"; 
                     defaultImg.alt = "싱크타입 정보가 아직 없어요.";
                     defaultImg.dataset.action = "start_sync_type_test_from_menu"; 
                     page2ImageContainer.appendChild(defaultImg);
-                    
-                    const defaultDescP = document.createElement('p');
-                    defaultDescP.classList.add('sync-type-description');
-                    defaultDescP.style.fontSize = "0.85em";
-                    defaultDescP.style.color = "#d3cce3";
-                    defaultDescP.style.marginTop = "10px";
-                    defaultDescP.style.textAlign = "center";
-                    defaultDescP.textContent = "아직 싱크타입 정보가 없어요. 테스트를 통해 알아보세요!";
-                    page2ImageContainer.appendChild(defaultDescP);
                 }
+                // 설명 래퍼 생성 및 기본 안내 문구 추가
+                const descWrapper = document.createElement('div');
+                descWrapper.classList.add('sync-type-description-wrapper');
+                if(page2ImageContainer) page2ImageContainer.insertAdjacentElement('afterend', descWrapper);
+                else page2Title.insertAdjacentElement('afterend', descWrapper);
+
+                const defaultDescP = document.createElement('p');
+                defaultDescP.classList.add('sync-type-description');
+                defaultDescP.textContent = "아직 싱크타입 정보가 없어요. 테스트를 통해 알아보세요!";
+                descWrapper.appendChild(defaultDescP);
             }
 
             const slider = document.querySelector('.floating-menu-slider');

@@ -777,26 +777,55 @@ html, body {
     font-size: 1.1em;
     font-weight: 500;
     color: #FFD700; /* 강조 색상 */
-    margin-bottom: 8px;
+    margin-bottom: 10px; /* 타이틀과 다음 요소 간 간격 */
+    text-align: center; /* 이미 중앙 정렬이지만 명시 */
+    flex-shrink: 0; /* 높이가 줄어들지 않도록 */
 }
 #floatingMenuPage2 .floating-single-image-container {
     display: flex;
-    flex-direction: column; /* 이미지와 설명을 세로로 */
-    justify-content: center;
+    flex-direction: column; /* 내부 요소를 세로로 배치하지만, 이미지와 설명은 각각 독립적으로 배치 고려 */
+    justify-content: flex-start; /* 위에서부터 배치 시작 */
     align-items: center;
     width: 100%;
-    padding: 5px 0;
-    flex-grow: 1;
-    min-height: 0;
+    padding: 0 15px; /* 좌우 패딩으로 내부 콘텐츠 영역 확보 */
+    flex-grow: 1; /* 남은 공간 모두 차지 */
+    min-height: 0; /* 내부 스크롤 위해 중요 */
+    overflow: hidden; /* 이 컨테이너 자체의 스크롤은 숨김 */
+    position: relative; /* 설명 위치 조정의 기준점이 될 수 있음 */
 }
-#floatingMenuPage2 .floating-single-image-container img { /* 싱크타입 이미지 */
-    max-width: 70%;
-    max-height: 180px;
+#floatingMenuPage2 .floating-single-image-container img { /* 싱크타입 카드 이미지 */
+    /* 이미지 크기 및 위치 조정 */
+    display: block; /* 블록 요소로 변경하여 margin auto 작동하도록 */
+    max-width: 70%; /* 플로팅 메뉴 바 너비의 70% */
+    width: auto;    /* 이미지 비율 유지를 위해 auto 또는 고정값 */
+    height: auto;   /* 이미지 비율 유지 */
+    max-height: 220px; /* 이미지 최대 높이 제한 (조절 필요) */
     object-fit: contain;
     border-radius: 8px;
     cursor: pointer;
-    margin-bottom: 10px;
+    margin-top: 15px; /* 타이틀과의 간격 */
+    margin-bottom: 15px; /* 이미지와 설명 영역(별도) 사이 간격 */
+    flex-shrink: 0; /* 이미지가 줄어들지 않도록 */
 }
+
+#floatingMenuPage2 .sync-type-description-wrapper { /* 설명을 담을 새 래퍼 (스크롤 영역) */
+    width: 100%;
+    flex-grow: 1; /* 남은 공간을 설명 영역이 차지하도록 */
+    min-height: 0; /* 내부 스크롤을 위해 중요 */
+    overflow-y: auto; /* 이 영역에서만 스크롤 발생 */
+    padding-top: 10px; /* 이미지와의 (또는 타이틀과의) 간격 조정, JS에서는 타이틀로부터 30px */
+    margin-top: 0; /* 타이틀로부터의 간격은 wrapper의 padding-top 또는 p태그의 margin-top으로 */
+}
+
+/* 싱크타입 설명 스크롤바 스타일 (선택적) */
+#floatingMenuPage2 .sync-type-description-wrapper::-webkit-scrollbar {
+    width: 5px;
+}
+#floatingMenuPage2 .sync-type-description-wrapper::-webkit-scrollbar-thumb {
+    background-color: rgba(122, 90, 241, 0.7); /* 스크롤바 색상 약간 투명하게 */
+    border-radius: 2.5px;
+}
+
 #floatingMenuPage2 .sync-type-description { /* 싱크타입 설명 */
     font-size: 0.85em;
     color: #d3cce3;
