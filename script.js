@@ -4215,7 +4215,7 @@ async function displayApiResponseElements(parsedResp) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
-            // ★★★ CSS transition duration과 일치시키거나 여기서 명시적으로 제어 ★★★
+            // ★★★ CSS transition duration과 일치치시키거나 여기서 명시적으로 제어 ★★★
             const slideTransitionDuration = 400; // CSS의 .floating-menu-slider transition과 동일한 시간 (밀리초)
             
             // 슬라이더의 transition 속성을 JS에서 명시적으로 설정
