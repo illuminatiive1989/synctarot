@@ -4216,38 +4216,22 @@ async function displayApiResponseElements(parsedResp) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
-            // CSS transition duration을 CSS 파일에서 직접 가져오거나, 여기서 일관되게 정의합니다.
-            // 예를 들어 CSS에서 transition: transform 0.4s ease-in-out; 이라면 400ms 입니다.
-            // 여기서는 CSS에 정의된 값을 따른다고 가정하고, transitionend 이벤트를 사용합니다.
-            // slider.style.transition = `transform 400ms ease-in-out`; // CSS와 동일하게 명시적 설정 가능
-
-            // transitionend 이벤트 리스너 정의 (한 번만 실행되도록)
-            const onSlideEnd = (event) => {
-                // event.propertyName으로 'transform' 트랜지션인지 확인할 수 있음
-                if (event.target === slider && event.propertyName === 'transform') {
-                    if (retestButtonInMenu) {
-                        retestButtonInMenu.disabled = false;
-                        console.log("[FloatingMenuSlide] 재테스트 버튼 활성화 (transitionend).");
-                    }
-                    slider.removeEventListener('transitionend', onSlideEnd); // 이벤트 리스너 제거
-                }
-            };
-
-            slider.addEventListener('transitionend', onSlideEnd);
-
-            // 만약을 위해 일정 시간 후 강제로 활성화하는 fallback 타이머 (선택적)
-            // 이는 transitionend 이벤트가 어떤 이유로 발생하지 않을 경우를 대비함.
-            const fallbackTimeoutDuration = 500; // CSS transition 시간보다 약간 길게
-            setTimeout(() => {
-                if (retestButtonInMenu && retestButtonInMenu.disabled) { // 여전히 비활성화 상태라면
-                    retestButtonInMenu.disabled = false;
-                    console.warn("[FloatingMenuSlide] 재테스트 버튼 활성화 (fallback timeout). transitionend 이벤트가 발생하지 않았을 수 있습니다.");
-                    slider.removeEventListener('transitionend', onSlideEnd); // 리스너 확실히 제거
-                }
-            }, fallbackTimeoutDuration);
-
-
+            // ★★★ CSS transition duration과 일치시키거나 여기서 명시적으로 제어 ★★★
+            const slideTransitionDuration = 400; // CSS의 .floating-menu-slider transition과 동일한 시간 (밀리초)
+            
+            // 슬라이더의 transition 속성을 JS에서 명시적으로 설정
+            slider.style.transition = `transform ${slideTransitionDuration}ms ease-in-out`;
             slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
+
+            // 슬라이드 애니메이션 완료 후 버튼 활성화 (setTimeout 사용)
+            setTimeout(() => {
+                if (retestButtonInMenu) {
+                    retestButtonInMenu.disabled = false;
+                    console.log("[FloatingMenuSlide] 재테스트 버튼 활성화 (setTimeout).");
+                }
+                // 애니메이션 후 슬라이더의 transition 스타일을 초기화하여 다음 인터랙션에 영향 없도록 (선택적)
+                // slider.style.transition = ''; // 또는 CSS에 정의된 기본값으로 돌려놓기
+            }, slideTransitionDuration); // 애니메이션 시간과 동일하게 설정
 
             requestAnimationFrame(() => {
                 if (allSlides[actualDomTargetIndex]) {

@@ -655,7 +655,7 @@ html, body {
 .floating-menu-slider {
     display: flex;
     width: 300%;
-    /* transition: transform 0.4s ease-in-out; /* JS에서 직접 제어하므로 여기서 제거 또는 주석 */
+    /* transition: transform 0.4s ease-in-out; */ /* JS에서 제어 */
     overflow: hidden;
     flex-grow: 1;
     min-height: 0;
@@ -694,7 +694,7 @@ html, body {
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 15px; /* ★★★ 타이틀과 아래 내용 간의 간격을 늘립니다 (예: 15px 또는 20px) ★★★ */
+    margin-bottom: 15px; 
     flex-shrink: 0;
     padding: 15px 15px 0 15px; 
 }
@@ -734,6 +734,7 @@ html, body {
     padding: 0 15px 10px 15px;
     overflow: hidden;
     min-height: 0;
+    margin-top: 5px; /* ★★★ 타이틀 아래 콘텐츠 영역에 약간의 상단 마진 추가 ★★★ */
 }
 
 .sync-type-image-container {
@@ -800,29 +801,27 @@ html, body {
 
 .menu-sync-retest-button {
     background-color: #4A3F55;
-    color: #d3cce3; /* 일반 제안 버튼 글자색으로 변경 */
+    color: #d3cce3;
     padding: 10px 18px;
     border-radius: 25px;
     font-size: 0.9em;
-    /* font-weight: 500; /* 기존 스타일 제거 또는 일반 폰트 두께로 (예: font-weight: normal;) */
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
     border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 그림자는 유지하거나 필요에 따라 조정 */
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease; /* color transition 추가 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 }
 .menu-sync-retest-button:hover {
-    background-color: #5a4a8f; /* 일반 제안 버튼 호버 배경색으로 변경 */
-    color: white;          /* 일반 제안 버튼 호버 글자색으로 변경 */
+    background-color: #5a4a8f;
+    color: white;
 }
 .menu-sync-retest-button:active {
     transform: scale(0.97);
 }
-/* 버튼 비활성화 시 스타일 (JS에서 disabled 속성 제어) */
 .menu-sync-retest-button:disabled {
-    background-color: #3a3047; /* 비활성화 시 배경색 */
-    color: #6a6078;       /* 비활성화 시 글자색 */
+    background-color: #3a3047;
+    color: #6a6078;
     cursor: not-allowed;
     opacity: 0.7;
 }
