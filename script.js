@@ -1899,7 +1899,7 @@ function handleChatInput() {
             messageBuffer = "싱크타입 테스트 다시 하지 않고, 기존 상담 이어가자!"; // API로 보낼 메시지
             await sendApiRequest(); // 현재 10단계이므로, 이대로 API 호출
         }
-        // 이 버튼 클릭 후에는 '싱크타입 테스트 다시하고 싶어' 버튼은 어차피 manage 함수에서 조건에 따라 숨겨짐
+        // 이 버튼 클릭 후에는 '싱크타입 테스트 다시해 다시하고 싶어' 버튼은 어차피 manage 함수에서 조건에 따라 숨겨짐
         manageSyncRetestButtonVisibility(); // 상태 변경 후 버튼 가시성 업데이트
     }
 
