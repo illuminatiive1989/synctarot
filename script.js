@@ -650,12 +650,10 @@ function adjustContainerHeight() {
         return;
     }
 
-    let currentSuggestionsHeight = 0;
-    // 현재 제안 버튼 컨테이너가 화면에 보이고 있다면 그 높이를 가져옴
-    if (suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) {
-        currentSuggestionsHeight = suggestionButtonsContainer.offsetHeight;
-    }
-    console.log(`[adjustContainerHeight] 현재 제안 버튼 높이 (currentSuggestionsHeight): ${currentSuggestionsHeight}px`);
+    // suggestionButtonsContainer는 이제 section2 내부에 있으므로,
+    // container 높이나 section2의 padding-bottom에 직접적인 영향을 주지 않음.
+    // section2의 padding-bottom은 키보드 외 다른 고정 UI 높이를 고려하지 않게 됨.
+    // (또는 section5 높이만 고려)
 
     if (window.visualViewport) {
         const vv = window.visualViewport;
@@ -670,22 +668,24 @@ function adjustContainerHeight() {
             container.style.height = `${viewportHeight}px`;
             console.log(`[adjustContainerHeight] 키보드 올라옴. 컨테이너 높이: ${viewportHeight}px`);
 
+            // section2의 padding-bottom은 키보드 외 다른 UI에 의해 크게 변경되지 않음.
+            // 기존 originalSection2PaddingBottom 값을 유지하거나, section5 높이 정도만 고려.
             if (section2 && originalSection2PaddingBottom !== null) {
-                // ★★★ 키보드가 올라왔을 때: 제안 버튼이 있다면 그 높이를 포함하여 패딩 설정 ★★★
-                const newPaddingBottom = (originalSection2PaddingBottom || 15) + currentSuggestionsHeight;
-                section2.style.paddingBottom = `${newPaddingBottom}px`;
-                console.log(`[adjustContainerHeight] 키보드 올라옴. section2 paddingBottom 설정: ${newPaddingBottom}px (기본: ${originalSection2PaddingBottom || 15}, 제안버튼: ${currentSuggestionsHeight})`);
+                // 키보드가 올라왔을 때 section2의 패딩은 section5 높이만큼만 확보 (또는 기본값)
+                // section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`; // 기본 패딩으로 복원
+                // 또는, section5 만큼만 추가 (필요시)
+                // const section5Height = section5 ? section5.offsetHeight : 80;
+                // section2.style.paddingBottom = `${(originalSection2PaddingBottom || 15) + section5Height}px`;
+                // 여기서는 originalSection2PaddingBottom을 그대로 사용하도록 단순화.
+                // 스크롤 영역이 section5 위로 끝나도록 하는 것은 section5의 높이와 section2의 flex-grow로 처리됨.
             }
+
         } else {
             // 키보드가 내려간 상태 또는 초기 상태
             container.style.height = '100%';
             console.log(`[adjustContainerHeight] 키보드 내려감. 컨테이너 높이: 100%`);
-
             if (section2 && originalSection2PaddingBottom !== null) {
-                // ★★★ 키보드가 내려갔을 때: 제안 버튼이 있다면 그 높이를 포함하여 패딩 설정 ★★★
-                const newPaddingBottom = (originalSection2PaddingBottom || 15) + currentSuggestionsHeight;
-                section2.style.paddingBottom = `${newPaddingBottom}px`;
-                console.log(`[adjustContainerHeight] 키보드 내려감. section2 paddingBottom 설정: ${newPaddingBottom}px (기본: ${originalSection2PaddingBottom || 15}, 제안버튼: ${currentSuggestionsHeight})`);
+                // section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`; // 기본 패딩
             }
         }
     } else {
@@ -693,17 +693,14 @@ function adjustContainerHeight() {
         container.style.height = '100vh';
         console.log("[adjustContainerHeight] VisualViewport API 미지원. 컨테이너 높이: 100vh");
         if (section2 && originalSection2PaddingBottom !== null) {
-            // ★★★ 미지원 시에도 제안 버튼 높이 고려 ★★★
-            const newPaddingBottom = (originalSection2PaddingBottom || 15) + currentSuggestionsHeight;
-            section2.style.paddingBottom = `${newPaddingBottom}px`;
-            console.log(`[adjustContainerHeight] 미지원. section2 paddingBottom 설정: ${newPaddingBottom}px`);
+            // section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`;
         }
     }
 
-    updateNewMessageButtonPosition();
-    // adjustContainerHeight 호출 후 스크롤 조정은 상황에 따라 필요할 수 있음
-    // 예를 들어, 키보드가 사라지면서 컨테이너가 커질 때 맨 아래로 스크롤
-    // setTimeout(() => scrollToBottom(true), 150); // 약간의 딜레이 후
+    // updateNewMessageButtonPosition 함수는 section5 높이 기준으로 툴팁과 새 메시지 버튼 위치를 조정
+    updateNewMessageButtonPosition(); // 이 함수는 section5 높이만 고려
+    // 스크롤 조정은 상황에 따라 필요
+    // setTimeout(() => scrollToBottom(true), 150);
 }
     function scrollToBottom(force = false) {
         //console.log(`[scrollToBottom] 호출. force: ${force}, userHasScrolledUp: ${userHasScrolledUp}`);
@@ -754,30 +751,24 @@ function adjustContainerHeight() {
         }
     }
 
-    function updateNewMessageButtonPosition() {
-        if (!section5 || !container) return;
+function updateNewMessageButtonPosition() {
+    if (!section5 || !container) return;
 
-        const section5Height = section5.offsetHeight || 80;
-        let suggestionsActualHeight = 0;
+    const section5Height = section5.offsetHeight || 80;
+    // suggestionButtonsContainer는 section2 내부에 있으므로, 여기서 높이를 고려하지 않음.
 
-        if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode && suggestionButtonsContainer.classList.contains('visible')) {
-            suggestionsActualHeight = suggestionButtonsContainer.offsetHeight;
-            if (suggestionButtonsContainer.style.bottom !== `${section5Height}px`) {
-                suggestionButtonsContainer.style.bottom = `${section5Height}px`;
-            }
-        }
-
-        if (newMessageButton) {
-            const totalUpwardShiftForNewMsg = section5Height + suggestionsActualHeight + 10;
-            newMessageButton.style.bottom = `${totalUpwardShiftForNewMsg}px`;
-        }
-
-        if (tooltipElement) {
-            const totalUpwardShiftForTooltip = section5Height + suggestionsActualHeight + 5;
-            tooltipElement.style.bottom = `${totalUpwardShiftForTooltip}px`;
-        }
-        container.style.setProperty('--bottom-area-total-height', `${section5Height}px`);
+    if (newMessageButton) {
+        // 새 메시지 버튼 위치는 section5 바로 위 + 약간의 간격
+        newMessageButton.style.bottom = `${section5Height + 10}px`;
     }
+
+    if (tooltipElement) {
+        // 툴팁 위치도 section5 바로 위 + 약간의 간격
+        tooltipElement.style.bottom = `${section5Height + 5}px`;
+    }
+    // container의 --bottom-area-total-height는 section5의 높이만 반영
+    container.style.setProperty('--bottom-area-total-height', `${section5Height}px`);
+}
 
     function applyFadeIn(element) {
         if (!element) return;
@@ -1144,157 +1135,102 @@ async function animateBotMessageText(pElement, fullTextWithTags) {
 
 function createSuggestionButtons(texts, buttonClickHandler) {
     console.log("[createSuggestionButtons] 생성 시작. 텍스트:", texts);
-    if (!container || !texts || texts.length === 0) {
-        console.warn("[createSuggestionButtons] 컨테이너 없거나 텍스트 비어있음. 생성 중단.");
+    if (!section2 || !texts || texts.length === 0) { // 컨테이너를 section2로 변경
+        console.warn("[createSuggestionButtons] section2 없거나 텍스트 비어있음. 생성 중단.");
         currentSuggestionButtonTexts = [];
         currentSuggestionButtonHandler = null;
-        // 이전 버튼 컨테이너가 있었다면 패딩 복원 시도 (만약의 경우 대비)
-        if (section2 && originalSection2PaddingBottom !== null &&
-            parseInt(window.getComputedStyle(section2).paddingBottom, 10) > originalSection2PaddingBottom) {
-            section2.style.paddingBottom = `${originalSection2PaddingBottom}px`;
-            console.log("[createSuggestionButtons] (생성 중단 시) 이전 패딩 복원 시도.");
-            scrollToBottom(true);
-        }
+        // section2 내부에 생성되므로, fixed position 관련 패딩 복원은 불필요
         return;
     }
 
     currentSuggestionButtonTexts = [...texts];
     currentSuggestionButtonHandler = buttonClickHandler;
 
-    // 이전 suggestionButtonsContainer가 있다면 먼저 완전히 제거 (패딩 복원 포함)
-    if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode) {
+    // 이전 suggestionButtonsContainer가 section2 내에 있다면 먼저 완전히 제거
+    if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode === section2) {
         suggestionButtonsContainer.remove();
         suggestionButtonsContainer = null;
-        if (section2 && originalSection2PaddingBottom !== null) {
-             section2.style.paddingBottom = `${originalSection2PaddingBottom}px`;
-             console.log("[createSuggestionButtons] 이전 제안 버튼 제거하며 패딩 복원.");
-        }
     }
 
     suggestionButtonsContainer = document.createElement('div');
-    suggestionButtonsContainer.id = 'suggestionButtons';
+    suggestionButtonsContainer.id = 'suggestionButtons'; // ID는 유지 가능
     suggestionButtonsContainer.classList.add('suggestion-buttons-container');
-
-    // section5의 현재 높이를 가져옴
-    const section5Height = section5 ? section5.offsetHeight : 80; // section5 없으면 기본값
-    // 제안 버튼 컨테이너의 bottom 위치를 section5 바로 위로 설정
-    suggestionButtonsContainer.style.bottom = `${section5Height}px`;
+    // position:fixed 관련 스타일 제거 (CSS에서 처리)
 
     texts.forEach(text => {
         const button = document.createElement('div');
         button.classList.add('suggestion-button');
+        // "싱크타입 테스트 다시하고 싶어" 버튼에 특별한 스타일을 주고 싶다면 여기서 클래스 추가
+        if (text === "싱크타입 테스트 다시하고 싶어") {
+            button.classList.add('retest-button-style'); // 예시 클래스
+        }
         button.textContent = text;
         button.addEventListener('click', () => {
-            hideSuggestionButtons(true); // 클릭 시 현재 버튼들 제거 및 패딩 복원
+            // 클릭 시 현재 버튼들 제거 (DOM에서)
+            if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode) {
+                suggestionButtonsContainer.remove();
+                suggestionButtonsContainer = null; // 참조 제거
+            }
             currentSuggestionButtonTexts = [];
             currentSuggestionButtonHandler = null;
-            buttonClickHandler(text);
+            buttonClickHandler(text); // 핸들러 호출
         });
         suggestionButtonsContainer.appendChild(button);
     });
 
-    container.appendChild(suggestionButtonsContainer);
-    console.log("[createSuggestionButtons] DOM에 제안 버튼 컨테이너 삽입 완료.");
+    section2.appendChild(suggestionButtonsContainer); // section2의 자식으로 추가
+    console.log("[createSuggestionButtons] section2에 제안 버튼 컨테이너 삽입 완료.");
 
-    // DOM에 삽입 후, 다음 프레임에서 스타일 변경 및 높이 계산 (정확한 높이 측정을 위해)
     requestAnimationFrame(() => {
-        // 버튼 컨테이너를 보이게 하고 애니메이션 시작
-        // (CSS에서 transform: translateY(100%)로 숨겨져 있고, visible 클래스로 보이게 함)
         if (suggestionButtonsContainer) {
-            suggestionButtonsContainer.classList.add('visible'); // CSS transition으로 부드럽게 나타남
-            animateSuggestionButtons(suggestionButtonsContainer); // 내부 버튼들 애니메이션 (선택적)
+            suggestionButtonsContainer.classList.add('visible');
+            animateSuggestionButtons(suggestionButtonsContainer);
 
-            // ★★★ 제안 버튼 컨테이너의 높이를 정확히 측정한 후 section2 패딩 조절 ★★★
-            // .visible 클래스가 적용되어 화면에 나타난 후 높이를 측정해야 정확함.
-            // 애니메이션 시간을 고려하여 약간의 딜레이 후 높이 측정 및 패딩 적용.
-            setTimeout(() => {
-                if (suggestionButtonsContainer && suggestionButtonsContainer.classList.contains('visible')) {
-                    const suggestionsHeight = suggestionButtonsContainer.offsetHeight;
-                    console.log(`[createSuggestionButtons] 측정된 제안 버튼 컨테이너 높이: ${suggestionsHeight}px`);
-
-                    if (section2 && suggestionsHeight > 0) {
-                        // originalSection2PaddingBottom은 키보드나 다른 UI 요소가 없을 때의 section2 기본 하단 패딩.
-                        // 여기에 suggestionsHeight를 더해줘서, section2의 스크롤 가능한 내용이
-                        // 제안 버튼들 위로 끝나도록 함.
-                        const newPaddingBottom = (originalSection2PaddingBottom || 15) + suggestionsHeight;
-                        section2.style.paddingBottom = `${newPaddingBottom}px`;
-                        console.log(`[createSuggestionButtons] section2 paddingBottom 업데이트: ${newPaddingBottom}px (기본: ${originalSection2PaddingBottom || 15}, 추가: ${suggestionsHeight})`);
-
-                        // 패딩 변경 후 스크롤을 맨 아래로 이동시켜 변경된 레이아웃을 즉시 반영
-                        // section2.offsetHeight; // Reflow 강제 (필요한 경우)
-                        requestAnimationFrame(() => { // 다음 프레임에서 스크롤
-                            scrollToBottom(true);
-                            console.log("[createSuggestionButtons] 패딩 적용 후 scrollToBottom(true) 호출.");
-                        });
-                    } else if (section2 && suggestionsHeight === 0) {
-                        // 버튼 컨테이너 높이가 0이면 (예: 내용물이 없는 경우), 원래 패딩으로 복원.
-                        // 하지만 이 경우는 거의 발생하지 않아야 함.
-                        section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`;
-                        console.log(`[createSuggestionButtons] 제안 버튼 높이 0. section2 paddingBottom 원래대로: ${originalSection2PaddingBottom || 15}px`);
-                        scrollToBottom(true);
-                    }
-                }
-            }, 350); // CSS transition duration (0.3s) 보다 약간 긴 시간 후 실행 (버튼이 완전히 나타난 후)
+            // section2 내부에 있으므로, section2의 padding-bottom을 직접 조작할 필요는 없음
+            // adjustContainerHeight가 section5 높이만 고려하도록 수정될 것임
+            // scrollToBottom은 여전히 유효
+            requestAnimationFrame(() => {
+                scrollToBottom(true);
+            });
         }
     });
 
     console.log("[createSuggestionButtons] 제안 버튼 표시 및 애니메이션 시작됨.");
-    hideTooltip(); // 툴팁 숨기기
-    updateNewMessageButtonPosition(); // 새 메시지 버튼 위치 업데이트 (제안 버튼 높이 반영 전일 수 있음)
+    hideTooltip();
+    // updateNewMessageButtonPosition(); // 이 함수는 section5 높이만 고려하도록 수정될 것
 }
-function hideSuggestionButtons(restorePadding = true) {
-    console.log(`[hideSuggestionButtons] 숨김 시도. restorePadding: ${restorePadding}`);
+function hideSuggestionButtons(restorePadding = false) { // restorePadding 인자는 더 이상 의미가 크게 없음
+    console.log(`[hideSuggestionButtons] 숨김 시도.`);
 
-    if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode) { // 컨테이너가 DOM에 있는지 확인
+    if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode) {
         if (suggestionButtonsContainer.classList.contains('visible')) {
             suggestionButtonsContainer.classList.remove('visible');
             console.log("[hideSuggestionButtons] 제안 버튼 컨테이너 .visible 클래스 제거.");
-        }
 
-        // ★★★ 수정: restorePadding이 true일 때만 DOM에서 제거하고 패딩 복원 ★★★
-        if (restorePadding) {
-            const transitionDuration = 300; // CSS transition과 일치
-            // visible 클래스 제거 후, transition이 끝나고 DOM에서 제거되도록 타이머 사용
-            // 또는, 즉시 제거하고 싶다면 아래 setTimeout 없이 바로 remove
+            const transitionDuration = 300;
             setTimeout(() => {
-                // 타이머 실행 시점에도 suggestionButtonsContainer가 여전히 존재하고,
-                // .visible이 없는지 (즉, 숨겨진 상태가 유지되는지) 다시 한번 확인하는 것이 안전할 수 있음
-                // 여기서는 일단 restorePadding 플래그에 따라 제거 결정
-                if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode) {
+                if (suggestionButtonsContainer && suggestionButtonsContainer.parentNode && !suggestionButtonsContainer.classList.contains('visible')) {
                     suggestionButtonsContainer.remove();
-                    suggestionButtonsContainer = null; // 참조 제거
-                    console.log("[hideSuggestionButtons] 제안 버튼 DOM에서 제거 완료 (restorePadding=true).");
+                    suggestionButtonsContainer = null;
+                    console.log("[hideSuggestionButtons] 제안 버튼 DOM에서 제거 완료.");
                 }
-
-                if (section2) {
-                    section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`;
-                    console.log(`[hideSuggestionButtons] section2 paddingBottom 복원: ${originalSection2PaddingBottom || 15}px`);
-                    section2.offsetHeight;
-                    requestAnimationFrame(() => {
-                        scrollToBottom(true);
-                    });
-                }
-                updateNewMessageButtonPosition();
-                // restorePadding이 true면, 버튼이 완전히 사라지는 것이므로 관련 정보 초기화
-                currentSuggestionButtonTexts = [];
-                currentSuggestionButtonHandler = null;
-
-            }, restorePadding ? transitionDuration : 0); // restorePadding이 false면 즉시 다음 로직 (제거 안 함)
+                // section2 paddingBottom 복원 로직 제거 (더 이상 fixed가 아님)
+                // updateNewMessageButtonPosition(); // 이 함수는 section5 높이만 고려하도록 수정될 것
+            }, transitionDuration);
         } else {
-            // restorePadding이 false면 DOM에서 제거하지 않고, .visible 클래스만 제거된 상태로 둠.
-            // 패딩도 복원하지 않음.
-            console.log("[hideSuggestionButtons] 제안 버튼 DOM 유지, .visible 클래스만 제거 (restorePadding=false).");
-            updateNewMessageButtonPosition(); // 위치 업데이트는 필요
+             // 이미 visible이 아니면 바로 제거 시도 (타이머 없이)
+            if (suggestionButtonsContainer.parentNode) {
+                suggestionButtonsContainer.remove();
+                suggestionButtonsContainer = null;
+                console.log("[hideSuggestionButtons] (이미 not visible) 제안 버튼 DOM에서 즉시 제거.");
+            }
         }
     } else {
-        console.log("[hideSuggestionButtons] 제안 버튼 컨테이너가 없거나 이미 숨겨져 있음.");
-        // 이 경우에도 restorePadding이 true이고 section2 패딩이 늘어나 있다면 복원 시도
-        if (restorePadding && section2 && parseInt(window.getComputedStyle(section2).paddingBottom, 10) > (originalSection2PaddingBottom || 15)) {
-            section2.style.paddingBottom = `${originalSection2PaddingBottom || 15}px`;
-            console.log(`[hideSuggestionButtons] (컨테이너 없음) section2 paddingBottom 복원 시도: ${originalSection2PaddingBottom || 15}px`);
-            updateNewMessageButtonPosition();
-        }
+        console.log("[hideSuggestionButtons] 제안 버튼 컨테이너가 없거나 이미 DOM에 없음.");
     }
+    // 버튼 관련 정보 초기화는 createSuggestionButtons에서 버튼 클릭 시 이미 처리됨
+    // currentSuggestionButtonTexts = [];
+    // currentSuggestionButtonHandler = null;
 }
 
 function setChatInputDisabled(disabled, placeholderText = "메시지를 입력하세요...", forceDisable = false) {
@@ -1586,45 +1522,47 @@ function extractAndParseJson(modelGeneratedText) {
         }
     }
 
-    function advanceConsultationStage(newStage, fromApi = false) {
-        const previousStage = currentConsultationStage;
-        console.log(`[advanceConsultationStage] 요청. 이전 단계: ${previousStage}, 새 단계 요청: ${newStage}, API로부터: ${fromApi}`);
+function advanceConsultationStage(newStage, fromApi = false) {
+    const previousStage = currentConsultationStage;
+    console.log(`[advanceConsultationStage] 요청. 이전 단계: ${previousStage}, 새 단계 요청: ${newStage}, API로부터: ${fromApi}`);
 
-        let actualNewStage = currentConsultationStage;
+    let actualNewStage = currentConsultationStage;
 
-        if (newStage !== null && newStage !== undefined) {
-            actualNewStage = newStage;
-        } else if (fromApi && lastApiResponse) {
-            if (lastApiResponse.force_stage !== null && lastApiResponse.force_stage !== undefined) {
-                actualNewStage = lastApiResponse.force_stage;
-            } else if (lastApiResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) {
-                actualNewStage = currentConsultationStage + 1;
-            }
+    if (newStage !== null && newStage !== undefined) {
+        actualNewStage = newStage;
+    } else if (fromApi && lastApiResponse) {
+        if (lastApiResponse.force_stage !== null && lastApiResponse.force_stage !== undefined) {
+            actualNewStage = lastApiResponse.force_stage;
+        } else if (lastApiResponse.proceed_to_next_stage === true && currentConsultationStage < 10 ) { // 10단계 미만에서만 자동 다음 단계
+            actualNewStage = currentConsultationStage + 1;
         }
-
-
-        if (previousStage !== actualNewStage) {
-            console.log(`[advanceConsultationStage] 단계 변경 실행: ${previousStage} → ${actualNewStage}`);
-            currentConsultationStage = actualNewStage;
-            isSessionTimedOut = false; 
-
-            if (currentConsultationStage === 10 && previousStage !== 10) {
-                showStage10EntryEmoticon = true;
-                console.log("[advanceConsultationStage] 10단계로 처음 진입. showStage10EntryEmoticon = true 설정.");
-            }
-
-
-            if (currentConsultationStage === 10) {
-                resetSessionTimers();
-            } else {
-                clearSessionTimers();
-            }
-            displayCurrentStageUI(); 
-        } else {
-            console.log(`[advanceConsultationStage] 단계 변경 없음. 현재 단계: ${currentConsultationStage}`);
-        }
-        manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
     }
+
+
+    if (previousStage !== actualNewStage) {
+        console.log(`[advanceConsultationStage] 단계 변경 실행: ${previousStage} → ${actualNewStage}`);
+        currentConsultationStage = actualNewStage;
+        isSessionTimedOut = false; // 단계 변경 시 세션 타임아웃 플래그 초기화 (중요)
+
+        // 10단계 진입 시 특별 처리
+        if (currentConsultationStage === 10 && previousStage !== 10) {
+            showStage10EntryEmoticon = true; // 10단계 첫 진입 이모티콘 표시 플래그
+            console.log("[advanceConsultationStage] 10단계로 처음 진입. showStage10EntryEmoticon = true 설정.");
+        }
+
+
+        // 세션 타이머 관리
+        if (currentConsultationStage === 10) {
+            resetSessionTimers(); // 10단계에서만 타이머 작동
+        } else {
+            clearSessionTimers(); // 다른 단계에서는 타이머 중지
+        }
+        displayCurrentStageUI(); // 새 단계 UI 표시
+    } else {
+        console.log(`[advanceConsultationStage] 단계 변경 없음. 현재 단계: ${currentConsultationStage}`);
+    }
+    // manageSyncRetestButtonVisibility(); // 이 줄 삭제
+}
 
     // --- 메시지 버퍼링 및 자동 전송 관련 함수 ---
     function addToMessageQueueAndStartTimer(message) {
@@ -1795,26 +1733,33 @@ function handleChatInput() {
 
 
     // ★★★ 신규 함수 (싱크타입 재테스트 플로우 시작) ★★★
-    async function handleSyncTypeRetestRequest() {
-        console.log("[handleSyncTypeRetestRequest] 싱크타입 재테스트 요청 시작.");
-        if (isSessionTimedOut) return;
+async function handleSyncTypeRetestRequest() {
+    console.log("[handleSyncTypeRetestRequest] 싱크타입 재테스트 요청 시작.");
+    if (isSessionTimedOut) return;
 
-        const userMessageText = "싱크타입 테스트 다시하고 싶어";
-        const userMessageElement = createTextMessageElement(userMessageText, true);
-        if (section2) section2.appendChild(userMessageElement);
-        applyFadeIn(userMessageElement);
-        conversationHistory.push({ role: "user", parts: [{ text: userMessageText }] });
-        scrollToBottom(true);
+    // 사용자 메시지 "싱크타입 테스트 다시하고 싶어"는 버튼 클릭 시 이미 표시되었으므로,
+    // 여기서는 루비의 응답만 처리.
+    // 만약 이 함수가 다른 경로로도 호출될 수 있다면, 아래 사용자 메시지 생성 로직 유지.
+    /*
+    const userMessageText = "싱크타입 테스트 다시하고 싶어"; // 이 텍스트는 버튼 텍스트와 일치해야 함
+    const userMessageElement = createTextMessageElement(userMessageText, true);
+    if (section2) section2.appendChild(userMessageElement);
+    applyFadeIn(userMessageElement);
+    conversationHistory.push({ role: "user", parts: [{ text: userMessageText }] });
+    scrollToBottom(true);
+    */
 
-        hideSuggestionButtons(true); // 기존 제안 버튼 숨김
+    // 이미 모든 제안 버튼이 숨겨진 상태에서 이 함수가 호출될 것이므로,
+    // hideSuggestionButtons(true); 호출은 필수는 아닐 수 있지만, 안전하게 유지.
+    hideSuggestionButtons(true);
 
-        const rubyAction = null; // 또는 "루비가 너를 바라보며" 등
-        const rubyMsg = "그래? 한번 정해진 싱크타입 이름은 다시 되돌릴 수 없는데, 싱크타입 카드는 저장했어?";
-        const suggestions = ["응", "싱크타입 카드 저장은 어떻게해?"];
+    const rubyAction = null;
+    const rubyMsg = "그래? 한번 정해진 싱크타입 이름은 다시 되돌릴 수 없는데, 싱크타입 카드는 저장했어?";
+    const suggestions = ["응", "싱크타입 카드 저장은 어떻게해?"];
 
-        await displayHardcodedUIElements(rubyAction, rubyMsg, suggestions, handleSyncTypeRetestConfirmation);
-    }
-
+    // displayHardcodedUIElements는 내부적으로 createSuggestionButtons를 호출함
+    await displayHardcodedUIElements(rubyAction, rubyMsg, suggestions, handleSyncTypeRetestConfirmation);
+}
 
     // ★★★ 신규 함수 (싱크타입 재테스트 확인/안내 플로우) ★★★
     async function handleSyncTypeRetestConfirmation(buttonText) {
@@ -2293,34 +2238,49 @@ async function displayCurrentStageUI() {
             console.log(`[displayCurrentStageUI] Processing stage 10 (Conversation).`);
             if (isSessionTimedOut) {
                 console.log("[displayCurrentStageUI] Session timed out. Skipping UI display for stage 10.");
-                manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
+                // manageSyncRetestButtonVisibility 호출 제거
                 return;
             }
-            hideSuggestionButtons(true);
+            hideSuggestionButtons(true); // 기존 제안 버튼 숨김
 
-            if (!isApiLoading) {
-                const hasSampleAnswerCurrently = lastApiResponse && lastApiResponse.sampleanswer && String(lastApiResponse.sampleanswer).trim() !== "";
-                if (hasSampleAnswerCurrently) {
-                     setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
-                     console.log("[displayCurrentStageUI] Stage 10: Sample answer likely present. Input enabled.");
-                     const suggestionTextsFromApi = String(lastApiResponse.sampleanswer).split('|').map(s => s.trim()).filter(s => s);
-                     createSuggestionButtons(suggestionTextsFromApi, (clickedText) => {
+            let stage10InitialSuggestions = [];
+            // API 응답이 있다면 그에 따른 제안 버튼 우선
+            if (lastApiResponse && lastApiResponse.sampleanswer && String(lastApiResponse.sampleanswer).trim() !== "") {
+                stage10InitialSuggestions.push(...String(lastApiResponse.sampleanswer).split('|').map(s => s.trim()).filter(s => s));
+            }
+
+            // "싱크타입 테스트 다시하고 싶어" 버튼 조건부 추가
+            if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
+                const retestButtonText = "싱크타입 테스트 다시하고 싶어";
+                if (!stage10InitialSuggestions.includes(retestButtonText)) {
+                    stage10InitialSuggestions.push(retestButtonText);
+                }
+            }
+
+            if (!isApiLoading) { // API 로딩 중이 아닐 때만 제안 버튼 및 입력창 상태 설정
+                if (stage10InitialSuggestions.length > 0) {
+                    setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
+                    console.log("[displayCurrentStageUI] Stage 10: 제안 버튼 있음. Input enabled.");
+                    createSuggestionButtons(stage10InitialSuggestions, (clickedText) => {
                         if (isSessionTimedOut) return;
-                        chatInput.value = clickedText;
-                        processUserInput();
-                     });
+                        if (clickedText === "싱크타입 테스트 다시하고 싶어") {
+                            handleSyncTypeRetestRequest();
+                        } else {
+                            chatInput.value = clickedText;
+                            processUserInput();
+                        }
+                    });
                 } else {
-                     setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
-                     console.log("[displayCurrentStageUI] Stage 10: Normal conversation. Input enabled, attempting focus.");
-                     setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100);
+                    setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
+                    console.log("[displayCurrentStageUI] Stage 10: Normal conversation (제안 버튼 없음). Input enabled, attempting focus.");
+                    setTimeout(() => { if (chatInput && !chatInput.disabled && !isSessionTimedOut) chatInput.focus(); }, 100);
                 }
             } else {
-                 console.log("[displayCurrentStageUI] Stage 10: API is loading. Input state managed by sendApiRequest.");
+                console.log("[displayCurrentStageUI] Stage 10: API is loading. Input state managed by sendApiRequest.");
             }
             resetSessionTimers();
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
+            // manageSyncRetestButtonVisibility 호출 제거
             break;
-
         default:
             hideSuggestionButtons(true);
             console.warn(`[displayCurrentStageUI] Unknown stage: ${currentConsultationStage}. Resetting to stage 1.`);
@@ -3687,8 +3647,7 @@ async function displayApiResponseElements(parsedResp) {
     console.log("[displayApiResponseElements] API 응답 UI 표시 시작:", parsedResp);
     if (isSessionTimedOut) {
         console.log("[displayApiResponseElements] 세션 타임아웃. UI 요소 표시 건너뜀.");
-        manageSyncRetestButtonVisibility(); // ★★★ 세션 타임아웃 시에도 버튼 상태 관리 ★★★
-        return;
+        return; // manageSyncRetestButtonVisibility 호출 제거 (더 이상 독립 버튼 아님)
     }
 
     try {
@@ -3731,52 +3690,57 @@ async function displayApiResponseElements(parsedResp) {
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 일반 제안 버튼(sampleanswer)과 싱크타입 재테스트 버튼은 서로 독립적으로 표시될 수 있음
-        // (단, CSS에서 위치가 겹치지 않도록 잘 조정해야 함. 현재는 동일 위치에 z-index로 구분)
+        let finalSuggestionTexts = [];
+        const sampleAnswerTexts = (parsedResp.sampleanswer && String(parsedResp.sampleanswer).trim() !== "")
+            ? String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s)
+            : [];
+
+        finalSuggestionTexts.push(...sampleAnswerTexts);
+
+        // "싱크타입 테스트 다시하고 싶어" 버튼 조건부 추가
+        if (currentConsultationStage === 10 && userProfile.결정된싱크타입 && userProfile.사용자소속성운 && !isFloatingMenuOpen) {
+            // isFloatingMenuOpen 조건은 메뉴가 열려있을 때는 중복으로 버튼이 나오지 않게 하기 위함 (선택적)
+            // 또는, 플로팅 메뉴의 재테스트 버튼 기능을 완전히 제거하고 여기서만 제어할 수도 있음
+            const retestButtonText = "싱크타입 테스트 다시하고 싶어";
+            if (!finalSuggestionTexts.includes(retestButtonText)) { // 중복 방지
+                finalSuggestionTexts.push(retestButtonText);
+            }
+        }
+
 
         if (parsedResp.tarocardview === true) {
-            hideSuggestionButtons(true); // 타로 카드 선택 UI가 나올 때는 일반 제안 버튼 숨김
+            hideSuggestionButtons(true);
             console.log("[displayApiResponseElements] tarocardview: true. 타로 카드 선택 UI 표시.");
             const cardsToSelect = (typeof parsedResp.cards_to_select === 'number' && parsedResp.cards_to_select > 0) ? parsedResp.cards_to_select : 3;
             displayTarotSelectionUI(cardsToSelect, handleMultipleCardSelection);
             setChatInputDisabled(true, `카드를 ${cardsToSelect}장 선택해주세요.`, true);
-        } else if (parsedResp.sampleanswer && String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s).length > 0) {
-            // sampleanswer가 있으면, 기존처럼 suggestionButtonsContainer에 버튼 생성
-            console.log(`[displayApiResponseElements] sampleanswer ('${parsedResp.sampleanswer}') 발견. 제안 버튼 생성 시도.`);
+        } else if (finalSuggestionTexts.length > 0) {
+            console.log(`[displayApiResponseElements] 최종 제안 버튼 목록 ('${finalSuggestionTexts.join(', ')}') 생성 시도.`);
             setChatInputDisabled(false, "직접 루비에게 메세지를 보낼 수도 있어요 ✨");
-            const suggestionTexts = String(parsedResp.sampleanswer).split('|').map(s => s.trim()).filter(s => s);
-            createSuggestionButtons(suggestionTexts, (clickedText) => {
+            createSuggestionButtons(finalSuggestionTexts, (clickedText) => {
                 if (isSessionTimedOut) return;
-                chatInput.value = clickedText;
-                processUserInput();
+                if (clickedText === "싱크타입 테스트 다시하고 싶어") {
+                    handleSyncTypeRetestRequest(); // 재테스트 요청 함수 호출
+                } else {
+                    chatInput.value = clickedText;
+                    processUserInput();
+                }
             });
-            console.log("[displayApiResponseElements] 샘플 답변 버튼 표시 완료.");
+            console.log("[displayApiResponseElements] 제안 버튼 표시 완료.");
         } else if (currentConsultationStage === 10) {
-            // sampleanswer 없고 10단계면, 일반 제안 버튼은 없음. 입력창만 활성화.
-            console.log("[displayApiResponseElements] Stage 10: 일반 대화 응답 (샘플 답변 없음). 입력창 활성화 및 포커스 시도.");
+            console.log("[displayApiResponseElements] Stage 10: 일반 대화 응답 (제안 버튼 없음). 입력창 활성화 및 포커스 시도.");
             setChatInputDisabled(false, "루비에게 하고 싶은 말을 전해주세요. ✨");
             if (chatInput && !chatInput.disabled && !isSessionTimedOut) {
                 setTimeout(() => chatInput.focus(), 50);
             }
         } else {
-            // 10단계가 아니면서 sampleanswer도 없고 tarocardview도 false인 경우
-            // (예: 단계 이동을 위한 중간 메시지)
-            // 이 경우 일반 제안 버튼은 표시하지 않음.
-            hideSuggestionButtons(true); // 확실히 숨김
-            console.log(`[displayApiResponseElements] 현재 단계 ${currentConsultationStage}. sampleanswer 없고, tarocardview false. 입력창 상태는 displayCurrentStageUI 설정 따름.`);
+            hideSuggestionButtons(true);
+            console.log(`[displayApiResponseElements] 현재 단계 ${currentConsultationStage}. 제안 버튼 없음, tarocardview false. 입력창 상태는 displayCurrentStageUI 설정 따름.`);
         }
 
     } finally {
         console.log("[displayApiResponseElements] UI 처리 완료.");
-        if (currentConsultationStage === 10) { 
-            manageSyncRetestButtonVisibility(); // ★★★ 변경된 함수 호출 ★★★
-        } else {
-            // 10단계가 아니면 싱크타입 재테스트 버튼은 무조건 숨김
-            const container = document.getElementById('syncRetestButtonContainer');
-            if (container && container.classList.contains('visible')) {
-                container.classList.remove('visible');
-            }
-        }
+        // 10단계가 아니면 manageSyncRetestButtonVisibility 호출 제거
     }
 }
     // --- 플로팅 메뉴 관련 함수 ---
@@ -4142,61 +4106,60 @@ async function displayApiResponseElements(parsedResp) {
     // let currentFloatingMenuSlideIndex = 0; // (보이는 슬라이드 기준 인덱스)
     // let visibleFloatingMenuSlides = 3; // (updateFloatingMenuVisibility에서 관리)
 
-    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) { 
-        const slider = document.querySelector('.floating-menu-slider');
-        const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); 
-        const menuContainer = document.getElementById('floatingMenuContainer');
+function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) {
+    const slider = document.querySelector('.floating-menu-slider');
+    const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
+    const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
+    const menuContainer = document.getElementById('floatingMenuContainer');
 
-        if (!menuContainer.classList.contains('visible') ||
-            (!forceMove && targetVisibleIndex === currentFloatingMenuSlideIndex) ||
-            targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
+    if (!menuContainer.classList.contains('visible') ||
+        (!forceMove && targetVisibleIndex === currentFloatingMenuSlideIndex) ||
+        targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
 
-            if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
-                console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
-            }
-            // 유효하지 않은 슬라이드 이동 시에도 버튼 상태는 현재 기준으로 한번 더 업데이트
-            manageSyncRetestButtonVisibility(); // ★★★ 유효하지 않은 이동 시도 시에도 버튼 상태 업데이트 ★★★
-            return;
+        if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
+            console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
         }
-
-        if (slider && allSlides.length >= visibleFloatingMenuSlides) {
-            let actualDomTargetIndex = targetVisibleIndex;
-            let actualDomCurrentIndex = currentFloatingMenuSlideIndex;
-
-            if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
-                actualDomTargetIndex = targetVisibleIndex + 1;
-                actualDomCurrentIndex = currentFloatingMenuSlideIndex + 1;
-            } else {
-                 actualDomTargetIndex = targetVisibleIndex;
-                 actualDomCurrentIndex = currentFloatingMenuSlideIndex;
-            }
-
-            if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) {
-                allSlides[actualDomCurrentIndex].style.opacity = '0';
-            }
-
-            slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
-
-            requestAnimationFrame(() => {
-                if (allSlides[actualDomTargetIndex]) {
-                    allSlides[actualDomTargetIndex].style.opacity = '1';
-                }
-            });
-
-            currentFloatingMenuSlideIndex = targetVisibleIndex;
-
-            let visibleIndicatorCounter = 0;
-            indicators.forEach((dot) => {
-                if (dot.style.display !== 'none') {
-                    dot.classList.toggle('active', visibleIndicatorCounter === targetVisibleIndex);
-                    visibleIndicatorCounter++;
-                }
-            });
-            console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
-            manageSyncRetestButtonVisibility(); // ★★★ 슬라이드 변경 후 버튼 상태 업데이트 ★★★
-        }
+        // manageSyncRetestButtonVisibility(); // 이 줄 삭제
+        return;
     }
+
+    if (slider && allSlides.length >= visibleFloatingMenuSlides) {
+        let actualDomTargetIndex = targetVisibleIndex;
+        let actualDomCurrentIndex = currentFloatingMenuSlideIndex;
+
+        if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
+            actualDomTargetIndex = targetVisibleIndex + 1;
+            actualDomCurrentIndex = currentFloatingMenuSlideIndex + 1;
+        } else {
+             actualDomTargetIndex = targetVisibleIndex;
+             actualDomCurrentIndex = currentFloatingMenuSlideIndex;
+        }
+
+        if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) {
+            allSlides[actualDomCurrentIndex].style.opacity = '0';
+        }
+
+        slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
+
+        requestAnimationFrame(() => {
+            if (allSlides[actualDomTargetIndex]) {
+                allSlides[actualDomTargetIndex].style.opacity = '1';
+            }
+        });
+
+        currentFloatingMenuSlideIndex = targetVisibleIndex;
+
+        let visibleIndicatorCounter = 0;
+        indicators.forEach((dot) => {
+            if (dot.style.display !== 'none') {
+                dot.classList.toggle('active', visibleIndicatorCounter === targetVisibleIndex);
+                visibleIndicatorCounter++;
+            }
+        });
+        console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
+        // manageSyncRetestButtonVisibility(); // 이 줄 삭제
+    }
+}
 
 
      function setupEventListeners() {
