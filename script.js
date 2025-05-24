@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ★★★ 신규: 싱크타입별 설명 데이터 (모든 싱크타입 포함) ★★★
     const SYNC_TYPE_DESCRIPTIONS = {
         // 루미네시아
-        "젠틀빔": "설명이 들어갈 부분입니다.",
+        "젠틀빔": "설명이 들어갈 부분입니다.<br><b>설명</b>이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.",
         "버블퍼프": "설명이 들어갈 부분입니다.",
         "스텔라 터틀": "설명이 들어갈 부분입니다.",
         "문 스눗": "설명이 들어갈 부분입니다.",
@@ -3839,7 +3839,7 @@ async function displayApiResponseElements(parsedResp) {
 
 
             if (displaySyncTypeName && userProfile.사용자소속성운) { // 표시할 이름이 있고, 성운 정보도 있을 때
-                if (page2Title) page2Title.textContent = `나의 싱크타입: ${displaySyncTypeName}`; // ★★★ 맞춤 이름으로 타이틀 표시 ★★★
+                if (page2Title) page2Title.textContent = `<br>내 싱크타입 : ${displaySyncTypeName}`; // ★★★ 맞춤 이름으로 타이틀 표시 ★★★
 
                 if (page2ImageContainer && page2DescriptionContent) {
                     // 데이터(카드ID, 설명)는 originalSyncTypeNameForData (주로 userProfile.결정된싱크타입) 기준으로 가져옴
