@@ -818,38 +818,38 @@ html, body {
     transition: opacity 0.3s ease; /* 부드러운 효과 (필요시) */
 }
 /* 설명 래퍼는 이제 이미지 위에 겹쳐짐 */
+/* style.css 파일에서 이 부분을 찾아 아래 코드로 교체 */
 #floatingMenuPage2 .sync-type-description-wrapper {
-    position: absolute; /* 이미지 컨테이너 기준 절대 위치 */
+    position: absolute; 
     top: 0;
     left: 0;
-    width: 100%; /* 이미지 컨테이너 너비와 동일하게 */
-    height: 100%; /* 이미지 컨테이너 높이와 동일하게 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* 설명 텍스트를 수직 중앙에 배치 */
-    align-items: center; /* 설명 텍스트를 수평 중앙에 배치 */
-    padding: 20px; /* 내부 텍스트와 오버레이 가장자리 사이 여백 */
+    width: 100%; 
+    height: 100%; 
+    display: flex; /* flex를 사용하여 내부 p태그 정렬 */
+    flex-direction: column; /* p태그가 수직으로 쌓이도록 */
+    justify-content: center; 
+    align-items: center; 
+    padding: 20px; 
     box-sizing: border-box;
-    overflow-y: auto; /* 내용이 넘치면 스크롤 */
-    pointer-events: auto; /* ★★★ 스크롤 가능하도록 auto로 변경 ★★★ */
-    /* background-color: rgba(0, 0, 0, 0.15); */ /* 디버깅 또는 가독성을 위한 배경 (선택 사항) */
-    border-radius: 8px; /* 이미지가 둥글다면 설명 오버레이도 맞춰줌 */
+    overflow-y: auto; 
+    pointer-events: auto; 
+    border-radius: 8px; 
 }
+/* style.css 파일에서 이 부분을 찾아 아래 코드로 교체 */
 /* style.css 파일에서 이 부분을 찾아 아래 코드로 교체 */
 #floatingMenuPage2 .sync-type-description {
     font-size: 0.9em;
     color: #FFFFFF;
-    text-align: center; /* 또는 좌측 정렬 text-align: left; */
-    line-height: 1.5;   /* 이전 1.6에서 약간 줄여봄, 가독성 보고 조절 */
-    width: 100%;        /* 부모(.sync-type-description-wrapper)의 너비를 따름 */
+    text-align: center; 
+    line-height: 1.5;
+    width: 100%; /* 부모(.sync-type-description-wrapper)의 콘텐츠 영역 너비 */
     text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
-    pointer-events: auto; 
     
-    /* ★★★ 줄바꿈을 위한 속성 추가/확인 ★★★ */
-    white-space: normal; /* 줄바꿈 허용 (기본값이지만 명시) */
-    word-wrap: break-word; /* 강제 줄바꿈 (구형 브라우저 호환) */
-    overflow-wrap: break-word; /* 강제 줄바꿈 (표준) */
-    padding: 0 5px; /* 좌우 약간의 내부 여백, 너무 크면 실제 너비 줄어듦 */
+    white-space: normal !important; /* !important로 강제 적용 시도 */
+    word-wrap: break-word !important; 
+    overflow-wrap: break-word !important;
+    /* padding: 0 5px; /* 이 패딩이 문제를 일으킬 수 있으므로 일단 제거 후 테스트 */
+    box-sizing: border-box; /* 너비 계산에 패딩과 테두리 포함 */
 }
 #floatingMenuPage2 .sync-type-description-wrapper::-webkit-scrollbar {
     width: 5px;
