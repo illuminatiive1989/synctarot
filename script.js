@@ -152,6 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const SESSION_TIMEOUT_DURATION = 120 * 60 * 1000; // 3분
     const INACTIVITY_WARNING_DURATION = 60 * 60 * 1000; // 2분
     let isSessionTimedOut = false; // 세션 종료 여부 플래그
+    let hasSeenSyncTypeExplanationViaButton = false; // ★★★ 추가: "싱크타입이 뭐라구?" 버튼 클릭 여부 플래그 ★★★
 
     console.log("[ 초기화 ] 주요 상태 변수 초기화 완료. 현재 단계:", currentConsultationStage);
 
@@ -1575,7 +1576,6 @@ async function displayCurrentStageUI() {
             createSuggestionButtons(suggestionTextsStage2, handleButtonClick);
             break;
 
-        // ... case 3, 3.5, 4, 7, 8, 9, 10, default 는 이전과 동일하게 유지 ...
         case 3:
             hideSuggestionButtons(true);
             console.log("[displayCurrentStageUI] Processing stage 3");
@@ -1629,7 +1629,9 @@ async function displayCurrentStageUI() {
                 const currentQuestionText = 주관식질문세트[현재주관식질문인덱스];
                 updateUserProfile({ [`주관식질문${현재주관식질문인덱스 + 1}`]: currentQuestionText });
                 assistantMsgWithTags += `<b style="color:#FFD700;">${currentQuestionText}</b><br><br>※채팅으로 신중하게 입력해주세요`;
-                if (현재주관식질문인덱스 === 0) {
+                
+                // ★★★ 수정된 조건: hasSeenSyncTypeExplanationViaButton 플래그 확인 ★★★
+                if (현재주관식질문인덱스 === 0 && !hasSeenSyncTypeExplanationViaButton) {
                     suggestionTextsStage4 = ["아니 잠깐! 싱크타입이 뭐라구?"];
                     await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
                     createSuggestionButtons(suggestionTextsStage4, handleButtonClick);
@@ -1735,12 +1737,17 @@ async function displayCurrentStageUI() {
             isFirstBotMessageDisplayed = false;
             showStage10EntryEmoticon = false;
             isInitialApiCallAfterObjectiveTest = false;
+            hasSeenSyncTypeExplanationViaButton = false; // ★★★ 플래그 초기화 ★★★
             clearSessionTimers();
             updateUserProfile({ "사용자소속성운": null, "결정된싱크타입": null });
 
             setChatInputDisabled(true, "아래 버튼을 눌러주세요.");
             await displayHardcodedUIElements(actionText, assistantMsgWithTags, [], handleButtonClick);
-            createSuggestionButtons(suggestionTextsDefault, handleButtonClick);
+            createSuggestionButtons(suggestionTextsDefault, (clickedText) => {
+                if (clickedText === "응, 처음으로") {
+                    advanceConsultationStage(1); 
+                }
+            });
             break;
     }
     manageSendButtonState();
@@ -2340,212 +2347,212 @@ async function handleObjectiveOptionSelection(selectedValue, questionType, quest
         scrollToBottom(true);
         console.log(`[displayCurrentObjectiveQuestion] END - Question UI for index ${questionIndexToDraw} created.`);
     }
-    async function handleButtonClick(buttonText) {
-        console.log(`[handleButtonClick] 버튼 클릭됨: "${buttonText}", 현재 단계: ${currentConsultationStage}`);
-        if (isSessionTimedOut && buttonText !== "새로운 상담 시작하기") {
-            console.log("[handleButtonClick] 세션 타임아웃. 버튼 클릭 무시.");
+async function handleButtonClick(buttonText) {
+    console.log(`[handleButtonClick] 버튼 클릭됨: "${buttonText}", 현재 단계: ${currentConsultationStage}`);
+    if (isSessionTimedOut && buttonText !== "새로운 상담 시작하기") {
+        console.log("[handleButtonClick] 세션 타임아웃. 버튼 클릭 무시.");
+        return;
+    }
+
+    userHasScrolledUp = false;
+    scrollToBottom(true);
+    hideSuggestionButtons();
+    const userMessageElement = createTextMessageElement(buttonText, true);
+    if(section2) section2.appendChild(userMessageElement);
+    applyFadeIn(userMessageElement);
+    conversationHistory.push({ role: "user", parts: [{ text: buttonText }] });
+    console.log("[handleButtonClick] 대화 기록에 사용자 턴 추가:", buttonText);
+
+    if (currentConsultationStage === 10 && buttonText !== "새로운 상담 시작하기") {
+        resetSessionTimers();
+    }
+
+    let nextStage = null;
+    let hardcodedAction = null;
+    let hardcodedMsgWithTags = null;
+    let hardcodedSuggestions = [];
+    let shouldDisplayHardcodedUI = false;
+    let scenarioToSet = null;
+
+    if (currentConsultationStage === 2) {
+        if (buttonText === "응") {
+            nextStage = 3;
+        } else if (buttonText === "다시 선택할래") {
+            hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
+            await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+            
+            currentConsultationStage = 1; 
+            if (rubyImageElement) rubyImageElement.classList.remove('blurred'); 
+            currentSelectedTarotType = null; 
+            updateUserProfile({ "사용자의고민": null }); 
+            advanceConsultationStage(1); 
+            return; 
+        }
+    } else if (currentConsultationStage === 3) {
+        if (buttonText === "당연하지") {
+            tempSelectedConstellation = null;
+            nextStage = 3.5;
+        } else if (buttonText === "그게뭐야?") {
+            hardcodedMsgWithTags = "헤헤 모르는구나? 그럼 싱크타입에 대해 설명해 줄게 😊<br><br>싱크타입은 타로 해석의 정확도를 높이기 위한 과정이야.<br><br>다양한 이론, 통계, 그리고 심리 분석을 바탕으로 너에게 가장 강하게 <b>'이끌리는 성운'</b> 과 그 성운 안에서 <b>'너의 고유한 타입'</b> 을 결정하게 돼.<br><br>이렇게 너의 싱크타입이 명확해지면, 그 특성에 맞춰 타로 카드의 의미를 더 깊이 있고 정확하게 해석할 수 있어.<br><br>타로에는 <b>너의 믿음과 현재의 기운이 반영되는 게</b> 중요하거든.<br>그럼 이 테스트를 통해 너의 싱크타입을 알아볼래?";
+            hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
+            shouldDisplayHardcodedUI = true;
+        } else if (buttonText === "오오 정말? 좋아!") {
+            현재주관식질문인덱스 = 0;
+            nextStage = 4;
+        } else if (buttonText === "바쁘니깐 나중에할게") {
+            scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
+            updateUserProfile({ "시나리오": scenarioToSet });
+            console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+
+            hardcodedAction = "루비가 아쉬워하며";
+            hardcodedMsgWithTags = "에고 그렇구나.. 좋아 그러면 바로 타로를 시작하자!";
+            await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+
+            currentConsultationStage = 10;
+            showStage10EntryEmoticon = true;
+            isInitialApiCallAfterObjectiveTest = true;
+            messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
+            await sendApiRequest(0);
             return;
         }
-
-        userHasScrolledUp = false;
-        scrollToBottom(true);
-        hideSuggestionButtons();
-        const userMessageElement = createTextMessageElement(buttonText, true);
-        if(section2) section2.appendChild(userMessageElement);
-        applyFadeIn(userMessageElement);
-        conversationHistory.push({ role: "user", parts: [{ text: buttonText }] });
-        console.log("[handleButtonClick] 대화 기록에 사용자 턴 추가:", buttonText);
-
-        if (currentConsultationStage === 10 && buttonText !== "새로운 상담 시작하기") {
-            resetSessionTimers();
-        }
-
-        let nextStage = null;
-        let hardcodedAction = null;
-        let hardcodedMsgWithTags = null;
-        let hardcodedSuggestions = [];
-        let shouldDisplayHardcodedUI = false;
-        let scenarioToSet = null;
-
-        if (currentConsultationStage === 2) {
-            if (buttonText === "응") {
-                nextStage = 3;
-            } else if (buttonText === "다시 선택할래") {
-                hardcodedMsgWithTags = "그래! 그럼 다시 🦴 버튼을 눌러서 선택해줘!";
-                // 메시지 표시 후 사용자가 메뉴를 다시 열도록 유도
-                // 그리고 실제 상담 단계를 1단계로 되돌리고 UI를 갱신한다.
-                await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-                
-                // ★★★ 핵심 수정: currentConsultationStage를 1로 변경하고 advanceConsultationStage(1) 호출 ★★★
-                currentConsultationStage = 1; // 단계를 1로 명시적 변경
-                if (rubyImageElement) rubyImageElement.classList.remove('blurred'); // 1단계이므로 블러 해제
-                currentSelectedTarotType = null; // 선택했던 타로 타입 초기화
-                updateUserProfile({ "사용자의고민": null }); // 프로필에서도 초기화
-                advanceConsultationStage(1); // 1단계 UI를 다시 그리도록 함 (이 안에서 displayCurrentStageUI 호출)
-                return; // 이 로직 후 함수 종료
-            }
-        } else if (currentConsultationStage === 3) {
-            if (buttonText === "당연하지") {
-                tempSelectedConstellation = null;
-                nextStage = 3.5;
-            } else if (buttonText === "그게뭐야?") {
-                hardcodedMsgWithTags = "헤헤 모르는구나? 그럼 싱크타입에 대해 설명해 줄게 😊<br><br>싱크타입은 타로 해석의 정확도를 높이기 위한 과정이야.<br><br>다양한 이론, 통계, 그리고 심리 분석을 바탕으로 너에게 가장 강하게 <b>'이끌리는 성운'</b> 과 그 성운 안에서 <b>'너의 고유한 타입'</b> 을 결정하게 돼.<br><br>이렇게 너의 싱크타입이 명확해지면, 그 특성에 맞춰 타로 카드의 의미를 더 깊이 있고 정확하게 해석할 수 있어.<br><br>타로에는 <b>너의 믿음과 현재의 기운이 반영되는 게</b> 중요하거든.<br>그럼 이 테스트를 통해 너의 싱크타입을 알아볼래?";
-                hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
+    } else if (currentConsultationStage === 3.5) {
+        if (!tempSelectedConstellation) {
+            if (ALL_CONSTELLATION_NAMES.includes(buttonText)) {
+                tempSelectedConstellation = buttonText;
+                displayCurrentStageUI(); return;
+            } else if (buttonText === "기억안나 (성운)") {
+                hardcodedAction = "루비가 안타까워하며";
+                hardcodedMsgWithTags = "성운이 기억나지 않는구나 😂 그럼 싱크타입 테스트를 다시 진행해볼까?";
+                hardcodedSuggestions = ["응, 다시 테스트할게", "아니, 그냥 타로 볼래"];
                 shouldDisplayHardcodedUI = true;
-            } else if (buttonText === "오오 정말? 좋아!") {
-                현재주관식질문인덱스 = 0;
-                nextStage = 4;
-            } else if (buttonText === "바쁘니깐 나중에할게") {
-                scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
-                updateUserProfile({ "시나리오": scenarioToSet });
-                console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
-
-                hardcodedAction = "루비가 아쉬워하며";
-                hardcodedMsgWithTags = "에고 그렇구나.. 좋아 그러면 바로 타로를 시작하자!";
-                await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-
-                currentConsultationStage = 10;
-                showStage10EntryEmoticon = true;
-                isInitialApiCallAfterObjectiveTest = true;
-                messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
-                await sendApiRequest(0);
-                return;
+            } else if (buttonText === "처음으로 돌아가기") {
+                nextStage = 1;
             }
-        } else if (currentConsultationStage === 3.5) {
-            if (!tempSelectedConstellation) {
-                if (ALL_CONSTELLATION_NAMES.includes(buttonText)) {
-                    tempSelectedConstellation = buttonText;
-                    displayCurrentStageUI(); return;
-                } else if (buttonText === "기억안나 (성운)") {
-                    hardcodedAction = "루비가 안타까워하며";
-                    hardcodedMsgWithTags = "성운이 기억나지 않는구나 😂 그럼 싱크타입 테스트를 다시 진행해볼까?";
+        } else {
+            const constellationData = CONSTELLATIONS_DATA[tempSelectedConstellation];
+            const cleanButtonText = buttonText.replace(" (싱크타입)", "");
+            if (constellationData && constellationData.syncTypes.includes(cleanButtonText)) {
+                if (cleanButtonText === "기억안나") {
+                    hardcodedAction = "루비가 고개를 갸웃하며";
+                    hardcodedMsgWithTags = `이런, ${tempSelectedConstellation} 성운의 싱크타입도 기억나지 않는구나. 그럼 싱크타입 테스트를 다시 진행해볼까?`;
                     hardcodedSuggestions = ["응, 다시 테스트할게", "아니, 그냥 타로 볼래"];
                     shouldDisplayHardcodedUI = true;
-                } else if (buttonText === "처음으로 돌아가기") {
-                    nextStage = 1;
+                    tempSelectedConstellation = null;
+                } else {
+                    scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
+                    updateUserProfile({
+                        "사용자소속성운": tempSelectedConstellation,
+                        "결정된싱크타입": cleanButtonText,
+                        "시나리오": scenarioToSet
+                    });
+                    console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+                    tempSelectedConstellation = null;
+
+                    hardcodedAction = "루비가 기뻐하며";
+                    hardcodedMsgWithTags = `좋아! 너의 정보가 업데이트되었어. 그럼 이제 바로 타로를 시작해보자!`;
+                    await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+
+                    currentConsultationStage = 10;
+                    showStage10EntryEmoticon = true;
+                    isInitialApiCallAfterObjectiveTest = true;
+                    messageBuffer = `사용자가 자신의 성운(${userProfile.사용자소속성운})과 싱크타입(${userProfile.결정된싱크타입})을 입력하고 타로를 시작합니다. (시나리오 4)`;
+                    await sendApiRequest(0);
+                    return;
                 }
             } else {
-                const constellationData = CONSTELLATIONS_DATA[tempSelectedConstellation];
-                const cleanButtonText = buttonText.replace(" (싱크타입)", "");
-                if (constellationData && constellationData.syncTypes.includes(cleanButtonText)) {
-                    if (cleanButtonText === "기억안나") {
-                        hardcodedAction = "루비가 고개를 갸웃하며";
-                        hardcodedMsgWithTags = `이런, ${tempSelectedConstellation} 성운의 싱크타입도 기억나지 않는구나. 그럼 싱크타입 테스트를 다시 진행해볼까?`;
-                        hardcodedSuggestions = ["응, 다시 테스트할게", "아니, 그냥 타로 볼래"];
-                        shouldDisplayHardcodedUI = true;
-                        tempSelectedConstellation = null;
-                    } else {
-                        scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
-                        updateUserProfile({
-                            "사용자소속성운": tempSelectedConstellation,
-                            "결정된싱크타입": cleanButtonText,
-                            "시나리오": scenarioToSet
-                        });
-                        console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
-                        tempSelectedConstellation = null;
-
-                        hardcodedAction = "루비가 기뻐하며";
-                        hardcodedMsgWithTags = `좋아! 너의 정보가 업데이트되었어. 그럼 이제 바로 타로를 시작해보자!`;
-                        await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-
-                        currentConsultationStage = 10;
-                        showStage10EntryEmoticon = true;
-                        isInitialApiCallAfterObjectiveTest = true;
-                        messageBuffer = `사용자가 자신의 성운(${userProfile.사용자소속성운})과 싱크타입(${userProfile.결정된싱크타입})을 입력하고 타로를 시작합니다. (시나리오 4)`;
-                        await sendApiRequest(0);
-                        return;
-                    }
-                } else {
-                     hardcodedAction = "루비가 당황하며";
-                     hardcodedMsgWithTags = "앗, 뭔가 잘못 선택된 것 같아. [exp008] 다시 한번 골라줄래?";
-                     await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-                     displayCurrentStageUI();
-                     return;
-                }
-            }
-            if (buttonText === "응, 다시 테스트할게") {
-                tempSelectedConstellation = null;
-                현재주관식질문인덱스 = 0;
-                nextStage = 4;
-            } else if (buttonText === "아니, 그냥 타로 볼래") {
-                scenarioToSet = "시나리오 2 - 기억이 안날수도 있다고 위로하며 타로 진행";
-                updateUserProfile({ "시나리오": scenarioToSet });
-                console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
-                tempSelectedConstellation = null;
-
-                hardcodedAction = "루비가 알겠다는 듯";
-                hardcodedMsgWithTags = "그렇구나.. 😭 알았어. 그럼 바로 타로를 보자!";
-                await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-
-                currentConsultationStage = 10;
-                showStage10EntryEmoticon = true;
-                isInitialApiCallAfterObjectiveTest = true;
-                messageBuffer = "사용자가 싱크타입 정보를 기억하지 못해 바로 타로를 시작합니다. (시나리오 2)";
-                await sendApiRequest(0);
-                return;
-            }
-        } else if (currentConsultationStage === 4) {
-            if (buttonText === "아니 잠깐! 싱크타입이 뭐라구?") {
-                hardcodedAction = "루비가 다시 한번 설명하며";
-                hardcodedMsgWithTags = "싱크타입에 대해 다시 한번 설명해 줄게. 😊<br><br>이건 <b>다양한 심리학 이론과 우주의 기운</b>을 통해 너의 <b>본질적인 유형</b>을 찾아내는 과정이야.<br>이렇게 발견된 너의 <b>'영혼의 쌍둥이'</b> 같은 싱크타입은 타로 카드의 해석 정확도를 높이는 데 중요한 역할을 해. ✨<br><br>바로 테스트를 통해 너의 싱크타입을 알아볼래?";
-                hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
-                shouldDisplayHardcodedUI = true;
-                setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
-            } else if (buttonText === "오오 정말? 좋아!") {
-                 현재주관식질문인덱스 = 0;
+                 hardcodedAction = "루비가 당황하며";
+                 hardcodedMsgWithTags = "앗, 뭔가 잘못 선택된 것 같아. [exp008] 다시 한번 골라줄래?";
+                 await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
                  displayCurrentStageUI();
                  return;
-            } else if (buttonText === "바쁘니깐 나중에할게") {
-                 scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
-                 updateUserProfile({ "시나리오": scenarioToSet });
-                 console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
-
-                 hardcodedAction = "루비가 아쉬워하며";
-                 hardcodedMsgWithTags = "에고 그렇구나.. [exp007] 좋아 그러면 바로 타로를 시작하자!";
-                 await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
-
-                 currentConsultationStage = 10;
-                 showStage10EntryEmoticon = true;
-                 isInitialApiCallAfterObjectiveTest = true;
-                 messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
-                 await sendApiRequest(0);
-                 return;
             }
-        } else if (currentConsultationStage === 7) {
-            if (buttonText === "좋아! 시작하자 ✨") {
-                nextStage = 8;
-            }
-        } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) {
-            console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
-            isRequestingSyncTypeResult = true;
-            syncTypeResultRetryCount = 0;
+        }
+        if (buttonText === "응, 다시 테스트할게") {
+            tempSelectedConstellation = null;
+            현재주관식질문인덱스 = 0;
+            nextStage = 4;
+        } else if (buttonText === "아니, 그냥 타로 볼래") {
+            scenarioToSet = "시나리오 2 - 기억이 안날수도 있다고 위로하며 타로 진행";
+            updateUserProfile({ "시나리오": scenarioToSet });
+            console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+            tempSelectedConstellation = null;
+
+            hardcodedAction = "루비가 알겠다는 듯";
+            hardcodedMsgWithTags = "그렇구나.. 😭 알았어. 그럼 바로 타로를 보자!";
+            await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+
             currentConsultationStage = 10;
-            showStage10EntryEmoticon = false;
-            isInitialApiCallAfterObjectiveTest = false;
-            messageBuffer = "";
-            console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
-            await sendApiRequest(0);
-            return;
-        } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
-            console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
-            messageBuffer = buttonText;
+            showStage10EntryEmoticon = true;
+            isInitialApiCallAfterObjectiveTest = true;
+            messageBuffer = "사용자가 싱크타입 정보를 기억하지 못해 바로 타로를 시작합니다. (시나리오 2)";
             await sendApiRequest(0);
             return;
         }
+    } else if (currentConsultationStage === 4) {
+        if (buttonText === "아니 잠깐! 싱크타입이 뭐라구?") {
+            hasSeenSyncTypeExplanationViaButton = true; // ★★★ 플래그 설정 ★★★
+            console.log("[handleButtonClick] '아니 잠깐! 싱크타입이 뭐라구?' 버튼 클릭. hasSeenSyncTypeExplanationViaButton = true 설정.");
+            hardcodedAction = "루비가 다시 한번 설명하며";
+            hardcodedMsgWithTags = "싱크타입에 대해 다시 한번 설명해 줄게. 😊<br><br>이건 <b>다양한 심리학 이론과 우주의 기운</b>을 통해 너의 <b>본질적인 유형</b>을 찾아내는 과정이야.<br>이렇게 발견된 너의 <b>'영혼의 쌍둥이'</b> 같은 싱크타입은 타로 카드의 해석 정확도를 높이는 데 중요한 역할을 해. ✨<br><br>바로 테스트를 통해 너의 싱크타입을 알아볼래?";
+            hardcodedSuggestions = ["오오 정말? 좋아!", "바쁘니깐 나중에할게"];
+            shouldDisplayHardcodedUI = true;
+            setChatInputDisabled(true, "아래 버튼으로 답변해주세요.");
+        } else if (buttonText === "오오 정말? 좋아!") {
+             // hasSeenSyncTypeExplanationViaButton 플래그는 여기서 변경하지 않음.
+             현재주관식질문인덱스 = 0; // "오오 정말? 좋아!"를 누르면 항상 첫번째 주관식 질문부터 시작 (스테이지 4 재진입)
+             displayCurrentStageUI(); // 4단계 UI를 다시 그리도록 함 (hasSeenSyncTypeExplanationViaButton 값에 따라 "싱크타입이 뭐라구?" 버튼 표시 여부 결정됨)
+             return;
+        } else if (buttonText === "바쁘니깐 나중에할게") {
+             scenarioToSet = "시나리오 3 - 바쁜가보다 그럼 빨리 봐보자 라고 말하며 타로 진행";
+             updateUserProfile({ "시나리오": scenarioToSet });
+             console.log(`[handleButtonClick] 시나리오 설정: ${scenarioToSet}`);
+
+             hardcodedAction = "루비가 아쉬워하며";
+             hardcodedMsgWithTags = "에고 그렇구나.. [exp007] 좋아 그러면 바로 타로를 시작하자!";
+             await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, [], handleButtonClick);
+
+             currentConsultationStage = 10;
+             showStage10EntryEmoticon = true;
+             isInitialApiCallAfterObjectiveTest = true;
+             messageBuffer = "사용자가 싱크타입 테스트를 건너뛰고 타로를 바로 시작합니다. (시나리오 3)";
+             await sendApiRequest(0);
+             return;
+        }
+    } else if (currentConsultationStage === 7) {
+        if (buttonText === "좋아! 시작하자 ✨") {
+            nextStage = 8;
+        }
+    } else if (currentConsultationStage === 9 && (buttonText === "응, 보내줘!" || buttonText === "응, 찾아줘!")) {
+        console.log(`[handleButtonClick] 9단계 '${buttonText}' 클릭. 싱크타입 결정 API 호출 시작.`);
+        isRequestingSyncTypeResult = true;
+        syncTypeResultRetryCount = 0;
+        currentConsultationStage = 10;
+        showStage10EntryEmoticon = false;
+        isInitialApiCallAfterObjectiveTest = false;
+        messageBuffer = "";
+        console.log(`[handleButtonClick] isRequestingSyncTypeResult set to: ${isRequestingSyncTypeResult}`);
+        await sendApiRequest(0);
+        return;
+    } else if (currentConsultationStage === 10 && !shouldDisplayHardcodedUI && !nextStage) {
+        console.log(`[handleButtonClick] 대화 단계(10) API 응답 버튼 클릭됨: "${buttonText}"`);
+        messageBuffer = buttonText;
+        await sendApiRequest(0);
+        return;
+    }
 
 
-        if (shouldDisplayHardcodedUI) {
-            if (nextStage !== null && nextStage !== currentConsultationStage) {
-                advanceConsultationStage(nextStage);
-            } else {
-                await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, hardcodedSuggestions, handleButtonClick);
-            }
-        } else if (nextStage !== null) {
+    if (shouldDisplayHardcodedUI) {
+        if (nextStage !== null && nextStage !== currentConsultationStage) {
             advanceConsultationStage(nextStage);
         } else {
-            console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
+            await displayHardcodedUIElements(hardcodedAction, hardcodedMsgWithTags, hardcodedSuggestions, handleButtonClick);
         }
+    } else if (nextStage !== null) {
+        advanceConsultationStage(nextStage);
+    } else {
+        console.log(`[handleButtonClick] 버튼 "${buttonText}" 처리 완료. nextStage: ${nextStage}, shouldDisplayHardcodedUI: ${shouldDisplayHardcodedUI}. 현 단계(${currentConsultationStage}) 유지 또는 추가 액션 없음.`);
     }
+}
 
     async function processUserInput() {
         console.log(`[processUserInput] 사용자 입력 처리 시작, isApiLoading: ${isApiLoading}, isSessionTimedOut: ${isSessionTimedOut}`);
@@ -3252,165 +3259,38 @@ async function displayApiResponseElements(parsedResp) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    async function handleFloatingMenuItemClick(action) {
-        console.log(`[FloatingMenu] 메뉴 아이템 클릭: ${action}`);
-        hideFloatingMenu(); // 아이템 클릭 시 기본적으로 메뉴를 닫음
+async function handleSessionTimeout() {
+    if (isSessionTimedOut || currentConsultationStage !== 10) return; 
 
-        let userMessageText = "";
-        let rubyActionText = null;
-        let rubyAssistantMsg = "";
-        let selectedTarotTypeForProfile = null; // userProfile.사용자의고민 에 저장될 값
+    console.log("[SessionTimer] 세션 타임아웃! 대화 종료 처리 시작.");
+    isSessionTimedOut = true; 
+    clearSessionTimers(); 
 
-        // data-action 값에 따라 메시지 설정
-        switch (action) {
-            case 'tarot_today_fortune': // HTML의 data-action 값과 일치해야 함
-                userMessageText = "오늘, 좋은일이 생길까?";
-                rubyActionText = "루비가 눈을 반짝이며";
-                rubyAssistantMsg = "당연하지! 타로로 한번 살펴보자 🎉";
-                selectedTarotTypeForProfile = TAROT_TYPES.TODAY_FORTUNE; // 또는 "오늘의 운세" 직접 사용
-                break;
-            case 'tarot_love_crush':
-                userMessageText = "그 애가 날 좋아할까?";
-                rubyActionText = "루비의 눈이 하트가 됐어요";
-                rubyAssistantMsg = "😍 확실한건 너는 정말 매력적이란거야!<br>타로로 그 분의 마음을 확인해볼까?";
-                selectedTarotTypeForProfile = TAROT_TYPES.LOVE_LUCK;
-                break;
-            case 'tarot_pet_mood':
-                userMessageText = "반려동물의 오늘 기분이 궁금해";
-                rubyActionText = "루비가 꼬리를 살랑거리며";
-                rubyAssistantMsg = "😁 분명 기분이 좋을거야! 타로로 알아볼까?";
-                selectedTarotTypeForProfile = "반려동물 기분"; // TAROT_TYPES에 없다면 직접 문자열
-                break;
-            case 'tarot_lotto':
-                userMessageText = "로또번호가 진짜 궁금해";
-                rubyActionText = "루비가 눈을 반짝거려요";
-                rubyAssistantMsg = "🎩 그럼 오늘의 '루또' 를 마법으로 들여다 보자!";
-                selectedTarotTypeForProfile = "로또 번호"; // TAROT_TYPES에 없다면 직접 문자열
-                break;
-            case 'tarot_is_this_some':
-                userMessageText = "이거 썸타는건가?";
-                rubyActionText = "루비가 고개를 갸웃하며"; // "적당히"
-                rubyAssistantMsg = "음... 그 미묘한 기류, 타로로 한번 살펴볼까? 🧐"; // "적당히"
-                selectedTarotTypeForProfile = "썸 확인";
-                break;
-            case 'tarot_money_flow':
-                userMessageText = "오늘의 재물운이 궁금해!";
-                rubyActionText = "루비가 지폐를 세는 흉내를 내며"; // "적당히"
-                rubyAssistantMsg = "좋아! 돈의 흐름이 어디로 향하는지 한번 보자! 💸"; // "적당히"
-                selectedTarotTypeForProfile = TAROT_TYPES.MONEY_FLOW;
-                break;
-            case 'tarot_exam_luck':
-                userMessageText = "얼마 안남은 시험, 잘 볼수 있을까?";
-                rubyActionText = "루비가 응원의 눈빛을 보내며"; // "적당히"
-                rubyAssistantMsg = "분명 잘 해낼 수 있을 거야! 타로로 기운을 북돋아 줄게! 📖"; // "적당히"
-                selectedTarotTypeForProfile = TAROT_TYPES.STUDY_ACADEMIC;
-                break;
-            case 'tarot_relationship_luck':
-                userMessageText = "오늘의 대인관계운이 궁금해";
-                rubyActionText = "루비가 악수하는 손짓을 하며"; // "적당히"
-                rubyAssistantMsg = "좋은 인연이 가득할지, 타로에게 물어보자! 🤝"; // "적당히"
-                selectedTarotTypeForProfile = "대인관계운";
-                break;
-            case 'tarot_health_luck':
-                userMessageText = "건강운이 궁금해";
-                rubyActionText = "루비가 건강 주스를 마시는 흉내를 내며"; // "적당히"
-                rubyAssistantMsg = "몸도 마음도 건강한 하루가 되길! 타로로 건강의 기운을 살펴보자! 💪"; // "적당히"
-                selectedTarotTypeForProfile = TAROT_TYPES.SOMEONES_HEALTH; // 본인 건강으로 해석
-                break;
-            case 'tarot_salary_increase':
-                userMessageText = "이번에 연봉 오를 수 있을까?";
-                rubyActionText = "루비가 엄지를 척 들며"; // "적당히"
-                rubyAssistantMsg = "두근두근! 너의 노력이 결실을 맺을지, 타로 카드가 알려줄 거야! 💼"; // "적당히"
-                selectedTarotTypeForProfile = TAROT_TYPES.WORK_CAREER;
-                break;
+    setChatInputDisabled(true, "대화가 종료되었습니다.");
+    hideSuggestionButtons(true); 
 
-            // --- 기존 메뉴 아이템 처리 ---
-            case 'new_chat':
-                console.log("[FloatingMenu] '새로운 상담 시작하기' 선택됨.");
-                clearChatArea();
-                conversationHistory = [];
-                userProfile = initializeUserProfile();
-                currentConsultationStage = 0;
-                isSessionTimedOut = false;
-                isFirstBotMessageDisplayed = false;
-                showStage10EntryEmoticon = false;
-                isInitialApiCallAfterObjectiveTest = false;
-                if (rubyImageElement) rubyImageElement.classList.remove('blurred');
-                advanceConsultationStage(1);
-                return; // 이 케이스는 아래 로직을 타지 않고 종료
-            case 'retest_sync':
-                console.log("[FloatingMenu] '싱크타입 다시 테스트' 선택됨.");
-                // (이전과 동일한 싱크타입 재테스트 로직)
-                if (currentConsultationStage >= 10) {
-                    clearChatArea();
-                    updateUserProfile({
-                        "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
-                        "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
-                        "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
-                        "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
-                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
-                    });
-                    현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
-                    if (rubyImageElement) rubyImageElement.classList.remove('blurred');
-                    advanceConsultationStage(4);
-                } else if (currentConsultationStage < 4) {
-                     현재주관식질문인덱스 = 0; advanceConsultationStage(4);
-                } else {
-                    const existingObjectiveContainers = section2.querySelectorAll('.objective-questions-container');
-                    existingObjectiveContainers.forEach(container => container.remove());
-                    updateUserProfile({
-                        "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
-                        "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
-                        "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
-                        "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
-                        "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
-                    });
-                     현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
-                     if (rubyImageElement) rubyImageElement.classList.remove('blurred');
-                     advanceConsultationStage(4);
-                }
-                return; // 이 케이스는 아래 로직을 타지 않고 종료
-            default:
-                if (action && (action.startsWith('tarot_') || action.includes('_luck') || action.includes('start_recommended_tarot') )) {
-                    // 기타 타로 관련 액션이 있지만 위에서 명시적으로 처리되지 않은 경우 (예: 2번 바의 추천 타로)
-                    userMessageText = `"${action.replace('tarot_', '').replace(/_/g, ' ')}" 주제로 타로를 보고 싶어.`;
-                    rubyActionText = "루비가 흥미로운 표정으로";
-                    rubyAssistantMsg = "좋아! 그 주제에 대해서도 한번 살펴보자!";
-                    selectedTarotTypeForProfile = action; // action 값을 그대로 사용
-                } else if (action) {
-                    console.log(`[FloatingMenu] '${action}' 선택됨. (준비중 또는 기타 액션)`);
-                    await displayHardcodedUIElements("루비가 머쓱해하며", "이 기능은 아직 준비 중이거나, 특별한 동작이 없어! [exp007]", [], handleButtonClick);
-                    return; // 준비 중인 기능은 아래 단계로 넘어가지 않음
-                } else {
-                    console.warn(`[FloatingMenu] 알 수 없는 액션 또는 타로 주제 아님: ${action}`);
-                    return;
-                }
-                break;
+    const timeoutMsg = "바쁜 일이 있는거지? 내일 다시 보자 😁";
+    
+    await displayHardcodedUIElements("루비가 아쉬운 표정으로 꼬리를 흔들며", timeoutMsg, ["새로운 상담 시작하기"], async (buttonText) => { 
+        if (buttonText === "새로운 상담 시작하기") {
+            console.log("[SessionTimer] 새로운 상담 시작 요청.");
+            
+            clearChatArea(); 
+            
+            conversationHistory = [];
+            userProfile = initializeUserProfile();
+            currentConsultationStage = 0; 
+            isSessionTimedOut = false; 
+            isFirstBotMessageDisplayed = false; 
+            showStage10EntryEmoticon = false;
+            isInitialApiCallAfterObjectiveTest = false;
+            hasSeenSyncTypeExplanationViaButton = false; // ★★★ 플래그 초기화 ★★★
+            
+            advanceConsultationStage(1); 
         }
-
-        // userMessageText와 rubyAssistantMsg가 설정된 경우 (타로 주제 선택 시)
-        if (userMessageText && rubyAssistantMsg && selectedTarotTypeForProfile) {
-            // 1. 사용자 메시지 표시
-            const userMessageElement = createTextMessageElement(userMessageText, true);
-            if(section2) section2.appendChild(userMessageElement);
-            applyFadeIn(userMessageElement);
-            conversationHistory.push({ role: "user", parts: [{ text: userMessageText }] });
-            scrollToBottom(true);
-
-            // 2. 루비 액션 및 메시지 표시 (displayHardcodedUIElements 사용)
-            // displayHardcodedUIElements는 내부적으로 typing indicator, action text, bot message 애니메이션 등을 처리
-            await displayHardcodedUIElements(rubyActionText, rubyAssistantMsg, [], handleButtonClick);
-            // displayHardcodedUIElements 내부에서 conversationHistory에도 모델 턴을 추가하므로 중복 추가 방지
-
-            // 3. 상태 업데이트 및 단계 이동
-            currentSelectedTarotType = selectedTarotTypeForProfile; // 선택된 타로 주제 저장
-            updateUserProfile({ "사용자의고민": currentSelectedTarotType }); // 프로필에도 저장
-            if (rubyImageElement && !rubyImageElement.classList.contains('blurred')) {
-                rubyImageElement.classList.add('blurred');
-            }
-            advanceConsultationStage(2); // 2단계로 이동
-        }
-    }
+    });
+    console.log("[SessionTimer] 세션 타임아웃 처리 완료.");
+}
 
     // --- 플로팅 메뉴 슬라이드 관련 전역(또는 상위 스코프) 변수 ---
     // let currentFloatingMenuSlideIndex = 0; // 이미 존재
