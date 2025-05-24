@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ★★★ 신규: 싱크타입별 설명 데이터 (모든 싱크타입 포함) ★★★
     const SYNC_TYPE_DESCRIPTIONS = {
         // 루미네시아
-        "젠틀빔": "<br><br>설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br>설명이 들어갈 부분입니다.<br><b>설명</b>이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.설명이 들어갈 부분입니다.",
+        "젠틀빔": "<br><br>설명이 들어갈 부분입니다.<br>",
         "버블퍼프": "설명이 들어갈 부분입니다.",
         "스텔라 터틀": "설명이 들어갈 부분입니다.",
         "문 스눗": "설명이 들어갈 부분입니다.",
@@ -388,6 +388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     let isInputDisabledByInteraction = false;
     let messageBuffer = "";
         let isInitialApiCallAfterObjectiveTest = false; // 객관식 테스트 후 첫 API 호출인지 여부
+            let viewedSyncTypeIndexInConstellation = 0; // 현재 플로팅 메뉴 Page2에서 보고 있는 싱크타입의 해당 성운 내 인덱스
+    let currentConstellationForViewing = null; // 현재 Page2에서 보고 있는 성운의 이름
     let isFirstBotMessageDisplayed = false; // ★★★ 추가: 첫 봇 메시지 표시 여부 플래그 ★★★
     let showStage10EntryEmoticon = false; // ★★★ 추가: 10단계 첫 진입 시 이모티콘 표시 여부 플래그 ★★★
     let isRequestingSyncTypeResult = false;
@@ -3798,10 +3800,10 @@ async function displayApiResponseElements(parsedResp) {
         const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
 
         if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
-            updateFloatingMenuVisibility(); // 현재 상담 단계에 따라 Page1 가시성 및 슬라이드 수 업데이트
+            updateFloatingMenuVisibility();
 
             allSlides.forEach(slide => {
-                slide.style.opacity = '0'; // 모든 슬라이드 일단 투명하게
+                slide.style.opacity = '0';
             });
 
             menuContainer.classList.add('visible');
@@ -3810,161 +3812,243 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
-            // --- Page 2 내용 업데이트 시작 ---
             const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
-            // CSS Grid 구조에 맞게 요소 선택
-            const page2ImageLayer = floatingMenuPage2.querySelector('.sync-card-image-background-layer');
-            const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content');
-            const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer'); // 버튼 컨테이너 ID는 유지
-            const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
+            // page2DisplayArea는 updateDisplayedSyncType에서 사용됨
+            // const page2DisplayArea = floatingMenuPage2.querySelector('.sync-type-display-area');
 
-            // 이전 내용 초기화
-            if (page2ImageLayer) page2ImageLayer.innerHTML = '';
-            if (page2DescriptionContent) {
-                page2DescriptionContent.innerHTML = '';
-                page2DescriptionContent.style.paddingTop = ''; // 동적 패딩 초기화
+            let leftArrowButton = floatingMenuPage2.querySelector('.sync-type-nav-arrow.left');
+            let rightArrowButton = floatingMenuPage2.querySelector('.sync-type-nav-arrow.right');
+
+            if (leftArrowButton) {
+                const newLeftArrow = leftArrowButton.cloneNode(true);
+                leftArrowButton.parentNode.replaceChild(newLeftArrow, leftArrowButton);
+                leftArrowButton = newLeftArrow;
+
+                leftArrowButton.addEventListener('click', () => {
+                    console.log("[FloatingMenu] 왼쪽 화살표 클릭됨");
+                    if (!currentConstellationForViewing || !CONSTELLATIONS_DATA[currentConstellationForViewing]) return;
+
+                    let syncTypesInCurrentConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+
+                    if (viewedSyncTypeIndexInConstellation > 0) {
+                        viewedSyncTypeIndexInConstellation--;
+                        updateDisplayedSyncType(syncTypesInCurrentConstellation[viewedSyncTypeIndexInConstellation]);
+                    } else { // 현재 성운의 첫 번째 싱크타입에서 왼쪽으로 이동 시
+                        const constellationNames = ALL_CONSTELLATION_NAMES; // 전체 성운 이름 목록
+                        let currentConstellationGlobalIndex = constellationNames.indexOf(currentConstellationForViewing);
+
+                        if (currentConstellationGlobalIndex > 0) { // 현재 성운이 첫 번째 성운이 아닐 경우
+                            currentConstellationGlobalIndex--; // 이전 성운으로 인덱스 변경
+                            currentConstellationForViewing = constellationNames[currentConstellationGlobalIndex]; // 현재 보는 성운 업데이트
+                            syncTypesInCurrentConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+                            viewedSyncTypeIndexInConstellation = syncTypesInCurrentConstellation.length - 1; // 새 성운의 마지막 싱크타입으로 인덱스 설정
+                            updateDisplayedSyncType(syncTypesInCurrentConstellation[viewedSyncTypeIndexInConstellation]);
+                        } else {
+                            // 첫 번째 성운의 첫 싱크타입이므로 더 이상 이동 불가 (또는 마지막 성운으로 순환 - 여기서는 비활성화 유지)
+                            console.log("[FloatingMenu] 첫 번째 성운의 첫 번째 싱크타입입니다.");
+                            // 버튼 상태는 updateDisplayedSyncType에서 관리
+                        }
+                    }
+                });
+            } else {
+                console.warn("[FloatingMenu] 왼쪽 화살표 버튼(.sync-type-nav-arrow.left)을 찾을 수 없습니다.");
             }
-            if (page2ButtonContainer) page2ButtonContainer.innerHTML = '';
 
+            if (rightArrowButton) {
+                const newRightArrow = rightArrowButton.cloneNode(true);
+                rightArrowButton.parentNode.replaceChild(newRightArrow, rightArrowButton);
+                rightArrowButton = newRightArrow;
 
-            let displaySyncTypeName = null;
-            let originalSyncTypeNameForData = null;
+                rightArrowButton.addEventListener('click', () => {
+                    console.log("[FloatingMenu] 오른쪽 화살표 클릭됨");
+                    if (!currentConstellationForViewing || !CONSTELLATIONS_DATA[currentConstellationForViewing]) return;
+
+                    let syncTypesInCurrentConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+
+                    if (viewedSyncTypeIndexInConstellation < syncTypesInCurrentConstellation.length - 1) {
+                        viewedSyncTypeIndexInConstellation++;
+                        updateDisplayedSyncType(syncTypesInCurrentConstellation[viewedSyncTypeIndexInConstellation]);
+                    } else { // 현재 성운의 마지막 싱크타입에서 오른쪽으로 이동 시
+                        const constellationNames = ALL_CONSTELLATION_NAMES; // 전체 성운 이름 목록
+                        let currentConstellationGlobalIndex = constellationNames.indexOf(currentConstellationForViewing);
+
+                        if (currentConstellationGlobalIndex < constellationNames.length - 1) { // 현재 성운이 마지막 성운이 아닐 경우
+                            currentConstellationGlobalIndex++; // 다음 성운으로 인덱스 변경
+                            currentConstellationForViewing = constellationNames[currentConstellationGlobalIndex]; // 현재 보는 성운 업데이트
+                            syncTypesInCurrentConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+                            viewedSyncTypeIndexInConstellation = 0; // 새 성운의 첫 번째 싱크타입으로 인덱스 설정
+                            updateDisplayedSyncType(syncTypesInCurrentConstellation[viewedSyncTypeIndexInConstellation]);
+                        } else {
+                            // 마지막 성운의 마지막 싱크타입이므로 더 이상 이동 불가 (또는 첫 성운으로 순환 - 여기서는 비활성화 유지)
+                            console.log("[FloatingMenu] 마지막 성운의 마지막 싱크타입입니다.");
+                        }
+                    }
+                });
+            } else {
+                console.warn("[FloatingMenu] 오른쪽 화살표 버튼(.sync-type-nav-arrow.right)을 찾을 수 없습니다.");
+            }
+
+            currentConstellationForViewing = userProfile.사용자소속성운;
+            let initialSyncTypeNameToShow = null;
 
             if (userProfile.맞춤싱크타입이름 && String(userProfile.맞춤싱크타입이름).trim() !== "") {
-                displaySyncTypeName = userProfile.맞춤싱크타입이름;
-                originalSyncTypeNameForData = userProfile.결정된싱크타입;
+                initialSyncTypeNameToShow = userProfile.결정된싱크타입;
             } else if (userProfile.결정된싱크타입) {
-                displaySyncTypeName = userProfile.결정된싱크타입;
-                originalSyncTypeNameForData = userProfile.결정된싱크타입;
+                initialSyncTypeNameToShow = userProfile.결정된싱크타입;
             }
 
-            if (displaySyncTypeName && userProfile.사용자소속성운) {
-                if (page2Title) page2Title.textContent = `${displaySyncTypeName}`;
+            if (currentConstellationForViewing && CONSTELLATIONS_DATA[currentConstellationForViewing] && initialSyncTypeNameToShow) {
+                const syncTypesInConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+                const initialIndex = syncTypesInConstellation.indexOf(initialSyncTypeNameToShow);
 
-                const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[originalSyncTypeNameForData];
-
-                if (syncTypeCardId && page2ImageLayer) {
-                    const syncImg = document.createElement('img');
-                    syncImg.src = `images/sync/${syncTypeCardId}.png`;
-                    syncImg.alt = `${displaySyncTypeName} 이미지`;
-                    syncImg.dataset.action = "show_my_synctype_info"; // 이 부분은 이미지 클릭 시 동작 정의
-
-                    syncImg.onload = () => {
-                        if (page2DescriptionContent) {
-                            const imageHeight = syncImg.offsetHeight;
-                            // 이미지의 CSS margin-top 값을 가져옵니다. (CSS에서 .sync-card-image-background-layer img에 margin-top이 설정되어 있다면)
-                            // 여기서는 CSS에서 이미지 레이어 자체에 padding-top: 10px; 을 주었으므로, 그 값을 고려합니다.
-                            // 또는 이미지 자체의 margin-top을 가져와도 됩니다. 여기서는 이미지 레이어의 패딩을 기준으로 합니다.
-                            const imageLayerPaddingTop = parseFloat(window.getComputedStyle(page2ImageLayer).paddingTop || 0);
-                            const desiredPaddingTop = imageHeight + imageLayerPaddingTop + 15; // 이미지높이 + 이미지상단여백 + 추가여유
-                            page2DescriptionContent.style.paddingTop = `${desiredPaddingTop}px`;
-                            console.log(`[FloatingMenu Page2] Image loaded. Height: ${imageHeight}px, LayerPaddingTop: ${imageLayerPaddingTop}px. Description paddingTop set to ${desiredPaddingTop}px`);
-                        }
-                    };
-                    syncImg.onerror = () => {
-                        console.error(`[FloatingMenu Page2] 이미지 로드 실패: images/sync/${syncTypeCardId}.png`);
-                        if (page2DescriptionContent) {
-                            page2DescriptionContent.style.paddingTop = `20px`; // 이미지 로드 실패 시 기본 패딩
-                        }
-                    };
-                    page2ImageLayer.appendChild(syncImg);
-
-                } else if (page2ImageLayer) { // 싱크타입 ID는 있는데 이미지를 못찾거나, ID 자체가 없는 경우
-                    const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/sync/Notsync.png"; // 기본 이미지
-                    defaultImg.alt = "싱크타입 정보 없음";
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu";
-                    defaultImg.onload = () => {
-                        if (page2DescriptionContent) {
-                            const imageHeight = defaultImg.offsetHeight;
-                            const imageLayerPaddingTop = parseFloat(window.getComputedStyle(page2ImageLayer).paddingTop || 0);
-                            const desiredPaddingTop = imageHeight + imageLayerPaddingTop + 15;
-                            page2DescriptionContent.style.paddingTop = `${desiredPaddingTop}px`;
-                        }
-                    };
-                    page2ImageLayer.appendChild(defaultImg);
-                    console.warn(`[FloatingMenu Page2] 싱크타입 카드 ID(${syncTypeCardId})를 찾지 못했거나 이미지가 없습니다. 기본 이미지 표시.`);
+                if (initialIndex !== -1) {
+                    viewedSyncTypeIndexInConstellation = initialIndex;
+                    updateDisplayedSyncType(initialSyncTypeNameToShow);
+                } else {
+                    if (syncTypesInConstellation.length > 0) {
+                        viewedSyncTypeIndexInConstellation = 0;
+                        updateDisplayedSyncType(syncTypesInConstellation[0]);
+                    } else {
+                        updateDisplayedSyncType(null);
+                    }
+                    console.warn(`[FloatingMenu Page2] 사용자의 결정된 싱크타입(${initialSyncTypeNameToShow})을 현재 성운(${currentConstellationForViewing}) 목록에서 찾을 수 없습니다.`);
                 }
-
-                if (page2DescriptionContent) {
-                    const syncDescText = SYNC_TYPE_DESCRIPTIONS[originalSyncTypeNameForData] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
-                    page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join('');
+            } else {
+                // 성운 정보가 없거나 결정된 싱크타입이 없으면, 전체 성운 목록의 첫 번째 성운, 첫 번째 싱크타입을 보여줌
+                if (ALL_CONSTELLATION_NAMES.length > 0) {
+                    currentConstellationForViewing = ALL_CONSTELLATION_NAMES[0];
+                    const syncTypesInFirstConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+                    if (syncTypesInFirstConstellation.length > 0) {
+                        viewedSyncTypeIndexInConstellation = 0;
+                        updateDisplayedSyncType(syncTypesInFirstConstellation[0]);
+                    } else {
+                        updateDisplayedSyncType(null); // 첫 성운에 싱크타입이 없는 극단적 경우
+                    }
+                } else {
+                    updateDisplayedSyncType(null); // 성운 데이터 자체가 없는 경우
                 }
-
-                if (page2ButtonContainer && currentConsultationStage === 10) {
-                    const retestButton = document.createElement('button');
-                    retestButton.classList.add('menu-sync-retest-button');
-                    retestButton.textContent = "싱크타입 테스트 다시하고 싶어";
-                    retestButton.addEventListener('click', async () => {
-                        if (isSessionTimedOut) return;
-                        hideFloatingMenu();
-                        await handleSyncTypeRetestRequest();
-                    });
-                    page2ButtonContainer.appendChild(retestButton);
-                }
-
-            } else { // 싱크타입 정보가 아예 없을 때 (프로필에 결정된싱크타입, 맞춤싱크타입이름 모두 없을 때)
-                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
-                if (page2ImageLayer) {
-                    const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/sync/Notsync.png";
-                    defaultImg.alt = "싱크타입을 아직 발견하지 못했어요. 테스트로 찾아보세요!";
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu";
-                    defaultImg.onload = () => {
-                        if (page2DescriptionContent) {
-                            const imageHeight = defaultImg.offsetHeight;
-                            const imageLayerPaddingTop = parseFloat(window.getComputedStyle(page2ImageLayer).paddingTop || 0);
-                            const desiredPaddingTop = imageHeight + imageLayerPaddingTop + 15;
-                            page2DescriptionContent.style.paddingTop = `${desiredPaddingTop}px`;
-                            console.log(`[FloatingMenu Page2] No sync type. Default image. Description paddingTop set to ${desiredPaddingTop}px`);
-                        }
-                    };
-                    page2ImageLayer.appendChild(defaultImg);
-                }
-                if (page2DescriptionContent) {
-                    page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>';
-                }
-                 // 싱크타입 정보가 없으면 재테스트 버튼은 표시하지 않거나, "테스트 시작" 버튼을 표시할 수 있음
-                 // 현재는 버튼 컨테이너에 아무것도 추가하지 않음.
             }
-            // --- Page 2 내용 업데이트 끝 ---
-
 
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-            let initialTargetIndex = 0; // 보이는 슬라이드 기준의 초기 인덱스
-            let initialDomIndex = 0; // 실제 DOM 슬라이드 기준의 초기 인덱스 (opacity 1 줄 때 사용)
+            let initialTargetIndex = 0;
+            let initialDomIndex = 0;
 
-            // visibleFloatingMenuSlides는 updateFloatingMenuVisibility()에서 설정됨
-            if (visibleFloatingMenuSlides === 2) { // Page 1이 숨겨진 경우
-                // Page 2가 첫 번째로 보이는 슬라이드가 됨 (보이는 슬라이드 인덱스 0)
-                // DOM 상에서는 Page 2가 인덱스 1
+            if (visibleFloatingMenuSlides === 2) {
                 initialTargetIndex = 0;
-                initialDomIndex = 1; // Page 2의 DOM 인덱스
-                slider.style.transform = `translateX(0%)`; // translateX는 보이는 슬라이드 기준
-            } else { // Page 1이 보이는 경우 (기본 3 슬라이드)
-                initialTargetIndex = 0; // Page 1이 첫 번째 (보이는 슬라이드 인덱스 0)
-                initialDomIndex = 0; // Page 1의 DOM 인덱스
+                initialDomIndex = 1;
+                slider.style.transform = `translateX(0%)`;
+            } else {
+                initialTargetIndex = 0;
+                initialDomIndex = 0;
                 slider.style.transform = `translateX(0%)`;
             }
 
-
             if (allSlides[initialDomIndex]) {
-                allSlides[initialDomIndex].style.opacity = '1'; // 첫 번째로 보일 슬라이드만 보이게
+                allSlides[initialDomIndex].style.opacity = '1';
             }
-            currentFloatingMenuSlideIndex = initialTargetIndex; // 현재 '보이는' 슬라이드 인덱스 업데이트
+            currentFloatingMenuSlideIndex = initialTargetIndex;
 
-            // 인디케이터 업데이트
             let visibleIndicatorCount = 0;
-            indicators.forEach((dot, idx) => {
-                if (dot.style.display !== 'none') { // 보이는 인디케이터만 카운트
+            indicators.forEach((dot) => {
+                if (dot.style.display !== 'none') {
                     dot.classList.toggle('active', visibleIndicatorCount === currentFloatingMenuSlideIndex);
                     visibleIndicatorCount++;
                 }
             });
 
-            if (chatInput) chatInput.blur(); // 메뉴 열면 입력창 포커스 해제
-            hideTooltip(); // 툴팁 숨기기
+            if (chatInput) chatInput.blur();
+            hideTooltip();
+        }
+    }
+    function updateDisplayedSyncType(syncTypeName) { // syncTypeName은 한글 이름
+        const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
+        const page2DisplayArea = floatingMenuPage2.querySelector('.sync-type-display-area');
+        const page2DescriptionContent = floatingMenuPage2.querySelector('.sync-type-description-content');
+        const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer');
+        const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
+        const leftArrowButton = floatingMenuPage2.querySelector('.sync-type-nav-arrow.left');
+        const rightArrowButton = floatingMenuPage2.querySelector('.sync-type-nav-arrow.right');
+
+        console.log(`[updateDisplayedSyncType] 호출됨. 표시할 싱크타입: ${syncTypeName}, 현재 성운: ${currentConstellationForViewing}, 현재 인덱스: ${viewedSyncTypeIndexInConstellation}`);
+
+        if (page2ButtonContainer) {
+            page2ButtonContainer.innerHTML = '';
+        }
+        if (page2DisplayArea) {
+            page2DisplayArea.style.removeProperty('--bg-image');
+        }
+
+        let displayNameForTitle = syncTypeName;
+        if (userProfile.맞춤싱크타입이름 && syncTypeName === userProfile.결정된싱크타입 && currentConstellationForViewing === userProfile.사용자소속성운) {
+            displayNameForTitle = userProfile.맞춤싱크타입이름;
+        }
+
+        if (syncTypeName && currentConstellationForViewing && CONSTELLATIONS_DATA[currentConstellationForViewing]) {
+            if (page2Title) page2Title.textContent = `${displayNameForTitle || syncTypeName}`;
+
+            const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[syncTypeName];
+
+            if (syncTypeCardId && page2DisplayArea) {
+                const imageUrl = `url('images/sync/${syncTypeCardId}.png')`;
+                page2DisplayArea.style.setProperty('--bg-image', imageUrl);
+                console.log(`[updateDisplayedSyncType] 배경 이미지 업데이트: --bg-image = ${imageUrl}`);
+            } else {
+                const defaultImageUrl = "url('images/sync/Notsync.png')";
+                if (page2DisplayArea) {
+                    page2DisplayArea.style.setProperty('--bg-image', defaultImageUrl);
+                }
+                console.warn(`[updateDisplayedSyncType] 싱크타입 카드 ID(${syncTypeCardId})를 찾지 못함. 기본 배경 이미지 설정.`);
+            }
+
+            if (page2DescriptionContent) {
+                const syncDescText = SYNC_TYPE_DESCRIPTIONS[syncTypeName] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
+                page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line.replace(/<br\s*\/?>/gi, '<br>') || ' '}</p>`).join('');
+            }
+
+            // 재테스트 버튼은 사용자의 '원래' 성운과 '원래' 싱크타입을 보고 있을 때만 표시
+            if (currentConstellationForViewing === userProfile.사용자소속성운 &&
+                syncTypeName === userProfile.결정된싱크타입 &&
+                page2ButtonContainer && currentConsultationStage === 10) {
+                const retestButton = document.createElement('button');
+                retestButton.classList.add('menu-sync-retest-button');
+                retestButton.textContent = "싱크타입 테스트 다시하고 싶어";
+                retestButton.addEventListener('click', async () => {
+                    if (isSessionTimedOut) return;
+                    hideFloatingMenu();
+                    await handleSyncTypeRetestRequest();
+                });
+                page2ButtonContainer.appendChild(retestButton);
+            }
+
+            // 화살표 버튼 활성화/비활성화 로직 수정
+            if (leftArrowButton && rightArrowButton) {
+                const constellationNames = ALL_CONSTELLATION_NAMES;
+                const currentConstellationGlobalIndex = constellationNames.indexOf(currentConstellationForViewing);
+                const syncTypesInCurrentConstellation = CONSTELLATIONS_DATA[currentConstellationForViewing].syncTypes.filter(st => st !== "기억안나");
+
+                // 왼쪽 버튼: 현재 성운의 첫 번째 싱크타입이면서 전체 성운 중 첫 번째 성운이면 비활성화
+                leftArrowButton.disabled = (currentConstellationGlobalIndex <= 0 && viewedSyncTypeIndexInConstellation <= 0);
+                // 오른쪽 버튼: 현재 성운의 마지막 싱크타입이면서 전체 성운 중 마지막 성운이면 비활성화
+                rightArrowButton.disabled = (currentConstellationGlobalIndex >= constellationNames.length - 1 && viewedSyncTypeIndexInConstellation >= syncTypesInCurrentConstellation.length - 1);
+                
+                leftArrowButton.style.display = 'block';
+                rightArrowButton.style.display = 'block';
+                console.log(`[updateDisplayedSyncType] 왼쪽 화살표 비활성화: ${leftArrowButton.disabled}, 오른쪽 화살표 비활성화: ${rightArrowButton.disabled}`);
+            }
+
+        } else {
+            if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
+            if (page2DisplayArea) {
+                const defaultImageUrl = "url('images/sync/Notsync.png')";
+                page2DisplayArea.style.setProperty('--bg-image', defaultImageUrl);
+            }
+            if (page2DescriptionContent) {
+                page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>';
+            }
+            if (leftArrowButton) leftArrowButton.style.display = 'none';
+            if (rightArrowButton) rightArrowButton.style.display = 'none';
+            console.log("[updateDisplayedSyncType] 표시할 싱크타입 정보 없음. 기본 화면 및 화살표 숨김.");
         }
     }
     function hideFloatingMenu() {

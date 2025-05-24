@@ -2,180 +2,114 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>타로 상담가 루비</title>
-    <link rel="stylesheet" href="style.css"> <!-- 최종 CSS 파일 경로 -->
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>루비 타로챗</title>
+    <!-- Google Fonts: Noto Sans KR, Nanum Pen Script -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Your CSS File -->
+    <link rel="stylesheet" href="style.css"> <!-- 실제 CSS 파일명으로 변경 -->
 </head>
 <body>
+    <!-- 루비 배경 이미지 (z-index: 1) -->
+    <div id="section3">
+        <img id="rubyImage" src="images/ruby_background.png" alt="루비 배경"> <!-- 실제 루비 배경 이미지 경로로 변경 -->
+    </div>
+
+    <!-- 메인 UI 컨테이너 (z-index: 2) -->
+    <div class="container initial-hidden"> <!-- JS가 initial-hidden 제거 -->
+        <!-- 채팅 메시지 영역 (z-index: 10) -->
+        <div id="section2">
+            <!-- 채팅 메시지들이 여기에 동적으로 추가됩니다. -->
+        </div>
+
+        <!-- 새 메시지 알림 버튼 (z-index: 25) -->
+        <div class="new-message-button">새 메시지 👇</div>
+
+        <!-- 입력창 포커스 시 툴팁 (z-index: 30) -->
+        <div id="tooltip">메시지 입력을 기다리고 있어요.</div>
+
+        <!-- 하단 입력창 영역 (z-index: 15) -->
+        <div id="section5">
+            <button id="floatingMenuButton" aria-label="메뉴 열기">
+                <span class="icon-bone">🦴</span> <!-- 실제 아이콘으로 대체 가능 -->
+            </button>
+            <textarea id="chatInput" placeholder="메시지를 입력하세요..." rows="1"></textarea>
+            <button id="sendButton">보내기</button>
+        </div>
+
+        <!-- 제안 버튼 컨테이너는 JS가 동적으로 생성하고 필요시 이 container 내부에 추가합니다. -->
+    </div>
+
+    <!-- 플로팅 메뉴 배경 오버레이 (z-index: 90) -->
     <div id="menuOverlay" class="menu-overlay"></div>
 
-    <div id="section3">
-        <img id="rubyImage" src="images/ruby.png" alt="타로 상담가 루비 배경 이미지">
-    </div>
-
-    <div class="container initial-hidden">
-        <div id="section2">
-           <!-- 채팅 메시지들이 동적으로 추가될 영역 -->
-        </div>
-
-        <div class="new-message-button" id="newMessageButton">
-            새 메시지 <span role="img" aria-label="아래 화살표">👇</span>
-        </div>
-
-        <div id="section5">
-            <div id="floatingMenuButton" role="button" aria-label="추가 메뉴 열기">
-                <span class="icon-bone">🦴</span>
-            </div>
-            <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." autocomplete="off">
-            <div id="sendButton" role="button" aria-label="메시지 보내기">보내기</div>
-            <div id="tooltip" class="tooltip">말씀이 끝날때까지 기다릴게요</div>
-        </div>
-    </div>
-
+    <!-- 플로팅 메뉴 전체 컨테이너 (z-index: 100) -->
     <div id="floatingMenuContainer">
         <div class="floating-menu-indicator-container">
-            <div class="floating-menu-indicator-dot active" data-slide-target="0"></div>
+            <div class="floating-menu-indicator-dot" data-slide-target="0"></div>
             <div class="floating-menu-indicator-dot" data-slide-target="1"></div>
             <div class="floating-menu-indicator-dot" data-slide-target="2"></div>
         </div>
 
         <div class="floating-menu-slider">
-            <!-- 1번 플로팅 바 - 구조 변경 -->
+            <!-- 페이지 1: 타로 주제 선택 -->
             <div class="floating-menu" id="floatingMenuPage1">
-                <div class="floating-menu-title">오늘은 어떤 운명의 카드가 궁금해?</div>
-                <div class="page-content-area"> <!-- ★★★ 콘텐츠 래퍼 추가 ★★★ -->
+                <div class="floating-menu-title">타로 주제 선택</div>
+                <div class="page-content-area">
+                    <!-- JS가 여기에 아이템 동적 추가 -->
                     <div class="floating-image-list-item" data-action="tarot_today_fortune">
-                        <img src="images/menu/banner_today_fortune.png" alt="오늘, 좋은일이 생길까?">
+                        <img src="images/menu/menu_item_today_fortune.png" alt="오늘의 운세">
                     </div>
                     <div class="floating-image-list-item" data-action="tarot_love_crush">
-                        <img src="images/menu/banner_love_crush.png" alt="그 애가 날 좋아할까?">
+                        <img src="images/menu/menu_item_love_luck.png" alt="연애운">
                     </div>
-                    <div class="floating-image-list-item" data-action="tarot_pet_mood">
-                        <img src="images/menu/banner_pet_mood.png" alt="반려동물의 오늘 기분이 궁금해">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_lotto">
-                        <img src="images/menu/banner_lotto.png" alt="로또번호가 진짜 궁금해">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_is_this_some">
-                        <img src="images/menu/banner_is_this_some.png" alt="이거 썸타는건가?">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_money_flow">
-                        <img src="images/menu/banner_money_flow.png" alt="오늘의 재물운이 궁금해!">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_exam_luck">
-                        <img src="images/menu/banner_exam_luck.png" alt="얼마 안남은 시험, 잘 볼수 있을까?">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_relationship_luck">
-                        <img src="images/menu/banner_relationship_luck.png" alt="오늘의 대인관계운이 궁금해">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_health_luck">
-                        <img src="images/menu/banner_health_luck.png" alt="건강운이 궁금해">
-                    </div>
-                    <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
-                    </div>
-                                        <div class="floating-image-list-item" data-action="tarot_salary_increase">
-                        <img src="images/menu/banner_salary_increase.png" alt="이번에 연봉 오를 수 있을까?">
+                    <!-- ... 더 많은 타로 주제 아이템 ... -->
+                    <div class="floating-image-list-item" data-action="new_chat">
+                        <img src="images/menu/menu_item_new_chat.png" alt="새로운 상담 시작하기">
                     </div>
                 </div>
             </div>
 
-            <!-- 2번 플로팅 바 (기존 구조 유지 - sync-type-display-area가 page-content-area 역할) -->
+            <!-- 페이지 2: 나의 싱크타입 정보 -->
             <div class="floating-menu" id="floatingMenuPage2">
-                <div class="floating-menu-title">나의 성운과 싱크타입</div>
-                <div class="sync-type-display-area"> <!-- 이 div가 page-content-area와 유사한 역할 -->
-                    <div class="sync-type-image-container">
-                        <!-- JS가 여기에 <img src="..." alt="..." data-action="..."> 추가 -->
-                    </div>
-                    <div class="sync-type-description-scroll-container">
+                <div class="floating-menu-title">나의 성운과 싱크타입</div> <!-- JS가 싱크타입 이름으로 변경 가능 -->
+
+                <!-- 핵심 콘텐츠 영역: 배경 이미지와 텍스트 오버레이 -->
+                <!-- JS는 이 요소에 --bg-image CSS 변수를 설정합니다. -->
+                <div class="sync-type-display-area">
+                    <!-- 좌우 화살표 버튼 추가 -->
+                    <button class="sync-type-nav-arrow left" aria-label="이전 싱크타입"><</button>
+                    <button class="sync-type-nav-arrow right" aria-label="다음 싱크타입">></button>
+
+                    <!-- 텍스트 레이어 -->
+                    <div class="sync-content-foreground-layer">
                         <div class="sync-type-description-content">
-                            <!-- JS가 여기에 <p>설명...</p> 또는 직접 텍스트 추가 -->
+                            <!-- JS가 여기에 싱크타입 설명 텍스트를 <p>태그 등으로 삽입 -->
                         </div>
                     </div>
                 </div>
+
+                <!-- 하단 버튼 영역: JS가 여기에 재테스트 버튼 등 추가 -->
                 <div class="floating-menu-action-button-container" id="floatingMenuPage2ButtonContainer">
-                    <!-- JS를 통해 여기에 '싱크타입 테스트 다시하고 싶어' 버튼이 동적으로 추가됩니다. -->
+                    <!-- 예시: <button class="menu-sync-retest-button">싱크타입 테스트 다시하고 싶어</button> -->
                 </div>
             </div>
 
-            <!-- 3번 플로팅 바 - 구조 변경 -->
+            <!-- 페이지 3: 수집한 카드 보기 (예시) -->
             <div class="floating-menu" id="floatingMenuPage3">
-                <div class="floating-menu-title">싱크타입 콜렉션</div>
-                <div class="page-content-area"> <!-- ★★★ 콘텐츠 래퍼 추가 ★★★ -->
+                <div class="floating-menu-title">수집한 타로 카드</div>
+                <div class="page-content-area">
                     <div class="floating-two-column-image-container">
-                        <div class="floating-two-column-image-item" data-action="friend_apollo"><img src="images/menu/friend_apollo.png" alt="루비의 친구 아폴로 만나보기"></div>
-                        <div class="floating-two-column-image-item" data-action="friend_luna"><img src="images/menu/friend_luna.png" alt="루비의 친구 루나 만나보기"></div>
-                        <div class="floating-two-column-image-item" data-action="friend_stellan"><img src="images/menu/friend_stellan.png" alt="루비의 친구 스텔란 만나보기"></div>
-                        <div class="floating-two-column-image-item" data-action="friend_cosmo"><img src="images/menu/friend_cosmo.png" alt="루비의 친구 코스모 만나보기"></div>
-                        <div class="floating-two-column-image-item" data-action="more_friends"><img src="images/menu/friend_more.png" alt="더 많은 친구들 보기"></div>
-                        <div class="floating-two-column-image-item" data-action="ruby_story"><img src="images/menu/ruby_story_icon.png" alt="루비의 이야기"></div>
+                        <!-- JS가 여기에 수집한 카드 이미지 동적 추가 -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script> <!-- 최종 JavaScript 파일 경로 -->
+    <!-- Your JavaScript File -->
+    <script src="script.js"></script> <!-- 실제 JavaScript 파일명으로 변경 -->
 </body>
 </html>

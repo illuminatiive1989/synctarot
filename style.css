@@ -13,6 +13,10 @@ html, body {
     -webkit-tap-highlight-color: transparent;
     background-color: #33293F; /* 페이지 전체 배경 */
     color: white;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* --- Z-INDEX 계층 정의 ---
@@ -29,9 +33,9 @@ html, body {
      - .floating-menu-indicator-container (슬라이드 인디케이터): 101
      - .floating-menu-slider (슬라이드 가능한 영역): 100
        - .floating-menu (개별 플로팅 바): 100
-         - #floatingMenuPage2 .sync-display-grid-wrapper : (z-index 없음, grid 컨테이너)
-           - #floatingMenuPage2 .sync-card-image-background-layer : 1 (이미지 레이어)
-           - #floatingMenuPage2 .sync-content-foreground-layer : 2 (콘텐츠 레이어)
+         - #floatingMenuPage2 .sync-type-display-area (콘텐츠 영역)
+           - #floatingMenuPage2 .sync-type-display-area::before (배경이미지 가상요소): 1
+           - #floatingMenuPage2 .sync-content-foreground-layer (텍스트 오버레이 레이어): 2
 */
 
 /* 섹션 3: 루비 배경 이미지 */
@@ -519,12 +523,11 @@ html, body {
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     position: relative;
 }
 .objective-question-item {
     padding-bottom: 15px;
-    border-bottom: 1px solid #5a4a8f;
 }
 .objective-question-item:last-child {
     border-bottom: none;
@@ -534,11 +537,12 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    margin-top: 8px;
 }
 .objective-question-item .radio-label {
     display: flex;
     align-items: center;
-    padding: 8px 12px;
+    padding: 10px 12px;
     background-color: #4A3F55;
     border-radius: 8px;
     cursor: pointer;
@@ -610,7 +614,7 @@ html, body {
     top: calc( (100vh - var(--bottom-area-total-height, 80px) - 10px ) * 0.2 + env(safe-area-inset-top, 0px) );
     bottom: calc(var(--bottom-area-total-height, 80px) + 10px + env(safe-area-inset-bottom, 0px));
     left: 50%;
-    transform: translateX(-50%) translateY(110%); /* 초기 숨김 상태 */
+    transform: translateX(-50%) translateY(110%);
     width: calc(100% - 30px);
     max-width: calc(430px - 30px);
     z-index: 100;
@@ -635,8 +639,6 @@ html, body {
     display: flex;
     justify-content: center;
     padding: 10px 0 5px 0;
-    background-color: #3E354B;
-    border-radius: 12px 12px 0 0;
     flex-shrink: 0;
     z-index: 101;
     position: relative;
@@ -655,40 +657,22 @@ html, body {
 
 .floating-menu-slider {
     display: flex;
-    width: 300%; /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
-    overflow: hidden;
+    width: 300%; /* JS에서 제어 */
     flex-grow: 1;
     min-height: 0;
+    transition: transform 400ms ease-in-out;
 }
 
-/* ★★★ 플로팅 메뉴 페이지 공통 스타일 수정 ★★★ */
 .floating-menu {
-    width: calc(100% / 3); /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
+    width: calc(100% / 3); /* JS에서 제어 */
     flex-shrink: 0;
-    overflow-y: auto; /* ★★★ 각 플로팅 메뉴 자체가 스크롤을 가짐 ★★★ */
     display: flex;
     flex-direction: column;
     color: white;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+    opacity: 0; /* JS에서 현재 슬라이드만 1로 설정 */
+    transition: opacity 0.3s ease-in-out 0.1s;
     position: relative;
-    padding: 0; /* 스크롤바가 끝에 붙도록 패딩 제거 */
-}
-
-.floating-menu::-webkit-scrollbar {
-    width: 6px;
-}
-.floating-menu::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.05);
-    border-radius: 0;
-    margin: 0;
-}
-.floating-menu::-webkit-scrollbar-thumb {
-    background: #6a6078;
-    border-radius: 3px;
-}
-.floating-menu::-webkit-scrollbar-thumb:hover {
-    background: #7A5AF1;
+    background-color: #3E354B; /* 각 플로팅 메뉴 페이지 배경 */
 }
 
 .floating-menu-title {
@@ -696,24 +680,31 @@ html, body {
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 0; /* ★★★ 타이틀과 내용 사이 간격은 내용 영역의 padding-top으로 조절 ★★★ */
-    flex-shrink: 0;
-    padding: 15px 15px 10px 15px; /* 패딩 조정 (하단 패딩 감소) */
-    background-color: #3E354B;
-    z-index: 10; /* ★★★ 콘텐츠 레이어보다 높게 설정 ★★★ */
-    position: sticky;
+    padding: 15px 15px 10px 15px;
+    background-color: #3E354B; /* 타이틀 배경색 */
+    flex-shrink: 0; /* 높이가 내용만큼만 */
+    z-index: 10; /* 다른 콘텐츠보다 위에 */
+    position: sticky; /* 상단에 고정 */
     top: 0;
 }
 
-/* Page1과 Page3의 콘텐츠 영역 */
+/* Page1과 Page3의 콘텐츠 영역 (스크롤 가능 영역) */
 .page-content-area {
-    flex-grow: 1;
-    padding: 15px; /* ★★★ 타이틀과의 간격 포함한 내부 패딩 ★★★ */
+    flex-grow: 1; /* 타이틀과 (있다면) 하단 버튼 제외한 공간 차지 */
+    padding: 15px; /* 내부 패딩 */
     display: flex;
     flex-direction: column;
     gap: 10px;
-    min-height: 0;
+    min-height: 0; /* 내부 스크롤을 위해 */
+    overflow-y: auto; /* 이 영역이 스크롤됨 */
+    scrollbar-width: thin;
+    scrollbar-color: #6a6078 rgba(0,0,0,0.05);
 }
+.page-content-area::-webkit-scrollbar { width: 6px; }
+.page-content-area::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 0; margin: 0; }
+.page-content-area::-webkit-scrollbar-thumb { background: #6a6078; border-radius: 3px; }
+.page-content-area::-webkit-scrollbar-thumb:hover { background: #7A5AF1; }
+
 
 #floatingMenuPage1 .floating-image-list-item {
     width: 100%;
@@ -736,92 +727,128 @@ html, body {
     border-radius: 8px;
 }
 
-/* ★★★ #floatingMenuPage2 스타일 수정 (CSS Grid 사용) ★★★ */
-/* Page2의 전체적인 구조를 위한 그리드 래퍼 */
-.sync-display-grid-wrapper {
-    flex-grow: 1; /* 타이틀과 하단 버튼 영역 제외한 나머지 공간 차지 */
-    display: grid; /* 그리드 컨테이너로 설정 */
-    grid-template-rows: 1fr; /* 내용이 꽉 차도록 한 개의 행 */
-    grid-template-columns: 1fr; /* 내용이 꽉 차도록 한 개의 열 */
-    position: relative; /* z-index 기준점 (필요시) */
-    min-height: 0; /* flex 아이템 내부 스크롤을 위해 */
-    padding: 0 15px; /* 좌우 패딩은 여기서, 상하 패딩은 각 레이어에서 */
-}
-
-/* 이미지를 담을 배경 레이어 */
-.sync-card-image-background-layer {
-    grid-area: 1 / 1 / 2 / 2; /* 그리드 영역의 첫번째 셀에 위치 (겹침) */
-    display: flex; /* 내부 이미지 정렬 */
-    align-items: flex-start; /* 이미지를 위쪽에 정렬 */
-    justify-content: center;
-    z-index: 1; /* 콘텐츠 레이어보다 뒤에 */
-    padding-top: 10px; /* 이미지와 상단 타이틀 사이 여백 */
-    overflow: hidden; /* 이미지가 넘치지 않도록 */
-}
-
-.sync-card-image-background-layer img {
-    width: 80%; /* 요청하신 대로 좌우폭 80% */
-    max-width: 200px; /* 너무 커지지 않도록 최대 너비 제한 (선택적) */
-    height: auto; /* 비율 유지 */
-    object-fit: contain;
-    border-radius: 10px;
-    opacity: 0.45; /* 배경처럼 보이도록 투명도 조절 */
-    cursor: pointer;
-    transition: opacity 0.3s ease;
-}
-.sync-card-image-background-layer img:hover {
-    opacity: 0.65;
-}
-
-/* 설명 텍스트와 버튼을 담을 전경 레이어 */
-.sync-content-foreground-layer {
-    grid-area: 1 / 1 / 2 / 2; /* 그리드 영역의 첫번째 셀에 위치 (겹침) */
+/* ★★★ #floatingMenuPage2 스타일 (background-image 사용) ★★★ */
+#floatingMenuPage2 .sync-type-display-area {
+    flex-grow: 1;
     display: flex;
-    flex-direction: column; /* 설명과 버튼을 세로로 배치 */
-    justify-content: space-between; /* 설명을 위로, 버튼을 아래로 */
-    z-index: 2; /* 이미지 레이어보다 위에 */
-    pointer-events: none; /* 기본적으로는 클릭 이벤트 통과 (하위 요소에서 제어) */
-    min-height: 0; /* 내부 요소들이 flex-grow 작동하도록 */
-    /* 이 레이어 자체는 스크롤하지 않음. 부모인 .floating-menu가 스크롤 담당 */
+    flex-direction: column;
+    position: relative; /* ::before 가상 요소 및 화살표 버튼의 기준점 */
+    min-height: 450px; /* 최소 높이 확보 (내용물에 따라 늘어남) */
+    overflow: hidden; /* 내부 요소가 넘치면 잘라냄 */
+    /* --bg-image CSS 변수는 JS에서 이 요소에 직접 설정됨 */
 }
 
-.sync-type-description-content { /* 이전의 sync-type-description-scroll-container 역할 */
+/* 배경 이미지와 투명도를 담당할 가상 요소 */
+#floatingMenuPage2 .sync-type-display-area::before {
+    content: "";
+    position: absolute;
+    top: 0; /* 상단에 붙임 */
+    left: 0;
+    width: 100%;
+    height: 100%; /* 부모 높이 전체를 일단 덮음 (실제 이미지는 position/size로 제어) */
+    z-index: 1; /* 콘텐츠 레이어보다 뒤에 위치 */
+
+    background-image: var(--bg-image);
+    background-repeat: no-repeat;
+    /* ▼▼▼ 이미지 위치: 가로 중앙, 세로 상단에서 15px 아래 시작 ▼▼▼ */
+    background-position: center 15px;
+    /* ▼▼▼ 이미지 크기: 높이 350px, 너비는 비율에 맞춰 자동 ▼▼▼ */
+    background-size: auto 350px;
+    opacity: 1; /* 배경 이미지의 투명도 */
+    pointer-events: none;
+}
+
+/* 설명 텍스트 등을 담을 전경 레이어 */
+#floatingMenuPage2 .sync-content-foreground-layer {
+    position: relative;
+    z-index: 2; /* ::before 가상 요소(배경 이미지)보다 위에 위치 */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+    background-color: transparent !important;
+    overflow: hidden; /* 이 레이어 자체는 스크롤하지 않음 */
+    pointer-events: none; /* 하위 .sync-type-description-content 에서 auto로 재설정 */
+
+    /* ▼▼▼ 배경 이미지 영역을 피하기 위한 상단 패딩 ▼▼▼ */
+    /* 계산: 배경 이미지 높이(180px) + 배경 이미지의 Y 위치(15px) + 추가 여유(10px) = 205px */
+    padding-top: 380px; /* 이 값을 조절하여 이미지와 텍스트 간 간격 맞춤 */
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 15px; /* 하단 버튼 컨테이너와의 간격을 위해 추가 */
+}
+
+/* 실제 스크롤 가능한 텍스트 내용 영역 */
+#floatingMenuPage2 .sync-type-description-content {
     color: #e8e2f5;
     font-size: 0.9em;
     line-height: 1.65;
     text-align: center;
-    padding: 15px; /* 설명 텍스트 자체의 패딩 */
-    /* ★★★ 이미지 높이에 따라 이 padding-top을 JS로 조절하거나,
-         이미지 레이어의 이미지에 margin-bottom을 주어 공간 확보 필요 ★★★ */
-    /* 여기서는 이미지에 margin-top을 주었으므로, 이 부분은 이미지 아래부터 시작되도록
-       이미지의 대략적인 높이를 고려한 padding-top을 주거나,
-       JS로 이미지 로드 후 실제 높이를 계산하여 설정하는 것이 가장 이상적입니다.
-       간단하게는, 이미지의 예상 최대 높이 또는 평균 높이만큼의 padding-top을 줄 수 있습니다.
-       예: padding-top: 220px; (이미지 최대 높이 200px + 약간의 여유) */
-    padding-top: 15; /* 대략적인 (이미지최대높이 + 이미지상단여백 + 추가여백) */
-    pointer-events: auto; /* 텍스트 선택 등 가능하도록 */
-    flex-grow: 1; /* 버튼 영역 제외한 공간 차지 */
-    overflow-y: visible; /* 내용은 넘칠 수 있도록 (부모가 스크롤) */
-}
-.sync-type-description-content p {
-    margin-bottom: 0.5em;
-}
-.sync-type-description-content p:last-child {
-    margin-bottom: 0;
-}
+    pointer-events: auto; /* 텍스트 선택 및 스크롤 가능 */
+    flex-grow: 1;
+    overflow-y: auto; /* ★★★ 이 영역만 스크롤됨 ★★★ */
+    min-height: 0;
 
+    scrollbar-width: thin;
+    scrollbar-color: #6a6078 rgba(0,0,0,0.05);
+}
+#floatingMenuPage2 .sync-type-description-content::-webkit-scrollbar { width: 6px; }
+#floatingMenuPage2 .sync-type-description-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 0; margin: 0; }
+#floatingMenuPage2 .sync-type-description-content::-webkit-scrollbar-thumb { background: #6a6078; border-radius: 3px; }
+#floatingMenuPage2 .sync-type-description-content::-webkit-scrollbar-thumb:hover { background: #7A5AF1; }
+
+#floatingMenuPage2 .sync-type-description-content p { margin-bottom: 0.5em; }
+#floatingMenuPage2 .sync-type-description-content p:last-child { margin-bottom: 0; }
+
+/* 페이지 2 좌우 화살표 버튼 스타일 */
+.sync-type-nav-arrow {
+    position: absolute;
+    top: 190px; /* ★★★ 이미지의 대략적인 세로 중앙에 위치하도록 조절 (180px 이미지의 절반 + 상단여백 15px 근처) ★★★ */
+    transform: translateY(-50%); /* 버튼 자체의 높이를 고려하여 정확한 중앙 정렬 */
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 34px; /* 크기 약간 키움 */
+    height: 34px; /* 크기 약간 키움 */
+    font-size: 1.3em; /* 아이콘 크기 */
+    cursor: pointer;
+    z-index: 3; /* 텍스트 레이어(z-index:2)보다도 위에 오도록 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    padding: 0;
+    line-height: 1;
+}
+.sync-type-nav-arrow:hover {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+.sync-type-nav-arrow:disabled {
+    opacity: 0.2; /* 더 명확하게 비활성화 표시 */
+    cursor: not-allowed;
+    background-color: rgba(0, 0, 0, 0.1); /* 비활성화 시 배경색도 연하게 */
+}
+.sync-type-nav-arrow.left {
+    left: 10px;
+}
+.sync-type-nav-arrow.right {
+    right: 10px;
+}
+/* ★★★ #floatingMenuPage2 스타일 끝 ★★★ */
+
+/* 모든 플로팅 메뉴 공통 하단 버튼 컨테이너 */
 .floating-menu-action-button-container {
     padding: 10px 15px 15px 15px;
     display: flex;
     justify-content: center;
-    flex-shrink: 0; /* 이 부분은 foreground-layer가 flex-direction:column 이므로 없어도 될 수 있음 */
-    z-index: 5; /* 타이틀보다는 낮고, 설명보다는 높게 (혹은 foreground-layer 내에서 z-index 불필요) */
+    flex-shrink: 0;
+    z-index: 5;
     background-color: #3E354B;
-    position: sticky; /* 하단에 고정 */
+    position: sticky;
     bottom: 0;
-    pointer-events: auto; /* 버튼 클릭 가능하도록 */
+    pointer-events: auto;
 }
-/* ★★★ #floatingMenuPage2 스타일 수정 끝 ★★★ */
 
 .menu-sync-retest-button {
     background-color: #4A3F55;
@@ -881,11 +908,4 @@ html, body {
 
 .floating-menu.hidden-by-stage {
     display: none !important;
-}
-
-body {
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
 }
