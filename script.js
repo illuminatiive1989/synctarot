@@ -1799,7 +1799,7 @@ function handleChatInput() {
         console.log("[handleSyncTypeRetestRequest] 싱크타입 재테스트 요청 시작.");
         if (isSessionTimedOut) return;
 
-        const userMessageText = "싱크타입 테스트 다시하고 싶어";
+        const userMessageText = "아무래도 다시 싱크테스트를 해야될 것 같아!";
         const userMessageElement = createTextMessageElement(userMessageText, true);
         if (section2) section2.appendChild(userMessageElement);
         applyFadeIn(userMessageElement);
@@ -2010,7 +2010,7 @@ function handleChatInput() {
             if (!container.querySelector('.custom-action-button')) {
                 const button = document.createElement('div');
                 button.classList.add('custom-action-button'); // CSS 스타일 적용을 위함
-                button.textContent = "싱크타입 테스트 다시하고 싶어";
+                button.textContent = "싱크테스트 다시하고싶어";
                 button.addEventListener('click', async () => {
                     if (isSessionTimedOut) return;
                     // 버튼 클릭 시, 이 독립 버튼은 일단 숨김 (재테스트 플로우 시작 시 다른 UI가 나옴)
@@ -3847,7 +3847,7 @@ async function displayApiResponseElements(parsedResp) {
                 if (page2ButtonContainer && currentConsultationStage === 10) { // 10단계이고, 싱크타입이 있을 때만
                     const retestButton = document.createElement('button');
                     retestButton.classList.add('menu-sync-retest-button'); // 새로운 CSS 클래스 적용
-                    retestButton.textContent = "싱크타입 테스트 다시하고 싶어";
+                    retestButton.textContent = "아무래도 다시 싱크테스트를 해야될 것 같아!";
                     retestButton.addEventListener('click', async () => {
                         if (isSessionTimedOut) return;
                         hideFloatingMenu(); // 버튼 클릭 시 플로팅 메뉴 닫음
