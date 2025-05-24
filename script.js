@@ -3796,12 +3796,14 @@ async function displayApiResponseElements(parsedResp) {
         const overlay = document.getElementById('menuOverlay');
         const mainContainer = document.querySelector('.container');
         const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
+        const slider = document.querySelector('.floating-menu-slider'); // slider 요소 선택 추가
 
-        if (menuContainer && overlay && mainContainer && allSlides.length > 0) {
+        if (menuContainer && overlay && mainContainer && allSlides.length > 0 && slider) { // slider null 체크 추가
             updateFloatingMenuVisibility();
 
             allSlides.forEach(slide => {
                 slide.style.opacity = '0';
+                slide.style.transition = 'opacity 0.3s ease-in-out'; // opacity transition 추가
             });
 
             menuContainer.classList.add('visible');
@@ -3820,48 +3822,36 @@ async function displayApiResponseElements(parsedResp) {
             if (page2DescriptionContent) page2DescriptionContent.innerHTML = '';
             if (page2ButtonContainer) page2ButtonContainer.innerHTML = '';
 
-            // ★★★ 표시할 싱크타입 이름 결정 로직 추가 ★★★
             let displaySyncTypeName = null;
-            let originalSyncTypeNameForData = null; // SYNC_TYPE_KOR_TO_ID_MAP, SYNC_TYPE_DESCRIPTIONS 조회용
+            let originalSyncTypeNameForData = null;
 
             if (userProfile.맞춤싱크타입이름 && String(userProfile.맞춤싱크타입이름).trim() !== "") {
                 displaySyncTypeName = userProfile.맞춤싱크타입이름;
-                // 맞춤 이름이 있더라도, 카드 ID나 설명을 가져오기 위해서는 원래의 '결정된싱크타입' 이름이 필요할 수 있음
-                // 여기서는 '맞춤싱크타입이름'이 '결정된싱크타입'과 완전히 동일한 목록에서 온다고 가정하지 않고,
-                // '결정된싱크타입'을 기반으로 데이터를 찾도록 유지합니다.
-                // 만약 '맞춤싱크타입이름'으로도 카드 ID와 설명을 조회해야 한다면, 해당 이름도 SYNC_TYPE_KOR_TO_ID_MAP과 SYNC_TYPE_DESCRIPTIONS에 있어야 합니다.
-                // 현재는 '결정된싱크타입' 기준으로 데이터를 찾고, 화면 표시만 '맞춤싱크타입이름'으로 합니다.
-                originalSyncTypeNameForData = userProfile.결정된싱크타입; // 데이터 조회는 원래 타입명으로
+                originalSyncTypeNameForData = userProfile.결정된싱크타입;
             } else if (userProfile.결정된싱크타입) {
                 displaySyncTypeName = userProfile.결정된싱크타입;
                 originalSyncTypeNameForData = userProfile.결정된싱크타입;
             }
 
-
-            if (displaySyncTypeName && userProfile.사용자소속성운) { // 표시할 이름이 있고, 성운 정보도 있을 때
-                if (page2Title) page2Title.textContent = `${displaySyncTypeName}`; // ★★★ 맞춤 이름으로 타이틀 표시 ★★★
+            if (displaySyncTypeName && userProfile.사용자소속성운) {
+                if (page2Title) page2Title.textContent = `${displaySyncTypeName}`;
 
                 if (page2ImageContainer && page2DescriptionContent) {
-                    // 데이터(카드ID, 설명)는 originalSyncTypeNameForData (주로 userProfile.결정된싱크타입) 기준으로 가져옴
                     const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[originalSyncTypeNameForData];
-
                     if (syncTypeCardId) {
                         const syncImg = document.createElement('img');
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
-                        syncImg.alt = `${displaySyncTypeName} 이미지`; // ★★★ 맞춤 이름으로 alt 텍스트 표시 ★★★
+                        syncImg.alt = `${displaySyncTypeName} 이미지`;
                         syncImg.dataset.action = "show_my_synctype_info";
                         page2ImageContainer.appendChild(syncImg);
-
-                        // 설명은 originalSyncTypeNameForData(주로 결정된싱크타입) 기준으로 가져옴
                         const syncDescText = SYNC_TYPE_DESCRIPTIONS[originalSyncTypeNameForData] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
-                        page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join('');
+                        page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join('');
                     } else {
                         page2ImageContainer.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">싱크타입 이미지를<br>표시할 수 없습니다.</p>';
                         page2DescriptionContent.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">세부 정보 없음</p>';
                         console.warn(`[FloatingMenu] 원본 싱크타입 '${originalSyncTypeNameForData}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
-
                 if (page2ButtonContainer && currentConsultationStage === 10) {
                     const retestButton = document.createElement('button');
                     retestButton.classList.add('menu-sync-retest-button');
@@ -3873,8 +3863,7 @@ async function displayApiResponseElements(parsedResp) {
                     });
                     page2ButtonContainer.appendChild(retestButton);
                 }
-
-            } else { // 싱크타입 정보가 없을 때 (결정된싱크타입도, 맞춤싱크타입이름도 없을 때)
+            } else {
                 if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
                 if (page2ImageContainer && page2DescriptionContent) {
                     const defaultImg = document.createElement('img');
@@ -3882,33 +3871,43 @@ async function displayApiResponseElements(parsedResp) {
                     defaultImg.alt = "싱크타입을 아직 발견하지 못했어요. 테스트로 찾아보세요!";
                     defaultImg.dataset.action = "start_sync_type_test_from_menu";
                     page2ImageContainer.appendChild(defaultImg);
-
                     page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>';
                 }
             }
 
-            const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-            let initialTargetIndex = 0;
-            let initialDomIndex = 0;
+            let initialTargetIndex = 0; // 보이는 슬라이드 기준
+            let initialDomIndex = 0; // 실제 DOM 요소 기준
 
-            if (visibleFloatingMenuSlides === 2) {
-                initialDomIndex = 1;
-                slider.style.transform = `translateX(0%)`;
+            // ★★★ 슬라이더 위치 및 현재 슬라이드 인덱스 초기화 ★★★
+            currentFloatingMenuSlideIndex = 0; // 보이는 슬라이드 기준 0번으로 초기화
+            if (visibleFloatingMenuSlides === 2 && document.getElementById('floatingMenuPage1').style.display === 'none') {
+                // page1이 숨겨져 있고 2개의 슬라이드만 보일 때 (2번, 3번 페이지)
+                // 보이는 슬라이드 기준 0번은 DOM 요소 기준 1번(floatingMenuPage2)임.
+                slider.style.transform = `translateX(0%)`; // page2가 보이도록
+                initialDomIndex = 1; // DOM상 두 번째 슬라이드 (page2)
+                allSlides.forEach((slide, idx) => { // 보이는 슬라이드만 opacity 조정
+                    if (idx === 1 || idx === 2) { // page2 또는 page3
+                       slide.style.opacity = (idx === initialDomIndex) ? '1' : '0';
+                    } else {
+                       slide.style.opacity = '0'; // page1은 확실히 숨김
+                    }
+                });
             } else {
-                initialDomIndex = 0;
-                slider.style.transform = `translateX(0%)`;
+                // page1이 보이고 3개의 슬라이드가 모두 보일 때
+                // 보이는 슬라이드 기준 0번은 DOM 요소 기준 0번(floatingMenuPage1)임.
+                slider.style.transform = `translateX(0%)`; // page1이 보이도록
+                initialDomIndex = 0; // DOM상 첫 번째 슬라이드 (page1)
+                 allSlides.forEach((slide, idx) => {
+                    slide.style.opacity = (idx === initialDomIndex) ? '1' : '0';
+                });
             }
-
-            if (allSlides[initialDomIndex]) {
-                allSlides[initialDomIndex].style.opacity = '1';
-            }
-            currentFloatingMenuSlideIndex = initialTargetIndex;
+            // ★★★ 초기화 로직 끝 ★★★
 
             let visibleIndicatorCount = 0;
             indicators.forEach((dot) => {
                 if (dot.style.display !== 'none') {
-                    dot.classList.toggle('active', visibleIndicatorCount === initialTargetIndex);
+                    dot.classList.toggle('active', visibleIndicatorCount === currentFloatingMenuSlideIndex);
                     visibleIndicatorCount++;
                 }
             });
@@ -4347,86 +4346,106 @@ async function displayApiResponseElements(parsedResp) {
             });
         });
 
-        /*
-        const floatingPage2Image = document.querySelector('#floatingMenuPage2 .floating-single-image-container img');
-        if (floatingPage2Image) {
-            floatingPage2Image.addEventListener('click', (event) => {
-                const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 2 Item clicked. Action: ${action}`);
-                if (action) {
-                    handleFloatingMenuItemClick(action);
-                }
-            });
-        }
-
-        const floatingPage3Items = document.querySelectorAll('#floatingMenuPage3 .floating-two-column-image-item');
-        floatingPage3Items.forEach(item => {
-            item.addEventListener('click', (event) => {
-                const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 3 Item clicked. Action: ${action}`);
-                if (action) {
-                    handleFloatingMenuItemClick(action);
-                }
-            });
-        });
-        */
-
-        // --- 드래그/스와이프 슬라이드 기능 수정 ---
-        // --- 드래그/스와이프 슬라이드 기능 수정 ---
         const sliderElement = document.querySelector('.floating-menu-slider');
         if (sliderElement) {
             let touchStartX = 0;
-            let touchEndX = 0; // touchmove에서 마지막으로 기록된 X 좌표
-            let isTouching = false; // isTouching으로 변수명 변경 (의미 명확화)
+            let touchStartY = 0;
+            let currentTranslateX = 0; // 현재 슬라이더의 translateX 값
+            let dragDeltaX = 0; // 드래그 중 X축 이동량
+            let isTouching = false;
+            let isDragging = false; // 실제 수평 스와이프가 시작되었는지
             const swipeThreshold = 50;
+            const verticalSwipeThreshold = 40;
+            const slideWidthPercentage = 100 / visibleFloatingMenuSlides;
 
             sliderElement.addEventListener('touchstart', (event) => {
-                // 멀티터치 방지 및 메뉴가 열려 있을 때만 스와이프 활성화
-                if (event.touches.length > 1 || !isFloatingMenuOpen) return;
-                touchStartX = event.touches[0].clientX; // clientX 사용 (screenX보다 뷰포트 기준)
-                touchEndX = touchStartX; // 초기화 시점에는 start와 end 동일
-                isTouching = true;
-                // console.log(`[Swipe] touchstart: X=${touchStartX}`);
-            }, { passive: true }); // passive: true 로 스크롤 성능 최적화
-
-            sliderElement.addEventListener('touchmove', (event) => {
-                if (!isTouching || event.touches.length > 1 || !isFloatingMenuOpen) return;
-                touchEndX = event.touches[0].clientX;
-                // console.log(`[Swipe] touchmove: X=${touchEndX}`);
-            }, { passive: true });
-
-            sliderElement.addEventListener('touchend', (event) => {
-                if (!isTouching || !isFloatingMenuOpen) {
+                if (!isFloatingMenuOpen || event.touches.length > 1) {
                     isTouching = false;
                     return;
                 }
-                isTouching = false;
+                touchStartX = event.touches[0].clientX;
+                touchStartY = event.touches[0].clientY;
+                isTouching = true;
+                isDragging = false;
+                dragDeltaX = 0;
 
-                const deltaX = touchEndX - touchStartX;
+                // 현재 슬라이더의 transform 값에서 translateX를 가져옴 (애니메이션 중이 아닐 때)
+                // currentFloatingMenuSlideIndex는 보이는 슬라이드 기준 인덱스
+                currentTranslateX = -currentFloatingMenuSlideIndex * slideWidthPercentage;
+                sliderElement.style.transition = 'none'; // 드래그 시작 시 transition 제거
 
-                if (Math.abs(deltaX) > swipeThreshold) {
-                    if (deltaX < 0) { // 왼쪽으로 스와이프 (다음)
+                // console.log(`[Swipe] touchstart: X=${touchStartX}, Y=${touchStartY}, currentTranslateX=${currentTranslateX}%`);
+            }, { passive: true }); // passive: true로 변경하여 스크롤 성능 향상 (preventDefault 안 함)
+
+            sliderElement.addEventListener('touchmove', (event) => {
+                if (!isTouching || !isFloatingMenuOpen) return;
+
+                const touchCurrentX = event.touches[0].clientX;
+                const touchCurrentY = event.touches[0].clientY;
+                dragDeltaX = touchCurrentX - touchStartX;
+                const dragDeltaY = touchCurrentY - touchStartY;
+
+                if (!isDragging) { // 아직 드래그 상태가 아니라면, 첫 움직임으로 방향 판단
+                    if (Math.abs(dragDeltaX) > Math.abs(dragDeltaY) && Math.abs(dragDeltaX) > 10) {
+                        isDragging = true; // 수평 스와이프 시작으로 간주
+                        // console.log("[Swipe] Horizontal swipe drag started.");
+                        // 수평 스와이프 시작 시, 상위 요소의 스크롤을 막기 위해 passive: false가 필요할 수 있음
+                        // 하지만 현재는 passive: true 상태이므로, 만약 스크롤 간섭이 심하다면
+                        // 이 부분을 { passive: false }로 바꾸고 event.preventDefault()를 조건부로 호출해야함.
+                        // 지금은 일단 passive:true로 두고, 브라우저 기본 동작에 맡김.
+                    } else if (Math.abs(dragDeltaY) > Math.abs(dragDeltaX) && Math.abs(dragDeltaY) > 10) {
+                        // 수직 이동이 더 크면, 스와이프가 아니라고 판단하고 터치 종료
+                        // console.log("[Swipe] Vertical scroll detected, aborting swipe for this touch.");
+                        isTouching = false; // 이 터치에 대한 스와이프 중단
+                        return;
+                    }
+                }
+
+                if (isDragging) {
+                    // event.preventDefault(); // 만약 {passive: false} 일 경우 필요
+                    const newTranslateX = currentTranslateX + (dragDeltaX / sliderElement.offsetWidth) * 100;
+                    sliderElement.style.transform = `translateX(${newTranslateX}%)`;
+                    // console.log(`[Swipe] touchmove dragging: dX=${dragDeltaX}, newTranslateX=${newTranslateX}%`);
+                }
+            }, { passive: true }); // passive: true
+
+            sliderElement.addEventListener('touchend', () => {
+                if (!isTouching || !isFloatingMenuOpen) {
+                    isTouching = false;
+                    isDragging = false;
+                    return;
+                }
+
+                // console.log(`[Swipe] touchend: isDragging=${isDragging}, dragDeltaX=${dragDeltaX}`);
+                sliderElement.style.transition = 'transform 0.4s ease-in-out'; // Transition 복원
+
+                if (isDragging && Math.abs(dragDeltaX) > swipeThreshold) {
+                    if (dragDeltaX < 0) { // 왼쪽으로 스와이프 (다음)
                         if (currentFloatingMenuSlideIndex < visibleFloatingMenuSlides - 1) {
-                            console.log("[Swipe] Next slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex + 1);
                         } else {
-                            // ... (마지막 슬라이드 바운스 효과) ...
+                            // 마지막 슬라이드에서 더 가려고 할 때 제자리로
+                            sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * slideWidthPercentage}%)`;
                         }
                     } else { // 오른쪽으로 스와이프 (이전)
                         if (currentFloatingMenuSlideIndex > 0) {
-                            console.log("[Swipe] Previous slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex - 1);
                         } else {
-                            // ... (첫 슬라이드 바운스 효과) ...
+                            // 첫 슬라이드에서 더 가려고 할 때 제자리로
+                            sliderElement.style.transform = `translateX(0%)`;
                         }
                     }
+                } else {
+                    // 스와이프 거리가 짧거나, 수평 드래그가 아니었으면 원래 위치로
+                    sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * slideWidthPercentage}%)`;
+                    // console.log("[Swipe] Swipe not significant or not dragging, reverting to current slide.");
                 }
-                touchStartX = 0;
-                touchEndX = 0;
+
+                isTouching = false;
+                isDragging = false;
+                dragDeltaX = 0;
             });
         }
-        // --- 드래그/스와이프 슬라이드 기능 끝 ---
-
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }
     initializeApp();
