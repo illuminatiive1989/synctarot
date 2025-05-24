@@ -191,6 +191,181 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
     console.log(`[ 초기화 ] 싱크타입 캐릭터 카드 ID 목록 정의 완료. 총 ${SYNC_TYPE_CHARACTER_CARD_IDS.length}개`);
 
+
+    // ★★★ 신규: 싱크타입 한글 이름과 영문 카드 ID 매핑 객체 ★★★
+    const SYNC_TYPE_KOR_TO_ID_MAP = {};
+
+    // CONSTELLATIONS_DATA와 SYNC_TYPE_CHARACTER_CARD_IDS를 기반으로 매핑 객체 자동 생성
+    // 및 매칭되지 않은 항목 확인용 배열
+    const unmappedKoreanSyncTypes = [];
+    const allKoreanSyncTypesFromConstellations = [];
+
+    try {
+        Object.values(CONSTELLATIONS_DATA).forEach(constellation => {
+            constellation.syncTypes.forEach(korName => {
+                if (korName !== "기억안나") {
+                    if (!allKoreanSyncTypesFromConstellations.includes(korName)) {
+                        allKoreanSyncTypesFromConstellations.push(korName);
+                    }
+
+                    if (!SYNC_TYPE_KOR_TO_ID_MAP[korName]) { // 아직 매핑되지 않은 경우에만 시도
+                        // 1차 시도: 한글 이름을 모두 소문자화하고 공백 제거 후 매칭
+                        let probableIdPart = korName.toLowerCase().replace(/\s+/g, '');
+                        let foundId = SYNC_TYPE_CHARACTER_CARD_IDS.find(engId =>
+                            engId.startsWith(probableIdPart) && engId.endsWith('_character_card')
+                        );
+
+                        // 2차 시도: 1차 실패 시, 한글 이름을 소문자화하고 공백을 언더스코어로 변경 후 매칭
+                        if (!foundId) {
+                            probableIdPart = korName.toLowerCase().split(' ').join('_');
+                            foundId = SYNC_TYPE_CHARACTER_CARD_IDS.find(engId =>
+                                engId.startsWith(probableIdPart) && engId.endsWith('_character_card')
+                            );
+                        }
+                        
+                        // 3차 시도: (특정 단어 예외 처리 - 예: '로보베어' -> 'robobear')
+                        // 더 복잡한 규칙이 있다면 여기에 추가 가능
+                        // 예시: '가디언 로보베어' -> 'guardian_robobear_character_card'
+                        if (!foundId && korName.includes("로보베어")) {
+                            probableIdPart = korName.toLowerCase().replace("로보베어", "robobear").split(' ').join('_');
+                             foundId = SYNC_TYPE_CHARACTER_CARD_IDS.find(engId =>
+                                engId.startsWith(probableIdPart) && engId.endsWith('_character_card')
+                            );
+                        }
+
+
+                        if (foundId) {
+                            SYNC_TYPE_KOR_TO_ID_MAP[korName] = foundId;
+                        }
+                        // else {
+                        //    // 자동 매핑 실패 시 unmappedKoreanSyncTypes에 추가 (아래에서 일괄 처리)
+                        // }
+                    }
+                }
+            });
+        });
+
+        // 모든 한글 싱크타입에 대해 매핑되었는지 최종 확인
+        allKoreanSyncTypesFromConstellations.forEach(korName => {
+            if (!SYNC_TYPE_KOR_TO_ID_MAP[korName]) {
+                unmappedKoreanSyncTypes.push(korName);
+            }
+        });
+
+        // 수동 매핑 (자동 매핑이 완벽하지 않을 경우를 대비하여 우선순위 높게 처리)
+        // 여기에 확실하게 알고 있는 매핑을 추가하면 자동 매핑보다 우선됩니다.
+        // 또는, 자동 매핑 후 누락된 것들만 추가합니다.
+        // 예시: (만약 자동 매핑이 '엘더스퀴드'를 못찾는다면)
+        // if (!SYNC_TYPE_KOR_TO_ID_MAP["엘더스퀴드"]) SYNC_TYPE_KOR_TO_ID_MAP["엘더스퀴드"] = "eldersquid_character_card";
+
+        // 자동 매핑으로 대부분 처리될 것으로 기대되나, 특수한 경우 여기에 수동 매핑 추가:
+        SYNC_TYPE_KOR_TO_ID_MAP["젠틀빔"] = "gentlebeam_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["버블퍼프"] = "bubblepuff_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스텔라 터틀"] = "stellarturtle_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["문 스눗"] = "moonsnuut_character_card"; // moonsnuut
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 퍼프"] = "spacepup_character_card"; // ID가 spacepup 임
+        SYNC_TYPE_KOR_TO_ID_MAP["폴라로이드"] = "polaroid_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스타 가피"] = "starguppy_character_card"; // starguppy
+        SYNC_TYPE_KOR_TO_ID_MAP["스타대셔"] = "stardasher_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["코멧 캐이나인"] = "cometcanine_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["파이어 스프라우트"] = "firesprout_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스타훗"] = "starhoot_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["펄사"] = "pulsar_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스월스"] = "swirlth_character_card"; // swirlth
+        SYNC_TYPE_KOR_TO_ID_MAP["젤로마이트"] = "jellomite_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["가디언 로보베어"] = "guardian_robobear_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스타하이브"] = "starhive_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["아머드 슬러그"] = "armoredslug_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["아이봇"] = "eyebot_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["엘더스퀴드"] = "eldersquid_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스테드패스트 로보베어"] = "steadfast_robobear_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["플래로우"] = "flarrow_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["코스믹아이"] = "cosmiceye_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["갤럭시캣"] = "galaxycat_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스파이럴 셸러"] = "spiralsheller_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["오르비터"] = "orbiter_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["그래비톤"] = "graviton_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스누터"] = "snooter_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["펄스피쉬"] = "pulsefeesh_character_card"; // pulsefeesh
+        SYNC_TYPE_KOR_TO_ID_MAP["아쿠아 독"] = "aquadog_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["인터스텔라 캣"] = "interstellarcat_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 워크"] = "spacewalk_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["링비"] = "ringbee_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["크리터넛"] = "critternaut_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["루미스퀴드"] = "lumisquid_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["인터로퍼"] = "interloper_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["코스믹 웜프"] = "cosmicwump_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["아스트랄 버니"] = "astralbunny_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["플로터"] = "floater_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["네뷸라 폭스"] = "nebulafox_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 버드"] = "spacebird_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["록키"] = "rocky_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["아우라밥"] = "aurabop_character_card"; // aurabop
+        SYNC_TYPE_KOR_TO_ID_MAP["아주르 코멧펍"] = "azurecometpup_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["유풋"] = "ufoot_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["오르비니어"] = "orbineer_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["세팔론"] = "cephalon_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["글로브로"] = "globro_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["소나팟"] = "sonarpod_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["셀레스티레이"] = "celestiray_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["몰테나이트"] = "moltenite_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스푹코이드"] = "spookoid_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["크레이터비스트"] = "craterbeast_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["인터스텔라 뱃"] = "interstellarbat_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["톡실룸"] = "toxilum_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["베노텅"] = "venotongue_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["문죠"] = "moonjaw_character_card"; // moonjaw
+        SYNC_TYPE_KOR_TO_ID_MAP["오르빗 이터"] = "orbiteeater_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["코스미릴로"] = "cosmirillo_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["플래니토이드"] = "planetoid_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 와플"] = "spacewaffle_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 스노우플레이크"] = "spacesnowflake_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["베누블럽"] = "venublub_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["라이트로덴트"] = "lightrodent_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["핑크 인베이더"] = "pinkinvader_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 젤리즈"] = "spacejellies_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["마이셀리안"] = "mycelian_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스파인더"] = "spinder_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스타리 스키터"] = "starryskitter_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["젤리넛"] = "jellynaut_character_card"; // jellynaut
+        SYNC_TYPE_KOR_TO_ID_MAP["볼텍스 엘리멘탈"] = "vortexelemental_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["애스트로마이트"] = "astromite_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["더스티"] = "dusty_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 슬러그"] = "spaceslug_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스포어 블룸"] = "sporebloom_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["애스트로슈룸"] = "astroshroom_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["문 크리터"] = "mooncritter_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["젬크랩"] = "gemcrab_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스랫"] = "spacerat_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["영 에일리언"] = "youngalien_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["플록시"] = "floxie_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["코스몬"] = "cosmon_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["루나링"] = "lunaling_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스타스프라이트"] = "starsprite_character_card";
+        SYNC_TYPE_KOR_TO_ID_MAP["스페이스 마이츠"] = "spacemites_character_card";
+
+        // 최종 검증 및 로그 출력
+        const finalUnmapped = [];
+        allKoreanSyncTypesFromConstellations.forEach(korName => {
+            if (!SYNC_TYPE_KOR_TO_ID_MAP[korName]) {
+                finalUnmapped.push(korName);
+            }
+        });
+
+        if (finalUnmapped.length > 0) {
+            console.warn(`[초기화 최종 경고] 다음 한글 싱크타입 이름에 대한 영문 카드 ID를 찾지 못했습니다. 수동 매핑이 필요합니다:`, finalUnmapped);
+        } else {
+            console.log("[초기화] 모든 한글 싱크타입 이름이 영문 카드 ID와 성공적으로 매핑되었습니다.");
+        }
+        console.log(`[ 초기화 ] 싱크타입 한글-영문ID 매핑 (SYNC_TYPE_KOR_TO_ID_MAP) 최종 생성 완료. 총 매핑된 수: ${Object.keys(SYNC_TYPE_KOR_TO_ID_MAP).length} / 전체 한글 싱크타입 수: ${allKoreanSyncTypesFromConstellations.length}`);
+        // console.log("SYNC_TYPE_KOR_TO_ID_MAP:", JSON.stringify(SYNC_TYPE_KOR_TO_ID_MAP, null, 2)); // 필요시 전체 매핑 객체 콘솔 출력
+
+    } catch (e) {
+        console.error("[초기화 오류] SYNC_TYPE_KOR_TO_ID_MAP 생성 중 오류:", e);
+    }
+
+
+
     // --- DOM 요소 선택 ---
     const section2 = document.getElementById('section2');
     const chatInput = document.getElementById('chatInput');
@@ -3634,12 +3809,10 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
-            // ★★★ 플로팅 메뉴 2번 바 내용 업데이트 ★★★
             const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
             const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
             const page2ImageContainer = floatingMenuPage2.querySelector('.floating-single-image-container');
             
-            // 기존 이미지와 설명(p 태그) 제거
             if (page2ImageContainer) {
                 const existingImg = page2ImageContainer.querySelector('img');
                 if (existingImg) existingImg.remove();
@@ -3647,61 +3820,42 @@ async function displayApiResponseElements(parsedResp) {
                 if (existingDescP) existingDescP.remove();
             }
 
-
             if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
                 if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
                 
                 if (page2ImageContainer) {
-                    // 싱크타입 이미지 생성 및 추가
-                    // userProfile.결정된싱크타입을 기반으로 이미지 파일명 찾기
-                    // 예: "인터스텔라 캣" -> "interstellarcat_character_card"
-                    let syncTypeCardId = null;
                     const userSyncTypeKorean = userProfile.결정된싱크타입;
-                    const userConstellationKorean = userProfile.사용자소속성운;
-
-                    if (CONSTELLATIONS_DATA[userConstellationKorean] && CONSTELLATIONS_DATA[userConstellationKorean].syncTypes.includes(userSyncTypeKorean)) {
-                        // SYNC_TYPE_CHARACTER_CARD_IDS 에서 userSyncTypeKorean 과 매칭되는 ID를 찾아야 함
-                        // 이는 싱크타입 한글 이름과 캐릭터 카드 ID 간의 매핑이 필요함을 의미.
-                        // 임시로, 싱크타입 이름을 소문자화하고 공백을 제거한 후 _character_card를 붙여서 ID를 추정.
-                        // 또는, SYNC_TYPE_CHARACTER_CARD_IDS 목록을 순회하며 더 정확한 매칭 로직 필요.
-                        // 여기서는 간단한 변환 시도 (실제로는 더 견고한 매핑 필요)
-                        const probableIdPart = userSyncTypeKorean.toLowerCase().replace(/\s+/g, '');
-                        syncTypeCardId = SYNC_TYPE_CHARACTER_CARD_IDS.find(id => id.startsWith(probableIdPart) && id.endsWith('_character_card'));
-                    }
-
+                    // ★★★ SYNC_TYPE_KOR_TO_ID_MAP을 사용하여 정확한 ID 조회 ★★★
+                    const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[userSyncTypeKorean];
 
                     if (syncTypeCardId) {
                         const syncImg = document.createElement('img');
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
                         syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
-                        syncImg.dataset.action = "show_my_synctype_info"; // 클릭 액션 정의
+                        syncImg.dataset.action = "show_my_synctype_info";
                         page2ImageContainer.appendChild(syncImg);
 
-                        // 싱크타입 이름 (이미지 하단에 표시될 수 있으나, 여기서는 타이틀로 대체. 필요시 추가)
-
-                        // 싱크타입 설명 추가
                         const syncDesc = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
                         const descP = document.createElement('p');
-                        descP.classList.add('sync-type-description'); // 스타일링을 위한 클래스
-                        descP.style.fontSize = "0.85em"; // CSS로 옮기는 것이 좋음
+                        descP.classList.add('sync-type-description');
+                        descP.style.fontSize = "0.85em";
                         descP.style.color = "#d3cce3";
                         descP.style.marginTop = "10px";
                         descP.style.textAlign = "center";
-                        descP.innerHTML = syncDesc.replace(/\n/g, "<br>"); // 줄바꿈 처리
-                        page2ImageContainer.appendChild(descP); // 이미지 컨테이너에 설명 추가
+                        descP.innerHTML = syncDesc.replace(/\n/g, "<br>");
+                        page2ImageContainer.appendChild(descP);
                     } else {
                         page2ImageContainer.innerHTML = '<p>싱크타입 이미지를 불러올 수 없습니다.</p>';
-                        console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 찾지 못했습니다.`);
+                        console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
             } else {
-                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
+                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입"; // 기본 타이틀
                 if (page2ImageContainer) {
-                    // 기본 이미지 또는 안내 문구 표시
                     const defaultImg = document.createElement('img');
-                    defaultImg.src = "images/menu/recommended_tarot_today.png"; // 기존 이미지 유지 또는 변경
+                    defaultImg.src = "images/menu/recommended_tarot_today.png"; 
                     defaultImg.alt = "싱크타입 정보가 아직 없어요.";
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; // 기본 액션
+                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; 
                     page2ImageContainer.appendChild(defaultImg);
                     
                     const defaultDescP = document.createElement('p');
@@ -3714,7 +3868,6 @@ async function displayApiResponseElements(parsedResp) {
                     page2ImageContainer.appendChild(defaultDescP);
                 }
             }
-
 
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
@@ -3741,7 +3894,6 @@ async function displayApiResponseElements(parsedResp) {
                     visibleIndicatorCount++;
                 }
             });
-
 
             if (chatInput) chatInput.blur();
             hideTooltip();
