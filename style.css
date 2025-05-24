@@ -29,9 +29,9 @@ html, body {
      - .floating-menu-indicator-container (슬라이드 인디케이터): 101
      - .floating-menu-slider (슬라이드 가능한 영역): 100
        - .floating-menu (개별 플로팅 바): 100
-         - #floatingMenuPage2 .sync-type-display-area .sync-type-image-container : 101 (페이지2 이미지)
-         - #floatingMenuPage2 .sync-type-display-area .sync-type-description-scroll-container : 102 (페이지2 설명)
-         - #floatingMenuPage2 .floating-menu-action-button-container : 102 (페이지2 버튼 컨테이너)
+         - #floatingMenuPage2 .sync-type-display-area .sync-type-image-container : 101
+         - #floatingMenuPage2 .sync-type-display-area .sync-type-scrollable-content : 100
+         - #floatingMenuPage2 .floating-menu-action-button-container : 102
 */
 
 /* 섹션 3: 루비 배경 이미지 */
@@ -654,101 +654,75 @@ html, body {
 
 .floating-menu-slider {
     display: flex;
-    width: 300%; /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
-    /* transition: transform 0.4s ease-in-out; /* JS에서 직접 제어 */
-    overflow: hidden; /* 슬라이더 자체의 넘침은 숨김 */
+    width: 300%;
+    overflow: hidden;
     flex-grow: 1;
-    min-height: 0; /* flex 아이템이 부모를 넘어서는 것을 방지 */
+    min-height: 0;
 }
 
 .floating-menu {
-    width: calc(100% / 3); /* JS에서 보이는 슬라이드 수에 따라 동적 변경 */
+    width: calc(100% / 3);
     flex-shrink: 0;
-    /* overflow-y: auto; /* 이제 .page-content-area 또는 .sync-type-display-area 에서 스크롤 제어 */
     display: flex;
     flex-direction: column;
     color: white;
-    opacity: 0; /* JS에서 현재 슬라이드만 보이도록 제어 */
+    opacity: 0;
     transition: opacity 0.3s ease-in-out;
-    position: relative; /* 내부 요소의 position:absolute 기준점 (Page2용) */
-    padding: 0; /* 모든 floating-menu의 기본 패딩 제거. 내부에서 개별 설정 */
+    position: relative;
+    padding: 0;
 }
-
-/* .floating-menu::-webkit-scrollbar 관련 스타일은 삭제해도 무방 (이제 .page-content-area 등에서 제어) */
 
 .floating-menu-title {
     font-size: 1.1em;
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 10px; /* ★★★ 타이틀과 콘텐츠 영역 사이의 기본 간격 ★★★ */
+    margin-bottom: 10px;
     flex-shrink: 0;
-    padding: 15px 15px 0 15px; /* 모든 타이틀에 동일한 상단 및 좌우 패딩 */
+    padding: 15px 15px 0 15px;
 }
 
-/* ★★★ Page1, Page2(설명부), Page3의 콘텐츠 영역 공통 스타일 ★★★ */
-.page-content-area,
-.sync-type-description-scroll-container { /* Page2의 설명 부분도 동일 스타일 적용 */
+/* --- Page 1: 내부 스크롤 방식 적용 --- */
+#floatingMenuPage1 .page-content-area {
     flex-grow: 1;
-    overflow-y: auto;
+    position: relative;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* 이 영역은 스크롤 안 함 */
     min-height: 0;
-    /* 그라데이션 마스크 */
+    padding: 0 15px 15px 15px; /* 외부 컨테이너 패딩 */
+}
+
+#floatingMenuPage1 .inner-scroll-content {
+    flex-grow: 1;
+    overflow-y: auto; /* 내부 스크롤 활성화 */
+    min-height: 0;
+    padding: 0 5px 5px 5px; /* 스크롤 영역 내부 패딩 */
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
     mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
-/* 개별 패딩 및 세부 설정 */
-.page-content-area { /* Page1, Page3 용 */
-    padding: 0 15px 15px 15px;
-    gap: 10px; /* Page1의 리스트 아이템 간격 */
-}
+#floatingMenuPage1 .inner-scroll-content::-webkit-scrollbar { width: 6px; }
+#floatingMenuPage1 .inner-scroll-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+#floatingMenuPage1 .inner-scroll-content::-webkit-scrollbar-thumb { background: rgba(220, 210, 240, 0.3); border-radius: 3px; }
+#floatingMenuPage1 .inner-scroll-content::-webkit-scrollbar-thumb:hover { background: rgba(220, 210, 240, 0.5); }
 
-.sync-type-description-scroll-container { /* Page2 설명부 용 */
-    position: relative; /* Page2 구조 유지 위해 */
-    z-index: 102; /* Page2 구조 유지 위해 */
-    width: 100%;   /* Page2 구조 유지 위해 */
-    height: 100%;  /* Page2 구조 유지 위해 */
-    padding: 15px; /* Page2 설명부 패딩 */
-    justify-content: center; /* Page2 설명부 텍스트 중앙 정렬 위해 */
-}
-
-/* 공통 스크롤바 스타일 (Page1, Page2 설명부, Page3) */
-.page-content-area::-webkit-scrollbar,
-.sync-type-description-scroll-container::-webkit-scrollbar {
-    width: 6px;
-}
-.page-content-area::-webkit-scrollbar-track,
-.sync-type-description-scroll-container::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05);
-    border-radius: 3px;
-}
-.page-content-area::-webkit-scrollbar-thumb,
-.sync-type-description-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(220, 210, 240, 0.3);
-    border-radius: 3px;
-}
-.page-content-area::-webkit-scrollbar-thumb:hover,
-.sync-type-description-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(220, 210, 240, 0.5);
-}
-
-
+/* Page 1 아이템 스타일 (inner-scroll-content 내부) */
 #floatingMenuPage1 .floating-image-list-item {
     width: 100%;
-    /* margin-bottom: 10px; /* .page-content-area의 gap으로 대체 */
     cursor: pointer;
     border-radius: 10px;
     overflow: hidden;
     background-color: #4E445A;
     transition: background-color 0.2s ease;
-    flex-shrink: 0; /* 아이템 크기 유지 */
+    flex-shrink: 0;
 }
 #floatingMenuPage1 .floating-image-list-item:hover {
     background-color: #5A506A;
 }
-/* #floatingMenuPage1 .floating-image-list-item:last-child { margin-bottom: 0; } 삭제, 패딩으로 처리 */
 #floatingMenuPage1 .floating-image-list-item img {
     width: 100%;
     height: auto;
@@ -758,19 +732,19 @@ html, body {
     border-radius: 8px;
 }
 
-/* #floatingMenuPage2 관련 스타일 */
-.sync-type-display-area { /* 이 컨테이너는 Page2 전체 콘텐츠 영역 역할 */
+
+/* --- Page 2: 이미지 고정, 설명 내부 스크롤 --- */
+#floatingMenuPage2 .sync-type-display-area {
     flex-grow: 1;
-    position: relative;
+    position: relative; /* 이미지 absolute 위치 기준 */
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 15px 10px 15px; /* 상단 패딩 0, 하단 패딩 유지 */
-    overflow: hidden; /* 내부 스크롤은 sync-type-description-scroll-container에서 하므로 여기는 hidden */
+    flex-direction: column;
+    overflow: hidden; /* 이 영역 자체 스크롤 X */
     min-height: 0;
+    padding: 0 15px; /* 좌우 패딩 */
 }
 
-.sync-type-image-container {
+#floatingMenuPage2 .sync-type-image-container {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -780,7 +754,7 @@ html, body {
     z-index: 101;
     pointer-events: auto;
 }
-.sync-type-image-container img {
+#floatingMenuPage2 .sync-type-image-container img {
     width: 100%;
     height: auto;
     object-fit: contain;
@@ -789,87 +763,108 @@ html, body {
     cursor: pointer;
     transition: opacity 0.3s ease;
 }
-.sync-type-image-container img:hover {
+#floatingMenuPage2 .sync-type-image-container img:hover {
     opacity: 0.8;
 }
 
-/* .sync-type-description-scroll-container는 위에서 .page-content-area와 함께 공통 스타일 정의 */
+#floatingMenuPage2 .sync-type-scrollable-content {
+    flex-grow: 1; /* 남은 공간 차지 */
+    overflow-y: auto; /* 내부 스크롤 */
+    position: relative;
+    z-index: 100; /* 이미지보다 아래 */
+    min-height: 0;
+    padding: 15px; /* 텍스트 여백 */
+    display: flex; /* 내부 .sync-type-description-content 정렬 위해 */
+    flex-direction: column;
+    justify-content: center; /* 내용 짧을 시 수직 중앙 정렬 */
 
-.sync-type-description-content {
+    -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
+    mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
+}
+#floatingMenuPage2 .sync-type-scrollable-content::-webkit-scrollbar { width: 6px; }
+#floatingMenuPage2 .sync-type-scrollable-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+#floatingMenuPage2 .sync-type-scrollable-content::-webkit-scrollbar-thumb { background: rgba(220, 210, 240, 0.3); border-radius: 3px; }
+#floatingMenuPage2 .sync-type-scrollable-content::-webkit-scrollbar-thumb:hover { background: rgba(220, 210, 240, 0.5); }
+
+#floatingMenuPage2 .sync-type-description-content {
     color: #e8e2f5;
     font-size: 0.9em;
     line-height: 1.65;
     text-align: center;
+    /* 이미지를 피하기 위한 패딩 - JS로 동적 계산하거나, 시행착오로 고정값 설정 */
+    /* 예: 이미지 높이가 160px이고 중앙에 있다면, 스크롤 시작점은 그 아래여야 함 */
+    /* .sync-type-scrollable-content 에 padding-top을 주거나, 여기에 직접 */
+    /* 여기서는 .sync-type-scrollable-content의 justify-content:center 로 인해
+       내용이 짧을 때 중앙에 오므로, 내용이 길어져 스크롤 될 때
+       이미지 뒤로 가지 않도록 하는 것이 중요.
+       스크롤 시작점을 이미지 아래로 내리려면, scrollable-content에
+       빈 공간(div)을 이미지 높이만큼 넣거나, padding-top을 주는 것이 일반적.
+       현재 flex 구조에서는, scrollable-content가 display-area의 남은 공간을 차지하므로,
+       이미지는 그 위에 떠있는 형태. 텍스트 시작점이 이미지와 겹치지 않게 하는 것이 관건.
+       가장 간단한 해결책은 JS로 이미지 높이 계산 후 scrollable-content의 padding-top 조정.
+       CSS만으로는, scrollable-content 내부에 이미지 높이만큼의 dummy div를 넣는 방법 고려.
+       또는, description-content에 매우 큰 padding-top을 주고,
+       scrollable-content의 justify-content를 flex-start로 변경하여 항상 위에서부터 시작.
+    */
+     padding-top: 180px; /* ★★★ 매우 중요: 실제 이미지와 겹치지 않도록 JS 또는 수동으로 이 값 조정 ★★★ */
+                         /* 또는 .sync-type-scrollable-content의 padding-top 조정 */
 }
-.sync-type-description-content p {
-    margin-bottom: 0.5em;
-}
-.sync-type-description-content p:last-child {
-    margin-bottom: 0;
-}
+#floatingMenuPage2 .sync-type-description-content p { margin-bottom: 0.5em; }
+#floatingMenuPage2 .sync-type-description-content p:last-child { margin-bottom: 0; }
 
-.floating-menu-action-button-container {
-    padding: 0 15px 15px 15px;
+#floatingMenuPage2 .floating-menu-action-button-container {
+    padding: 10px 15px 15px 15px;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
-    z-index: 102; /* 설명 텍스트와 같은 레벨 또는 위 */
+    z-index: 102;
 }
-
-.menu-sync-retest-button {
-    background-color: #4A3F55;
-    color: #d3cce3;
-    padding: 10px 18px;
-    border-radius: 25px;
-    font-size: 0.9em;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+#floatingMenuPage2 .menu-sync-retest-button {
+    background-color: #4A3F55; color: #d3cce3; padding: 10px 18px;
+    border-radius: 25px; font-size: 0.9em; cursor: pointer; user-select: none;
+    white-space: nowrap; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
 }
-.menu-sync-retest-button:hover {
-    background-color: #5a4a8f;
-    color: white;
-}
-.menu-sync-retest-button:active {
-    transform: scale(0.97);
-}
-.menu-sync-retest-button:disabled {
-    background-color: #3a3047;
-    color: #6a6078;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+#floatingMenuPage2 .menu-sync-retest-button:hover { background-color: #5a4a8f; color: white; }
+#floatingMenuPage2 .menu-sync-retest-button:active { transform: scale(0.97); }
+#floatingMenuPage2 .menu-sync-retest-button:disabled { background-color: #3a3047; color: #6a6078; cursor: not-allowed; opacity: 0.7; }
 
-/* Page3의 그리드 컨테이너는 .page-content-area 내부에 위치 */
-.floating-two-column-image-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px; /* 아이템 간 간격 */
-    width: 100%;
-}
-.floating-two-column-image-item {
-    background-color: #4E445A;
-    border-radius: 10px;
-    padding: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+
+/* --- Page 3: 바깥 스크롤 방식 유지 --- */
+#floatingMenuPage3 .page-content-area {
+    flex-grow: 1;
+    overflow-y: auto; /* 이 영역 자체가 스크롤 대상 */
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    padding: 0 15px 15px 15px;
+    gap: 10px; /* 그리드 컨테이너와 다른 요소 간의 간격 (필요시) */
+
+    -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
+    mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+#floatingMenuPage3 .page-content-area::-webkit-scrollbar { width: 6px; }
+#floatingMenuPage3 .page-content-area::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+#floatingMenuPage3 .page-content-area::-webkit-scrollbar-thumb { background: rgba(220, 210, 240, 0.3); border-radius: 3px; }
+#floatingMenuPage3 .page-content-area::-webkit-scrollbar-thumb:hover { background: rgba(220, 210, 240, 0.5); }
+
+/* Page3 그리드 스타일 */
+#floatingMenuPage3 .floating-two-column-image-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+}
+#floatingMenuPage3 .floating-two-column-image-item {
+    background-color: #4E445A; border-radius: 10px; padding: 8px;
+    cursor: pointer; transition: background-color 0.2s ease;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
     aspect-ratio: 3 / 4;
 }
-.floating-two-column-image-item:hover {
-    background-color: #5A506A;
-}
-.floating-two-column-image-item img {
-    max-width: 100%;
-    max-height: 80%;
-    object-fit: contain;
-    border-radius: 6px;
+#floatingMenuPage3 .floating-two-column-image-item:hover { background-color: #5A506A; }
+#floatingMenuPage3 .floating-two-column-image-item img {
+    max-width: 100%; max-height: 80%; object-fit: contain; border-radius: 6px;
 }
 
 .floating-menu.hidden-by-stage {
