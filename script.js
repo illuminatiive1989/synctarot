@@ -4372,6 +4372,7 @@ async function displayApiResponseElements(parsedResp) {
         */
 
         // --- 드래그/스와이프 슬라이드 기능 수정 ---
+        // --- 드래그/스와이프 슬라이드 기능 수정 ---
         const sliderElement = document.querySelector('.floating-menu-slider');
         if (sliderElement) {
             let touchStartX = 0;
@@ -4392,21 +4393,16 @@ async function displayApiResponseElements(parsedResp) {
                 if (!isTouching || event.touches.length > 1 || !isFloatingMenuOpen) return;
                 touchEndX = event.touches[0].clientX;
                 // console.log(`[Swipe] touchmove: X=${touchEndX}`);
-                // 스와이프 중 실시간으로 슬라이더를 움직이게 하려면 여기서 transform 조작 (더 복잡해짐)
-                // 여기서는 touchend에서 한 번에 처리
             }, { passive: true });
 
             sliderElement.addEventListener('touchend', (event) => {
-                if (!isTouching || !isFloatingMenuOpen) { // event.touches.length 조건 제거 (touchend에서는 touches가 비어있음)
-                    isTouching = false; // 혹시 모를 상황 대비
+                if (!isTouching || !isFloatingMenuOpen) {
+                    isTouching = false;
                     return;
                 }
                 isTouching = false;
-                // touchEndX는 touchmove에서 마지막으로 업데이트된 값을 사용해야 함.
-                // touchend의 event.changedTouches[0].clientX는 터치가 끝난 지점.
 
                 const deltaX = touchEndX - touchStartX;
-                // console.log(`[Swipe] touchend: deltaX=${deltaX}, startX=${touchStartX}, endX=${touchEndX}`);
 
                 if (Math.abs(deltaX) > swipeThreshold) {
                     if (deltaX < 0) { // 왼쪽으로 스와이프 (다음)
@@ -4414,36 +4410,17 @@ async function displayApiResponseElements(parsedResp) {
                             console.log("[Swipe] Next slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex + 1);
                         } else {
-                            console.log("[Swipe] Already at last slide");
-                            // 마지막 슬라이드에서 더 스와이프 시 약간의 바운스 효과 (선택적)
-                            sliderElement.style.transition = 'transform 0.2s ease-out';
-                            sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides) + 5}%)`; // 살짝 더 이동
-                            setTimeout(() => {
-                                sliderElement.style.transition = 'transform 0.4s ease-in-out'; // 원래 transition 복원
-                                sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides)}%)`; // 제자리
-                            }, 200);
+                            // ... (마지막 슬라이드 바운스 효과) ...
                         }
                     } else { // 오른쪽으로 스와이프 (이전)
                         if (currentFloatingMenuSlideIndex > 0) {
                             console.log("[Swipe] Previous slide attempt");
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex - 1);
                         } else {
-                            console.log("[Swipe] Already at first slide");
-                            // 첫 슬라이드에서 더 스와이프 시 약간의 바운스 효과 (선택적)
-                            sliderElement.style.transition = 'transform 0.2s ease-out';
-                            sliderElement.style.transform = `translateX(5%)`; // 살짝 더 이동
-                            setTimeout(() => {
-                                sliderElement.style.transition = 'transform 0.4s ease-in-out';
-                                sliderElement.style.transform = `translateX(0%)`;
-                            }, 200);
+                            // ... (첫 슬라이드 바운스 효과) ...
                         }
                     }
-                } else {
-                    console.log("[Swipe] Swipe distance not enough or no swipe.");
-                    // 원래 위치로 돌려놓는 로직 (스와이프 도중 실시간 이동 구현 시 필요)
-                    // sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * (100 / visibleFloatingMenuSlides)}%)`;
                 }
-                // Reset X 좌표
                 touchStartX = 0;
                 touchEndX = 0;
             });
