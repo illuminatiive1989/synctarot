@@ -664,34 +664,33 @@ html, body {
 .floating-menu {
     width: calc(100% / 3);
     flex-shrink: 0;
-    /* overflow-y: auto; /* 이제 .page-content-area 또는 .sync-type-display-area 에서 스크롤 제어 */
     display: flex;
     flex-direction: column;
     color: white;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     position: relative;
-    padding: 0; /* 모든 floating-menu의 기본 패딩 제거. 내부에서 개별 설정 */
+    padding: 0; /* 모든 floating-menu의 기본 패딩 제거 */
 }
 
-/* ★★★ 공통 스크롤바 스타일을 .page-content-area 와 .sync-type-description-scroll-container 에 적용 ★★★ */
+/* ★★★ 공통 스크롤바 스타일을 .page-content-area와 .sync-type-description-scroll-container에 적용 ★★★ */
 .page-content-area::-webkit-scrollbar,
 .sync-type-description-scroll-container::-webkit-scrollbar {
-    width: 6px;
+    width: 6px; /* Page2 스크롤바 두께와 동일하게 */
 }
 .page-content-area::-webkit-scrollbar-track,
 .sync-type-description-scroll-container::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.05); /* Page2 스크롤바 트랙 색상 */
     border-radius: 3px;
 }
 .page-content-area::-webkit-scrollbar-thumb,
 .sync-type-description-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(220, 210, 240, 0.3);
+    background: rgba(220, 210, 240, 0.3); /* Page2 스크롤바 색상 */
     border-radius: 3px;
 }
 .page-content-area::-webkit-scrollbar-thumb:hover,
 .sync-type-description-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(220, 210, 240, 0.5);
+    background: rgba(220, 210, 240, 0.5); /* Page2 스크롤바 호버 색상 */
 }
 
 
@@ -700,25 +699,20 @@ html, body {
     font-weight: 500;
     color: #e0d8f0;
     text-align: center;
-    margin-bottom: 15px; 
+    margin-bottom: 10px; /* 타이틀과 콘텐츠 영역 사이의 기본 간격 (기존 15px에서 조금 줄임) */
     flex-shrink: 0;
     padding: 15px 15px 0 15px; 
 }
 
 .page-content-area {
-    flex-grow: 1; 
-    overflow-y: auto; 
-    padding: 0 15px 15px 15px; 
-    display: flex; 
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0 15px 15px 15px; /* 상단 패딩 0 (타이틀의 margin-bottom으로 간격), 좌우하단 패딩 */
+    display: flex;
     flex-direction: column;
-    /* gap: 10px; Page1, Page3 내부에서 개별적으로 gap 또는 margin으로 아이템 간격 조절 */
-    min-height: 0; 
-}
-/* Page1 리스트 아이템 간격 */
-#floatingMenuPage1 .page-content-area {
     gap: 10px;
+    min-height: 0;
 }
-
 
 #floatingMenuPage1 .floating-image-list-item {
     width: 100%;
@@ -727,7 +721,7 @@ html, body {
     overflow: hidden;
     background-color: #4E445A;
     transition: background-color 0.2s ease;
-    flex-shrink: 0; 
+    flex-shrink: 0;
 }
 #floatingMenuPage1 .floating-image-list-item:hover {
     background-color: #5A506A;
@@ -741,16 +735,16 @@ html, body {
     border-radius: 8px;
 }
 
-.sync-type-display-area { /* Page2의 콘텐츠 영역 */
+.sync-type-display-area { /* Page2의 메인 콘텐츠 영역 */
     flex-grow: 1;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 15px 10px 15px; /* 타이틀과의 간격을 위해 상단 패딩 0 */
+    padding: 0 15px 10px 15px; /* 상단 패딩 0, 좌우하단 패딩은 Page1,3의 .page-content-area와 유사하게 */
     overflow: hidden;
     min-height: 0;
-    /* margin-top: 5px; /* 타이틀의 margin-bottom으로 간격 조절 */
+    /* margin-top: 5px; /* 타이틀의 margin-bottom으로 간격 조절하므로 이 부분은 제거 또는 0으로 */
 }
 
 .sync-type-image-container {
@@ -780,16 +774,16 @@ html, body {
     position: relative;
     z-index: 102;
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    padding: 15px;
+    height: 100%; /* 부모(.sync-type-display-area)의 높이를 최대한 활용 */
+    overflow-y: auto; /* 여기서 스크롤 담당 */
+    padding: 15px; /* 내부 콘텐츠와 스크롤 영역 가장자리 간격 */
     display: flex;
     flex-direction: column;
     justify-content: center;
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
     mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
 }
-
+/* 스크롤바 스타일은 위에서 공통으로 처리 */
 
 .sync-type-description-content {
     color: #e8e2f5;
@@ -805,7 +799,7 @@ html, body {
 }
 
 .floating-menu-action-button-container {
-    padding: 0 15px 15px 15px;
+    padding: 0 15px 15px 15px; /* 상단 패딩 0, 좌우하단 패딩 유지 */
     display: flex;
     justify-content: center;
     flex-shrink: 0;
@@ -839,16 +833,11 @@ html, body {
     opacity: 0.7;
 }
 
-#floatingMenuPage3 .page-content-area { /* Page3 그리드 아이템 간격 */
-    display: grid; /* Page3는 grid이므로 flex-direction, gap은 불필요 */
+
+.floating-two-column-image-container { /* Page3 그리드 컨테이너 */
+    display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-}
-
-.floating-two-column-image-container { /* 이 선택자는 이제 불필요할 수 있음. .page-content-area가 담당 */
-    /* display: grid; */ /* .page-content-area로 이동 */
-    /* grid-template-columns: repeat(2, 1fr); */
-    /* gap: 10px; */
     width: 100%;
 }
 .floating-two-column-image-item {
