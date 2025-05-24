@@ -16,7 +16,7 @@
 
     <div class="container initial-hidden">
         <div id="section2">
-           <!-- 채팅 메시지들 및 제안 버튼들이 동적으로 추가될 영역 -->
+           <!-- 채팅 메시지들이 동적으로 추가될 영역 -->
         </div>
 
         <div class="new-message-button" id="newMessageButton">
@@ -82,10 +82,17 @@
                 <div class="sync-type-display-area">
                     <div class="sync-type-image-container">
                         <!-- JS가 여기에 <img src="..." alt="..." data-action="..."> 추가 -->
+                        <!-- 예시 (JS에서 동적 생성 시 이 부분은 비워둡니다):
+                        <img src="images/sync/example_synctype_card.png" alt="나의 싱크타입 이미지" data-action="show_my_synctype_info">
+                        -->
                     </div>
                     <div class="sync-type-description-scroll-container">
                         <div class="sync-type-description-content">
                             <!-- JS가 여기에 <p>설명...</p> 또는 직접 텍스트 추가 -->
+                            <!-- 예시 (JS에서 동적 생성 시 이 부분은 비워둡니다):
+                            <p>이 싱크타입은 매우 특별하며...</p>
+                            <p>주요 특징은 다음과 같습니다...</p>
+                            -->
                         </div>
                     </div>
                 </div>
@@ -106,7 +113,10 @@
         </div>
     </div>
 
-    <!-- #syncRetestButtonContainer 삭제됨 -->
+    <!-- 싱크타입 재테스트 버튼 컨테이너 -->
+    <div id="syncRetestButtonContainer" class="sync-retest-button-container">
+        <!-- JS를 통해 여기에 '싱크타입 테스트 다시하고 싶어' 버튼이 동적으로 추가됩니다. -->
+    </div>
 
     <script src="script.js"></script> <!-- 최종 JavaScript 파일 경로 -->
 </body>
