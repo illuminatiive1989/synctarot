@@ -4252,7 +4252,11 @@ async function displayApiResponseElements(parsedResp) {
     }
 
 
-     function setupEventListeners() {
+     // --- 플로팅 메뉴 슬라이드 및 클릭 방지 관련 전역 변수 ---
+    let preventClickAfterDrag = false; // 짧은 드래그 후 클릭 방지 플래그
+    let preventClickTimeoutId = null;   // 클릭 방지 타임아웃 ID
+
+    function setupEventListeners() {
         if (sendButton) sendButton.addEventListener('click', () => {
             if (isSessionTimedOut) {
                 console.log("[SendButtonClick] 세션 타임아웃. 보내기 버튼 동작 안 함.");
@@ -4316,6 +4320,7 @@ async function displayApiResponseElements(parsedResp) {
         const indicatorDots = document.querySelectorAll('.floating-menu-indicator-dot');
         indicatorDots.forEach(dot => {
             dot.addEventListener('click', (event) => {
+                if (preventClickAfterDrag) return;
                 const domTargetIndexAttr = event.currentTarget.getAttribute('data-slide-target');
                 if (domTargetIndexAttr !== null) {
                     const domTargetIndex = parseInt(domTargetIndexAttr, 10);
@@ -4335,116 +4340,175 @@ async function displayApiResponseElements(parsedResp) {
             });
         });
 
-        const floatingPage1Items = document.querySelectorAll('#floatingMenuPage1 .floating-image-list-item');
-        floatingPage1Items.forEach(item => {
+        const allFloatingMenuItems = document.querySelectorAll('.floating-menu [data-action]');
+        allFloatingMenuItems.forEach(item => {
             item.addEventListener('click', (event) => {
+                if (preventClickAfterDrag) {
+                    console.log("[Floating Menu Item Click] Prevented click due to recent drag.");
+                    preventClickAfterDrag = false;
+                    if (preventClickTimeoutId) clearTimeout(preventClickTimeoutId);
+                    return;
+                }
                 const action = event.currentTarget.dataset.action;
-                console.log(`[Event Listener] Page 1 Item clicked. Action: ${action}`);
+                console.log(`[Event Listener] Floating Menu Item clicked. Action: ${action}`);
                 if (action) {
                     handleFloatingMenuItemClick(action);
                 }
             });
         });
 
+
         const sliderElement = document.querySelector('.floating-menu-slider');
         if (sliderElement) {
             let touchStartX = 0;
             let touchStartY = 0;
-            let currentTranslateX = 0; // 현재 슬라이더의 translateX 값
-            let dragDeltaX = 0; // 드래그 중 X축 이동량
+            let currentTranslateX = 0;
+            let dragDeltaX = 0;
             let isTouching = false;
-            let isDragging = false; // 실제 수평 스와이프가 시작되었는지
-            const swipeThreshold = 50;
-            const verticalSwipeThreshold = 40;
+            let isDragging = false;
+            const swipeThreshold = 50; // 이 값보다 커야 스와이프로 인정하고 슬라이드 이동
+            // const clickThreshold = 1; // 클릭으로 간주될 수 있는 최대 움직임 (아주 작게 설정 또는 0)
             const slideWidthPercentage = 100 / visibleFloatingMenuSlides;
 
+
             sliderElement.addEventListener('touchstart', (event) => {
-                if (!isFloatingMenuOpen || event.touches.length > 1) {
-                    isTouching = false;
-                    return;
-                }
+                if (!isFloatingMenuOpen || event.touches.length > 1 || isTouching) return;
                 touchStartX = event.touches[0].clientX;
                 touchStartY = event.touches[0].clientY;
-                isTouching = true;
-                isDragging = false;
-                dragDeltaX = 0;
-
-                // 현재 슬라이더의 transform 값에서 translateX를 가져옴 (애니메이션 중이 아닐 때)
-                // currentFloatingMenuSlideIndex는 보이는 슬라이드 기준 인덱스
-                currentTranslateX = -currentFloatingMenuSlideIndex * slideWidthPercentage;
-                sliderElement.style.transition = 'none'; // 드래그 시작 시 transition 제거
-
-                // console.log(`[Swipe] touchstart: X=${touchStartX}, Y=${touchStartY}, currentTranslateX=${currentTranslateX}%`);
-            }, { passive: true }); // passive: true로 변경하여 스크롤 성능 향상 (preventDefault 안 함)
+                commonDragStart();
+            }, { passive: true });
 
             sliderElement.addEventListener('touchmove', (event) => {
                 if (!isTouching || !isFloatingMenuOpen) return;
-
                 const touchCurrentX = event.touches[0].clientX;
                 const touchCurrentY = event.touches[0].clientY;
-                dragDeltaX = touchCurrentX - touchStartX;
-                const dragDeltaY = touchCurrentY - touchStartY;
+                commonDragMove(touchCurrentX, touchCurrentY);
+            }, { passive: true });
 
-                if (!isDragging) { // 아직 드래그 상태가 아니라면, 첫 움직임으로 방향 판단
-                    if (Math.abs(dragDeltaX) > Math.abs(dragDeltaY) && Math.abs(dragDeltaX) > 10) {
-                        isDragging = true; // 수평 스와이프 시작으로 간주
-                        // console.log("[Swipe] Horizontal swipe drag started.");
-                        // 수평 스와이프 시작 시, 상위 요소의 스크롤을 막기 위해 passive: false가 필요할 수 있음
-                        // 하지만 현재는 passive: true 상태이므로, 만약 스크롤 간섭이 심하다면
-                        // 이 부분을 { passive: false }로 바꾸고 event.preventDefault()를 조건부로 호출해야함.
-                        // 지금은 일단 passive:true로 두고, 브라우저 기본 동작에 맡김.
-                    } else if (Math.abs(dragDeltaY) > Math.abs(dragDeltaX) && Math.abs(dragDeltaY) > 10) {
-                        // 수직 이동이 더 크면, 스와이프가 아니라고 판단하고 터치 종료
-                        // console.log("[Swipe] Vertical scroll detected, aborting swipe for this touch.");
-                        isTouching = false; // 이 터치에 대한 스와이프 중단
-                        return;
+            sliderElement.addEventListener('touchend', () => {
+                commonDragEnd();
+            });
+            sliderElement.addEventListener('touchcancel', () => {
+                commonDragEnd(true);
+            });
+
+            sliderElement.addEventListener('mousedown', (event) => {
+                if (!isFloatingMenuOpen || event.button !== 0 || isTouching) return;
+                event.preventDefault();
+                touchStartX = event.clientX;
+                touchStartY = event.clientY;
+                commonDragStart();
+                window.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+            });
+
+            function handleMouseMove(event) {
+                if (!isTouching || !isFloatingMenuOpen) return;
+                commonDragMove(event.clientX, event.clientY);
+            }
+
+            function handleMouseUp() {
+                commonDragEnd();
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+            }
+
+            function commonDragStart() {
+                isTouching = true;
+                isDragging = false;
+                dragDeltaX = 0;
+                currentTranslateX = -currentFloatingMenuSlideIndex * slideWidthPercentage;
+                sliderElement.style.transition = 'none';
+
+                if (preventClickTimeoutId) {
+                    clearTimeout(preventClickTimeoutId);
+                    preventClickTimeoutId = null;
+                }
+                preventClickAfterDrag = false;
+            }
+
+            function commonDragMove(currentX, currentY) {
+                if (!isTouching) return;
+
+                dragDeltaX = currentX - touchStartX;
+                const dragDeltaY = currentY - touchStartY;
+
+                if (!isDragging) {
+                    // X 또는 Y로 1px이라도 움직이면 isDragging을 true로 설정할 수 있지만,
+                    // 너무 민감할 수 있으므로 약간의 threshold(예: 3px 또는 5px)를 두는 것이 좋을 수 있습니다.
+                    // 여기서는 "10px 이상 수평 이동이 수직 이동보다 클 때"로 유지합니다.
+                    // "조금이라도 움직이면"의 기준을 정해야 합니다.
+                    // 만약 정말 1px이라도 움직이면 isDragging = true로 하려면 아래 조건을 사용:
+                    // if (Math.abs(dragDeltaX) > 0 || Math.abs(dragDeltaY) > 0) {
+                    //     isDragging = true; // X든 Y든 조금이라도 움직이면 드래깅 상태로 간주
+                    // }
+                    // 기존 로직 유지 (수평 드래그 의도 파악):
+                    if (Math.abs(dragDeltaX) > Math.abs(dragDeltaY) && Math.abs(dragDeltaX) > 1) {
+                         isDragging = true;
+                    } else if (Math.abs(dragDeltaY) > Math.abs(dragDeltaX) && Math.abs(dragDeltaY) > 1) {
+                         return;
                     }
                 }
 
-                if (isDragging) {
-                    // event.preventDefault(); // 만약 {passive: false} 일 경우 필요
+                if (isDragging) { // isDragging이 true일 때만 (즉, 수평 드래그 의도가 있을 때만) 슬라이더 이동
                     const newTranslateX = currentTranslateX + (dragDeltaX / sliderElement.offsetWidth) * 100;
                     sliderElement.style.transform = `translateX(${newTranslateX}%)`;
-                    // console.log(`[Swipe] touchmove dragging: dX=${dragDeltaX}, newTranslateX=${newTranslateX}%`);
                 }
-            }, { passive: true }); // passive: true
+            }
 
-            sliderElement.addEventListener('touchend', () => {
-                if (!isTouching || !isFloatingMenuOpen) {
-                    isTouching = false;
-                    isDragging = false;
-                    return;
+            function commonDragEnd(cancelled = false) {
+                if (!isTouching) return;
+
+                sliderElement.style.transition = 'transform 0.4s ease-in-out';
+
+                // ★★★ 클릭 방지 로직 수정 ★★★
+                // dragDeltaX의 절댓값이 0보다 크고, swipeThreshold보다 작을 때 클릭 방지
+                // isDragging 플래그도 함께 확인하여, 실제 드래그 시도가 있었는지 확인
+                if (isDragging && Math.abs(dragDeltaX) > 0 && Math.abs(dragDeltaX) < swipeThreshold) {
+                    preventClickAfterDrag = true;
+                    if (preventClickTimeoutId) clearTimeout(preventClickTimeoutId);
+                    preventClickTimeoutId = setTimeout(() => {
+                        preventClickAfterDrag = false;
+                        preventClickTimeoutId = null;
+                    }, 50);
+                    console.log(`[Swipe] Slight drag detected (dX: ${dragDeltaX}), setting click prevention flag.`);
+                } else if (!isDragging && Math.abs(dragDeltaX) > 0) {
+                    // isDragging이 false인데 dragDeltaX가 0보다 크다는 것은
+                    // move 이벤트에서 수평 드래그로 판정될 만큼 충분히 움직이지 않았지만,
+                    // 어쨌든 시작점과 끝점 사이에 약간의 X축 변화가 있었다는 의미입니다.
+                    // 이 경우도 클릭을 방지하고 싶다면 아래 로직 추가.
+                    // 이 조건은 사용자가 거의 제자리에서 살짝만 움직였다가 놓는 경우에 해당될 수 있습니다.
+                    preventClickAfterDrag = true;
+                    if (preventClickTimeoutId) clearTimeout(preventClickTimeoutId);
+                    preventClickTimeoutId = setTimeout(() => {
+                        preventClickAfterDrag = false;
+                        preventClickTimeoutId = null;
+                    }, 50);
+                    console.log(`[Swipe] Minimal movement detected without full drag (dX: ${dragDeltaX}), setting click prevention flag.`);
                 }
+                // ★★★ 클릭 방지 로직 수정 끝 ★★★
 
-                // console.log(`[Swipe] touchend: isDragging=${isDragging}, dragDeltaX=${dragDeltaX}`);
-                sliderElement.style.transition = 'transform 0.4s ease-in-out'; // Transition 복원
-
-                if (isDragging && Math.abs(dragDeltaX) > swipeThreshold) {
-                    if (dragDeltaX < 0) { // 왼쪽으로 스와이프 (다음)
+                if (!cancelled && isDragging && Math.abs(dragDeltaX) >= swipeThreshold) {
+                    if (dragDeltaX < 0) {
                         if (currentFloatingMenuSlideIndex < visibleFloatingMenuSlides - 1) {
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex + 1);
                         } else {
-                            // 마지막 슬라이드에서 더 가려고 할 때 제자리로
                             sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * slideWidthPercentage}%)`;
                         }
-                    } else { // 오른쪽으로 스와이프 (이전)
+                    } else {
                         if (currentFloatingMenuSlideIndex > 0) {
                             handleFloatingMenuSlide(currentFloatingMenuSlideIndex - 1);
                         } else {
-                            // 첫 슬라이드에서 더 가려고 할 때 제자리로
                             sliderElement.style.transform = `translateX(0%)`;
                         }
                     }
                 } else {
-                    // 스와이프 거리가 짧거나, 수평 드래그가 아니었으면 원래 위치로
                     sliderElement.style.transform = `translateX(-${currentFloatingMenuSlideIndex * slideWidthPercentage}%)`;
-                    // console.log("[Swipe] Swipe not significant or not dragging, reverting to current slide.");
                 }
 
                 isTouching = false;
                 isDragging = false;
-                dragDeltaX = 0;
-            });
+            }
         }
         console.log("[setupEventListeners] 모든 이벤트 리스너 설정 완료");
     }

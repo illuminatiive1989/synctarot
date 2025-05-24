@@ -768,15 +768,17 @@ html, body {
 }
 
 #floatingMenuPage2 .sync-type-scrollable-content {
-    flex-grow: 1; /* 남은 공간 차지 */
-    overflow-y: auto; /* 내부 스크롤 */
+    flex-grow: 1;
+    overflow-y: auto;
     position: relative;
-    z-index: 100; /* 이미지보다 아래 */
+    z-index: 100;
     min-height: 0;
-    padding: 15px; /* 텍스트 여백 */
-    display: flex; /* 내부 .sync-type-description-content 정렬 위해 */
+    padding: 15px;
+    display: flex;
     flex-direction: column;
-    justify-content: center; /* 내용 짧을 시 수직 중앙 정렬 */
+    /* justify-content: center; */ /* 이 부분을 주석 처리하거나 삭제 */
+    justify-content: flex-start; /* 위에서부터 시작하도록 변경 */
+    padding-top: 180px; /* 여기에 직접 패딩을 주거나, 아래 description-content에 유지 */
 
     -webkit-mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
     mask-image: linear-gradient(transparent 0%, black 15%, black 85%, transparent 100%);
@@ -791,23 +793,8 @@ html, body {
     font-size: 0.9em;
     line-height: 1.65;
     text-align: center;
-    /* 이미지를 피하기 위한 패딩 - JS로 동적 계산하거나, 시행착오로 고정값 설정 */
-    /* 예: 이미지 높이가 160px이고 중앙에 있다면, 스크롤 시작점은 그 아래여야 함 */
-    /* .sync-type-scrollable-content 에 padding-top을 주거나, 여기에 직접 */
-    /* 여기서는 .sync-type-scrollable-content의 justify-content:center 로 인해
-       내용이 짧을 때 중앙에 오므로, 내용이 길어져 스크롤 될 때
-       이미지 뒤로 가지 않도록 하는 것이 중요.
-       스크롤 시작점을 이미지 아래로 내리려면, scrollable-content에
-       빈 공간(div)을 이미지 높이만큼 넣거나, padding-top을 주는 것이 일반적.
-       현재 flex 구조에서는, scrollable-content가 display-area의 남은 공간을 차지하므로,
-       이미지는 그 위에 떠있는 형태. 텍스트 시작점이 이미지와 겹치지 않게 하는 것이 관건.
-       가장 간단한 해결책은 JS로 이미지 높이 계산 후 scrollable-content의 padding-top 조정.
-       CSS만으로는, scrollable-content 내부에 이미지 높이만큼의 dummy div를 넣는 방법 고려.
-       또는, description-content에 매우 큰 padding-top을 주고,
-       scrollable-content의 justify-content를 flex-start로 변경하여 항상 위에서부터 시작.
-    */
-     padding-top: 180px; /* ★★★ 매우 중요: 실제 이미지와 겹치지 않도록 JS 또는 수동으로 이 값 조정 ★★★ */
-                         /* 또는 .sync-type-scrollable-content의 padding-top 조정 */
+    /* padding-top: 180px; */ /* scrollable-content에 줬다면 여기는 0 또는 작은 값 */
+    padding-top: 0; /* 또는 적절한 추가 여백 */
 }
 #floatingMenuPage2 .sync-type-description-content p { margin-bottom: 0.5em; }
 #floatingMenuPage2 .sync-type-description-content p:last-child { margin-bottom: 0; }
