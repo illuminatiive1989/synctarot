@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         "지저분한 카드", "찢어진 카드"
     ];
 
-    // --- 성운 및 싱크타입 데이터 ---
+// --- 성운 및 싱크타입 데이터 ---
     const CONSTELLATIONS_DATA = {
         "루미네시아": { description: "🐟 깊은 감정의 바다에서 내면의 빛을 밝히는 싱크타입들이 모여있는 곳이지.", syncTypes: ["젠틀빔", "버블퍼프", "스텔라 터틀", "문 스눗", "스페이스 퍼프", "폴라로이드", "스타 가피", "기억안나"] },
         "이그니티오": { description: "🔥 타오르는 불꽃처럼 열정과 도전으로 가득 찬 싱크타입들이 모인 곳이야.", syncTypes: ["스타대셔", "코멧 캐이나인", "파이어 스프라우트", "스타훗", "펄사", "스월스", "젤로마이트", "기억안나"] },
@@ -40,6 +40,107 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     const ALL_CONSTELLATION_NAMES = Object.keys(CONSTELLATIONS_DATA);
     console.log("[ 초기화 ] 성운 및 싱크타입 데이터 (CONSTELLATIONS_DATA) 정의 완료");
+
+    // ★★★ 신규: 싱크타입별 설명 데이터 (모든 싱크타입 포함) ★★★
+    const SYNC_TYPE_DESCRIPTIONS = {
+        // 루미네시아
+        "젠틀빔": "설명이 들어갈 부분입니다.",
+        "버블퍼프": "설명이 들어갈 부분입니다.",
+        "스텔라 터틀": "설명이 들어갈 부분입니다.",
+        "문 스눗": "설명이 들어갈 부분입니다.",
+        "스페이스 퍼프": "설명이 들어갈 부분입니다.",
+        "폴라로이드": "설명이 들어갈 부분입니다.",
+        "스타 가피": "설명이 들어갈 부분입니다.",
+        // 이그니티오
+        "스타대셔": "설명이 들어갈 부분입니다.",
+        "코멧 캐이나인": "설명이 들어갈 부분입니다.",
+        "파이어 스프라우트": "설명이 들어갈 부분입니다.",
+        "스타훗": "설명이 들어갈 부분입니다.",
+        "펄사": "설명이 들어갈 부분입니다.",
+        "스월스": "설명이 들어갈 부분입니다.",
+        "젤로마이트": "설명이 들어갈 부분입니다.",
+        // 카스텔라리스
+        "가디언 로보베어": "설명이 들어갈 부분입니다.",
+        "스타하이브": "설명이 들어갈 부분입니다.",
+        "아머드 슬러그": "설명이 들어갈 부분입니다.",
+        "아이봇": "설명이 들어갈 부분입니다.",
+        "엘더스퀴드": "설명이 들어갈 부분입니다.",
+        "스테드패스트 로보베어": "설명이 들어갈 부분입니다.",
+        "플래로우": "설명이 들어갈 부분입니다.",
+        // 크로니카
+        "코스믹아이": "설명이 들어갈 부분입니다.",
+        "갤럭시캣": "설명이 들어갈 부분입니다.",
+        "스파이럴 셸러": "설명이 들어갈 부분입니다.",
+        "오르비터": "설명이 들어갈 부분입니다.",
+        "그래비톤": "설명이 들어갈 부분입니다.",
+        "스누터": "설명이 들어갈 부분입니다.",
+        "펄스피쉬": "설명이 들어갈 부분입니다.",
+        // 코넥서스
+        "아쿠아 독": "설명이 들어갈 부분입니다.",
+        "인터스텔라 캣": "설명이 들어갈 부분입니다.",
+        "스페이스 워크": "설명이 들어갈 부분입니다.",
+        "링비": "설명이 들어갈 부분입니다.",
+        "크리터넛": "설명이 들어갈 부분입니다.",
+        "루미스퀴드": "설명이 들어갈 부분입니다.",
+        "인터로퍼": "설명이 들어갈 부분입니다.",
+        // 에오루스
+        "코스믹 웜프": "설명이 들어갈 부분입니다.",
+        "아스트랄 버니": "설명이 들어갈 부분입니다.",
+        "플로터": "설명이 들어갈 부분입니다.",
+        "네뷸라 폭스": "설명이 들어갈 부분입니다.",
+        "스페이스 버드": "설명이 들어갈 부분입니다.",
+        "록키": "설명이 들어갈 부분입니다.",
+        "아우라밥": "설명이 들어갈 부분입니다.",
+        // 인퀴지토
+        "아주르 코멧펍": "설명이 들어갈 부분입니다.",
+        "유풋": "설명이 들어갈 부분입니다.",
+        "오르비니어": "설명이 들어갈 부분입니다.",
+        "세팔론": "설명이 들어갈 부분입니다.",
+        "글로브로": "설명이 들어갈 부분입니다.",
+        "소나팟": "설명이 들어갈 부분입니다.",
+        "셀레스티레이": "설명이 들어갈 부분입니다.",
+        // 움브라리스
+        "몰테나이트": "설명이 들어갈 부분입니다.",
+        "스푹코이드": "설명이 들어갈 부분입니다.",
+        "크레이터비스트": "설명이 들어갈 부분입니다.",
+        "인터스텔라 뱃": "설명이 들어갈 부분입니다.",
+        "톡실룸": "설명이 들어갈 부분입니다.",
+        "베노텅": "설명이 들어갈 부분입니다.",
+        "문죠": "설명이 들어갈 부분입니다.",
+        // 에퀼리브리아
+        "오르빗 이터": "설명이 들어갈 부분입니다.",
+        "코스미릴로": "설명이 들어갈 부분입니다.",
+        "플래니토이드": "설명이 들어갈 부분입니다.",
+        "스페이스 와플": "설명이 들어갈 부분입니다.",
+        "스페이스 스노우플레이크": "설명이 들어갈 부분입니다.",
+        "베누블럽": "설명이 들어갈 부분입니다.",
+        "라이트로덴트": "설명이 들어갈 부분입니다.",
+        // 크레아티오
+        "핑크 인베이더": "설명이 들어갈 부분입니다.",
+        "스페이스 젤리즈": "설명이 들어갈 부분입니다.",
+        "마이셀리안": "설명이 들어갈 부분입니다.",
+        "스파인더": "설명이 들어갈 부분입니다.",
+        "스타리 스키터": "설명이 들어갈 부분입니다.",
+        "젤리넛": "설명이 들어갈 부분입니다.",
+        "볼텍스 엘리멘탈": "설명이 들어갈 부분입니다.",
+        // 실바니스
+        "애스트로마이트": "설명이 들어갈 부분입니다.",
+        "더스티": "설명이 들어갈 부분입니다.",
+        "스페이스 슬러그": "설명이 들어갈 부분입니다.",
+        "스포어 블룸": "설명이 들어갈 부분입니다.",
+        "애스트로슈룸": "설명이 들어갈 부분입니다.",
+        "문 크리터": "설명이 들어갈 부분입니다.",
+        "젬크랩": "설명이 들어갈 부분입니다.",
+        // 알비온 프라이머
+        "스페이스랫": "설명이 들어갈 부분입니다.",
+        "영 에일리언": "설명이 들어갈 부분입니다.",
+        "플록시": "설명이 들어갈 부분입니다.",
+        "코스몬": "설명이 들어갈 부분입니다.",
+        "루나링": "설명이 들어갈 부분입니다.",
+        "스타스프라이트": "설명이 들어갈 부분입니다.",
+        "스페이스 마이츠": "설명이 들어갈 부분입니다."
+    };
+    console.log(`[ 초기화 ] 싱크타입 설명 데이터 (SYNC_TYPE_DESCRIPTIONS) 정의 완료. 총 ${Object.keys(SYNC_TYPE_DESCRIPTIONS).length}개`);
 
     // --- 전체 타로 카드 ID 목록 (78장) ---
     const ALL_TAROT_CARD_IDS = [
@@ -3533,6 +3634,88 @@ async function displayApiResponseElements(parsedResp) {
             isFloatingMenuOpen = true;
             console.log("[FloatingMenu] 메뉴 열림");
 
+            // ★★★ 플로팅 메뉴 2번 바 내용 업데이트 ★★★
+            const floatingMenuPage2 = document.getElementById('floatingMenuPage2');
+            const page2Title = floatingMenuPage2.querySelector('.floating-menu-title');
+            const page2ImageContainer = floatingMenuPage2.querySelector('.floating-single-image-container');
+            
+            // 기존 이미지와 설명(p 태그) 제거
+            if (page2ImageContainer) {
+                const existingImg = page2ImageContainer.querySelector('img');
+                if (existingImg) existingImg.remove();
+                const existingDescP = page2ImageContainer.querySelector('p.sync-type-description');
+                if (existingDescP) existingDescP.remove();
+            }
+
+
+            if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
+                if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
+                
+                if (page2ImageContainer) {
+                    // 싱크타입 이미지 생성 및 추가
+                    // userProfile.결정된싱크타입을 기반으로 이미지 파일명 찾기
+                    // 예: "인터스텔라 캣" -> "interstellarcat_character_card"
+                    let syncTypeCardId = null;
+                    const userSyncTypeKorean = userProfile.결정된싱크타입;
+                    const userConstellationKorean = userProfile.사용자소속성운;
+
+                    if (CONSTELLATIONS_DATA[userConstellationKorean] && CONSTELLATIONS_DATA[userConstellationKorean].syncTypes.includes(userSyncTypeKorean)) {
+                        // SYNC_TYPE_CHARACTER_CARD_IDS 에서 userSyncTypeKorean 과 매칭되는 ID를 찾아야 함
+                        // 이는 싱크타입 한글 이름과 캐릭터 카드 ID 간의 매핑이 필요함을 의미.
+                        // 임시로, 싱크타입 이름을 소문자화하고 공백을 제거한 후 _character_card를 붙여서 ID를 추정.
+                        // 또는, SYNC_TYPE_CHARACTER_CARD_IDS 목록을 순회하며 더 정확한 매칭 로직 필요.
+                        // 여기서는 간단한 변환 시도 (실제로는 더 견고한 매핑 필요)
+                        const probableIdPart = userSyncTypeKorean.toLowerCase().replace(/\s+/g, '');
+                        syncTypeCardId = SYNC_TYPE_CHARACTER_CARD_IDS.find(id => id.startsWith(probableIdPart) && id.endsWith('_character_card'));
+                    }
+
+
+                    if (syncTypeCardId) {
+                        const syncImg = document.createElement('img');
+                        syncImg.src = `images/sync/${syncTypeCardId}.png`;
+                        syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
+                        syncImg.dataset.action = "show_my_synctype_info"; // 클릭 액션 정의
+                        page2ImageContainer.appendChild(syncImg);
+
+                        // 싱크타입 이름 (이미지 하단에 표시될 수 있으나, 여기서는 타이틀로 대체. 필요시 추가)
+
+                        // 싱크타입 설명 추가
+                        const syncDesc = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
+                        const descP = document.createElement('p');
+                        descP.classList.add('sync-type-description'); // 스타일링을 위한 클래스
+                        descP.style.fontSize = "0.85em"; // CSS로 옮기는 것이 좋음
+                        descP.style.color = "#d3cce3";
+                        descP.style.marginTop = "10px";
+                        descP.style.textAlign = "center";
+                        descP.innerHTML = syncDesc.replace(/\n/g, "<br>"); // 줄바꿈 처리
+                        page2ImageContainer.appendChild(descP); // 이미지 컨테이너에 설명 추가
+                    } else {
+                        page2ImageContainer.innerHTML = '<p>싱크타입 이미지를 불러올 수 없습니다.</p>';
+                        console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 찾지 못했습니다.`);
+                    }
+                }
+            } else {
+                if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
+                if (page2ImageContainer) {
+                    // 기본 이미지 또는 안내 문구 표시
+                    const defaultImg = document.createElement('img');
+                    defaultImg.src = "images/menu/recommended_tarot_today.png"; // 기존 이미지 유지 또는 변경
+                    defaultImg.alt = "싱크타입 정보가 아직 없어요.";
+                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; // 기본 액션
+                    page2ImageContainer.appendChild(defaultImg);
+                    
+                    const defaultDescP = document.createElement('p');
+                    defaultDescP.classList.add('sync-type-description');
+                    defaultDescP.style.fontSize = "0.85em";
+                    defaultDescP.style.color = "#d3cce3";
+                    defaultDescP.style.marginTop = "10px";
+                    defaultDescP.style.textAlign = "center";
+                    defaultDescP.textContent = "아직 싱크타입 정보가 없어요. 테스트를 통해 알아보세요!";
+                    page2ImageContainer.appendChild(defaultDescP);
+                }
+            }
+
+
             const slider = document.querySelector('.floating-menu-slider');
             const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
             let initialTargetIndex = 0; 
@@ -3562,10 +3745,9 @@ async function displayApiResponseElements(parsedResp) {
 
             if (chatInput) chatInput.blur();
             hideTooltip();
-            manageSyncRetestButtonVisibility(); // ★★★ 메뉴 열릴 때 버튼 상태 업데이트 ★★★
+            manageSyncRetestButtonVisibility(); 
         }
     }
-
     function hideFloatingMenu() {
         const menuContainer = document.getElementById('floatingMenuContainer');
         const overlay = document.getElementById('menuOverlay');
@@ -3587,7 +3769,7 @@ async function displayApiResponseElements(parsedResp) {
 
     async function handleFloatingMenuItemClick(action) {
         console.log(`[FloatingMenu] 메뉴 아이템 클릭: ${action}`);
-        hideFloatingMenu();
+        hideFloatingMenu(); 
 
         let userMessageText = "";
         let rubyActionText = null;
@@ -3595,6 +3777,7 @@ async function displayApiResponseElements(parsedResp) {
         let selectedTarotTypeForProfile = null;
 
         switch (action) {
+            // ... (기존 case 'tarot_today_fortune' 부터 'tarot_salary_increase' 까지 동일하게 유지) ...
             case 'tarot_today_fortune':
                 userMessageText = "오늘, 좋은일이 생길까?";
                 rubyActionText = "루비가 눈을 반짝이며";
@@ -3658,38 +3841,71 @@ async function displayApiResponseElements(parsedResp) {
 
             case 'new_chat':
                 console.log("[FloatingMenu] '새로운 상담 시작하기' 선택됨.");
-                // clearChatArea(); // 대화 내용 유지
-                conversationHistory = []; // 대화 기록만 초기화
-                // userProfile = initializeUserProfile(); // ★★★ 프로필 유지, 로컬 삭제 안 함 ★★★
-                currentConsultationStage = 0; // 단계만 0으로
+                conversationHistory = []; 
+                currentConsultationStage = 0; 
                 isSessionTimedOut = false;
                 isFirstBotMessageDisplayed = false;
                 showStage10EntryEmoticon = false;
                 isInitialApiCallAfterObjectiveTest = false;
                 if (rubyImageElement) rubyImageElement.classList.remove('blurred');
-                // 선택된 타로 주제 및 고민 초기화 (새 상담이니까)
                 currentSelectedTarotType = null;
-                updateUserProfile({ "사용자의고민": null, "선택된타로카드들": [], "시나리오": null }); // 고민, 타로카드, 시나리오만 초기화 후 저장
-                advanceConsultationStage(1); // 1단계 UI 다시 그림
+                updateUserProfile({ "사용자의고민": null, "선택된타로카드들": [], "시나리오": null }); 
+                advanceConsultationStage(1); 
                 return;
-            /*
-            case 'retest_sync': // ★★★ 이 부분은 새로운 플로우로 대체되었으므로 주석 또는 삭제 ★★★
-                console.log("[FloatingMenu] '싱크타입 다시 테스트' 선택됨 (현재는 비활성화 고려).");
-                // 현재는 제안 버튼으로 처리되므로, 이 메뉴 항목은 작동하지 않거나 다른 기능으로 대체될 수 있음.
-                // 만약 이 버튼을 계속 남겨두고 싶다면, handleSyncTypeRetestRequest()를 직접 호출하는 것을 고려.
-                // await handleSyncTypeRetestRequest();
-                // return;
-                // 혹은 사용자에게 메시지로 안내
-                await displayHardcodedUIElements(
-                    "루비가 안내하며",
-                    "싱크타입 재테스트는 대화 중 '싱크타입 테스트 다시하고 싶어' 버튼이 나타날 때 할 수 있어! [exp001]",
-                    [],
-                    handleButtonClick
-                );
+
+            // ★★★ 플로팅 메뉴 2번 바 액션 처리 ★★★
+            case 'show_my_synctype_info':
+                if (userProfile.결정된싱크타입) {
+                    userMessageText = `내 싱크타입(${userProfile.결정된싱크타입})과 같은 유형의 사람에 대해서 더 알고싶어`;
+                    // 사용자 메시지 표시
+                    const synctypeInfoUserMsgEl = createTextMessageElement(userMessageText, true);
+                    if(section2) section2.appendChild(synctypeInfoUserMsgEl);
+                    applyFadeIn(synctypeInfoUserMsgEl);
+                    conversationHistory.push({ role: "user", parts: [{ text: userMessageText }] });
+                    scrollToBottom(true);
+                    
+                    // API 요청
+                    messageBuffer = userMessageText;
+                    await sendApiRequest();
+                } else {
+                    // 싱크타입 정보가 없을 경우 (이론상 이 action은 싱크타입이 있을 때만 연결됨)
+                    await displayHardcodedUIElements("루비가 갸웃하며", "앗, 아직 너의 싱크타입 정보를 모르겠어! [exp007] 먼저 싱크타입 테스트를 해볼까?", ["응, 테스트할래"], (btnTxt) => {
+                        if (btnTxt === "응, 테스트할래") {
+                             updateUserProfile({
+                                "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
+                                "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
+                                "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
+                                "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
+                                "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
+                            });
+                            현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
+                            advanceConsultationStage(4);
+                        }
+                    });
+                }
+                return; // 이 case는 API 호출 후 종료
+
+            case 'start_sync_type_test_from_menu': // 싱크타입 정보 없을 때 기본 이미지 클릭 시
+                 await displayHardcodedUIElements("루비가 활짝 웃으며", "좋아! 그럼 싱크타입 테스트를 시작해볼까? [exp001] 재미있는 질문들이 기다리고 있어!", ["응, 시작할래!"], (btnTxt) => {
+                    if (btnTxt === "응, 시작할래!") {
+                        updateUserProfile({
+                            "주관식질문1": null, "주관식답변1": null, "주관식질문2": null, "주관식답변2": null,
+                            "주관식질문3": null, "주관식답변3": null, "주관식질문4": null, "주관식답변4": null,
+                            "주관식질문5": null, "주관식답변5": null, "객관식질문과답변": [],
+                            "DISC_D_점수": 0, "DISC_I_점수": 0, "DISC_S_점수": 0, "DISC_C_점수": 0,
+                            "결정된싱크타입": null, "사용자소속성운": null, "사용자가성운에속한이유": null, "시나리오": null
+                        });
+                        현재주관식질문인덱스 = 0; currentObjectiveQuestionIndex = 0;
+                        advanceConsultationStage(4);
+                    }
+                });
                 return;
-            */
+            
             default:
-                if (action && (action.startsWith('tarot_') || action.includes('_luck') || action.includes('start_recommended_tarot') )) {
+                // 'start_recommended_tarot'은 'show_my_synctype_info'로 대체되었으므로,
+                // 해당 case를 명시적으로 처리할 필요는 없지만, 혹시 다른 곳에서 사용될 수 있다면 남겨두거나,
+                // 아래의 일반적인 타로 주제 선택 로직으로 포함될 수 있음.
+                if (action && (action.startsWith('tarot_') || action.includes('_luck') )) { // start_recommended_tarot 제거
                     userMessageText = `"${action.replace('tarot_', '').replace(/_/g, ' ')}" 주제로 타로를 보고 싶어.`;
                     rubyActionText = "루비가 흥미로운 표정으로";
                     rubyAssistantMsg = "좋아! 그 주제에 대해서도 한번 살펴보자!";
@@ -3705,6 +3921,7 @@ async function displayApiResponseElements(parsedResp) {
                 break;
         }
 
+        // 일반 타로 주제 선택 시 로직 (맨 처음 정의된 case들)
         if (userMessageText && rubyAssistantMsg && selectedTarotTypeForProfile) {
             const userMessageElement = createTextMessageElement(userMessageText, true);
             if(section2) section2.appendChild(userMessageElement);
@@ -3715,11 +3932,10 @@ async function displayApiResponseElements(parsedResp) {
             await displayHardcodedUIElements(rubyActionText, rubyAssistantMsg, [], handleButtonClick);
 
             currentSelectedTarotType = selectedTarotTypeForProfile;
-            updateUserProfile({ "사용자의고민": currentSelectedTarotType }); // 고민 업데이트 후 저장
+            updateUserProfile({ "사용자의고민": currentSelectedTarotType }); 
             if (rubyImageElement && !rubyImageElement.classList.contains('blurred')) {
                 rubyImageElement.classList.add('blurred');
             }
-            // ★★★ 여기서 바로 2단계로 가고, 2단계의 "응" 버튼 클릭 시 handleButtonClick에서 시나리오4 분기 처리 ★★★
             advanceConsultationStage(2);
         }
     }
