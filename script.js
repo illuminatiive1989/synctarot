@@ -1638,60 +1638,79 @@ function handleChatInput() {
         const section5Height = section5 ? section5.offsetHeight : 80;
         container.style.bottom = `${section5Height}px`;
 
-        // 플로팅 메뉴 2번 바(나의 성운과 싱크타입, ID: floatingMenuPage2)의 DOM 인덱스 확인
-        // visibleFloatingMenuSlides가 3이면 Page2는 인덱스 1
-        // visibleFloatingMenuSlides가 2이면 Page2는 인덱스 0 (보이는 것 기준, 실제 DOM 인덱스는 1)
         let targetVisibleSlideIndexForPage2 = -1;
-        if (visibleFloatingMenuSlides === 3) { // Page1, Page2, Page3 모두 보일 때
-            targetVisibleSlideIndexForPage2 = 1; // Page2는 두 번째 슬라이드 (인덱스 1)
-        } else if (visibleFloatingMenuSlides === 2) { // Page1 숨겨지고 Page2, Page3만 보일 때
-            targetVisibleSlideIndexForPage2 = 0; // Page2는 첫 번째로 보이는 슬라이드 (인덱스 0)
+        if (visibleFloatingMenuSlides === 3) {
+            targetVisibleSlideIndexForPage2 = 1; 
+        } else if (visibleFloatingMenuSlides === 2) {
+            targetVisibleSlideIndexForPage2 = 0; 
         }
 
-        const shouldShow = isFloatingMenuOpen && // 플로팅 메뉴가 열려있고
-                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 && // 현재 슬라이드가 Page2이고
-                           currentConsultationStage === 10 && // 10단계이고
-                           userProfile.결정된싱크타입 && // 싱크타입 정보가 있고
-                           userProfile.사용자소속성운; // 성운 정보가 있을 때
+        const shouldShow = isFloatingMenuOpen &&
+                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
+                           currentConsultationStage === 10 &&
+                           userProfile.결정된싱크타입 &&
+                           userProfile.사용자소속성운;
+        
+        let button = container.querySelector('.sync-retest-action-button');
 
         if (shouldShow) {
-            console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시 시도.");
-            if (!container.querySelector('.sync-retest-action-button')) {
-                const button = document.createElement('div');
+            console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시/갱신 시도.");
+            if (!button) { // 버튼이 아예 없으면 새로 생성
+                console.log("[manageSyncRetestButtonVisibility] 버튼 없음. 새로 생성합니다.");
+                button = document.createElement('div');
                 button.classList.add('sync-retest-action-button');
                 button.textContent = "싱크타입 테스트 다시하고 싶어";
                 button.addEventListener('click', async () => {
                     if (isSessionTimedOut) return;
-                    // 버튼 클릭 시 즉시 숨김 처리 (애니메이션은 CSS 담당)
-                    container.classList.remove('visible');
-                    // 플로팅 메뉴도 닫아주는 것이 자연스러울 수 있음
-                    hideFloatingMenu();
+                    
+                    // 버튼 클릭 시 애니메이션과 함께 숨김 처리
+                    button.style.opacity = '0';
+                    button.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        if(container.classList.contains('visible')) container.classList.remove('visible');
+                    }, 300); // CSS transition과 일치
+                    
+                    hideFloatingMenu(); // 플로팅 메뉴도 닫음
                     await handleSyncTypeRetestRequest();
                 });
-                container.innerHTML = '';
+                container.innerHTML = ''; // 기존 내용 확실히 비우기
                 container.appendChild(button);
-                
-                requestAnimationFrame(() => {
-                    button.style.opacity = '1';
-                    button.style.transform = 'translateY(0)';
-                });
             }
+            
+            // 버튼(재생성되었거나 기존 버튼)에 애니메이션 효과를 주며 보이게 함
+            // visible 클래스 추가 전에 opacity와 transform을 초기화해야 애니메이션이 반복됨
+            button.style.opacity = '0';
+            button.style.transform = 'translateY(20px)';
+            
             if (!container.classList.contains('visible')) {
                 container.classList.add('visible');
             }
+            
+            requestAnimationFrame(() => {
+                button.style.opacity = '1';
+                button.style.transform = 'translateY(0)';
+            });
+
         } else {
-            // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentFloatingMenuSlideIndex: ${currentFloatingMenuSlideIndex}, targetVisibleSlideIndexForPage2: ${targetVisibleSlideIndexForPage2}, currentConsultationStage: ${currentConsultationStage}`);
+            // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentSlide: ${currentFloatingMenuSlideIndex}, targetSlide: ${targetVisibleSlideIndexForPage2}, stage: ${currentConsultationStage}`);
             if (container.classList.contains('visible')) {
-                const button = container.querySelector('.sync-retest-action-button');
-                if (button) {
+                if (button) { // 버튼이 존재하면 숨김 애니메이션 적용
                     button.style.opacity = '0';
                     button.style.transform = 'translateY(20px)';
                 }
                 setTimeout(() => {
-                    if (container && !shouldShow) {
+                    // shouldShow 조건을 다시 확인 (타이머 실행 시점에 상태가 바뀌었을 수 있으므로)
+                    const recheckShouldShow = isFloatingMenuOpen &&
+                                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
+                                           currentConsultationStage === 10 &&
+                                           userProfile.결정된싱크타입 &&
+                                           userProfile.사용자소속성운;
+                    if (container && !recheckShouldShow) { 
                         container.classList.remove('visible');
+                        // 버튼 자체를 DOM에서 제거할 필요는 없음. 다음 표시 때 재사용.
+                        // container.innerHTML = ''; // 이 줄은 버튼을 계속 유지하기 위해 주석 처리
                     }
-                }, 300);
+                }, 300); 
             }
         }
     }
@@ -3820,7 +3839,7 @@ async function displayApiResponseElements(parsedResp) {
         }
     }
 
-    
+
      function setupEventListeners() {
         if (sendButton) sendButton.addEventListener('click', () => {
             if (isSessionTimedOut) {
