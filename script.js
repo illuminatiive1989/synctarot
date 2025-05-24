@@ -4174,10 +4174,10 @@ async function displayApiResponseElements(parsedResp) {
     // let currentFloatingMenuSlideIndex = 0; // (보이는 슬라이드 기준 인덱스)
     // let visibleFloatingMenuSlides = 3; // (updateFloatingMenuVisibility에서 관리)
 
-    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) { 
+    function handleFloatingMenuSlide(targetVisibleIndex, forceMove = false) {
         const slider = document.querySelector('.floating-menu-slider');
         const indicators = document.querySelectorAll('.floating-menu-indicator-dot');
-        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu'); 
+        const allSlides = document.querySelectorAll('.floating-menu-slider .floating-menu');
         const menuContainer = document.getElementById('floatingMenuContainer');
 
         if (!menuContainer.classList.contains('visible') ||
@@ -4187,8 +4187,6 @@ async function displayApiResponseElements(parsedResp) {
             if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleFloatingMenuSlides) {
                 console.warn(`[FloatingMenu] 유효하지 않은 슬라이드 인덱스 (보이는 슬라이드 기준): ${targetVisibleIndex}, 현재 보이는 슬라이드 수: ${visibleFloatingMenuSlides}`);
             }
-            // 유효하지 않은 슬라이드 이동 시에도 버튼 상태는 현재 기준으로 한번 더 업데이트
-             // ★★★ 유효하지 않은 이동 시도 시에도 버튼 상태 업데이트 ★★★
             return;
         }
 
@@ -4204,11 +4202,36 @@ async function displayApiResponseElements(parsedResp) {
                  actualDomCurrentIndex = currentFloatingMenuSlideIndex;
             }
 
+            // ★★★ 슬라이드 시작 전 버튼 비활성화 ★★★
+            const page2ButtonContainer = document.getElementById('floatingMenuPage2ButtonContainer');
+            let retestButtonInMenu = null;
+            if (page2ButtonContainer) {
+                retestButtonInMenu = page2ButtonContainer.querySelector('.menu-sync-retest-button');
+                if (retestButtonInMenu) {
+                    retestButtonInMenu.disabled = true;
+                    console.log("[FloatingMenuSlide] 재테스트 버튼 비활성화.");
+                }
+            }
+
             if (allSlides[actualDomCurrentIndex] && actualDomCurrentIndex !== actualDomTargetIndex) {
                 allSlides[actualDomCurrentIndex].style.opacity = '0';
             }
 
+            // CSS transition duration과 동일하거나 약간 길게 설정 (예: 0.4s -> 400ms)
+            const slideTransitionDuration = 400;
+            slider.style.transition = `transform ${slideTransitionDuration}ms ease-in-out`; // JS에서 직접 duration 제어
             slider.style.transform = `translateX(-${targetVisibleIndex * (100 / visibleFloatingMenuSlides)}%)`;
+
+            // 슬라이드 애니메이션 완료 후 버튼 활성화
+            setTimeout(() => {
+                if (retestButtonInMenu) {
+                    retestButtonInMenu.disabled = false;
+                    console.log("[FloatingMenuSlide] 재테스트 버튼 활성화.");
+                }
+                // 슬라이더의 transition을 원래 CSS 정의로 되돌리거나, 계속 JS에서 제어
+                // slider.style.transition = ''; // CSS에 정의된 transition으로 복원
+            }, slideTransitionDuration);
+
 
             requestAnimationFrame(() => {
                 if (allSlides[actualDomTargetIndex]) {
@@ -4226,7 +4249,6 @@ async function displayApiResponseElements(parsedResp) {
                 }
             });
             console.log(`[FloatingMenu] 슬라이드 이동: 보이는 슬라이드 기준 ${targetVisibleIndex}번 (DOM ${actualDomTargetIndex}번)`);
-             // ★★★ 슬라이드 변경 후 버튼 상태 업데이트 ★★★
         }
     }
 
