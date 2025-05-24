@@ -2977,7 +2977,7 @@ async function handleButtonClick(buttonText) {
         if (buttonText === "응") {
             if (userProfile.사용자소속성운 && userProfile.결정된싱크타입) { // 사용자가성운에속한이유 조건 제외
                 console.log("[handleButtonClick] Stage 2 '응': 기존 싱크타입 정보(성운,타입) 감지. 시나리오 4로 진입 시도.");
-                updateUserProfile({ "시나리오": "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행" });
+                updateUserProfile({ "시나리오": "시나리오 4 - 싱크타입을 바탕으로 타로 진행" });
                 
                 currentConsultationStage = 10; 
                 showStage10EntryEmoticon = true;
@@ -3052,7 +3052,7 @@ async function handleButtonClick(buttonText) {
                     shouldDisplayHardcodedUI = true;
                     tempSelectedConstellation = null;
                 } else {
-                    scenarioToSet = "시나리오 4 - 네가 기억해줘서 정말 기쁘다고 말하며 타로 진행";
+                    scenarioToSet = "시나리오 4 - 싱크타입을 바탕으로 타로 진행";
                     updateUserProfile({
                         "사용자소속성운": tempSelectedConstellation,
                         "결정된싱크타입": cleanButtonText,
