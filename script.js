@@ -3816,26 +3816,45 @@ async function displayApiResponseElements(parsedResp) {
             if (page2DescriptionContent) page2DescriptionContent.innerHTML = '';
             if (page2ButtonContainer) page2ButtonContainer.innerHTML = '';
 
-            if (userProfile.결정된싱크타입 && userProfile.사용자소속성운) {
-                if (page2Title) page2Title.textContent = `나의 싱크타입: ${userProfile.결정된싱크타입}`;
+            // ★★★ 표시할 싱크타입 이름 결정 로직 추가 ★★★
+            let displaySyncTypeName = null;
+            let originalSyncTypeNameForData = null; // SYNC_TYPE_KOR_TO_ID_MAP, SYNC_TYPE_DESCRIPTIONS 조회용
+
+            if (userProfile.맞춤싱크타입이름 && String(userProfile.맞춤싱크타입이름).trim() !== "") {
+                displaySyncTypeName = userProfile.맞춤싱크타입이름;
+                // 맞춤 이름이 있더라도, 카드 ID나 설명을 가져오기 위해서는 원래의 '결정된싱크타입' 이름이 필요할 수 있음
+                // 여기서는 '맞춤싱크타입이름'이 '결정된싱크타입'과 완전히 동일한 목록에서 온다고 가정하지 않고,
+                // '결정된싱크타입'을 기반으로 데이터를 찾도록 유지합니다.
+                // 만약 '맞춤싱크타입이름'으로도 카드 ID와 설명을 조회해야 한다면, 해당 이름도 SYNC_TYPE_KOR_TO_ID_MAP과 SYNC_TYPE_DESCRIPTIONS에 있어야 합니다.
+                // 현재는 '결정된싱크타입' 기준으로 데이터를 찾고, 화면 표시만 '맞춤싱크타입이름'으로 합니다.
+                originalSyncTypeNameForData = userProfile.결정된싱크타입; // 데이터 조회는 원래 타입명으로
+            } else if (userProfile.결정된싱크타입) {
+                displaySyncTypeName = userProfile.결정된싱크타입;
+                originalSyncTypeNameForData = userProfile.결정된싱크타입;
+            }
+
+
+            if (displaySyncTypeName && userProfile.사용자소속성운) { // 표시할 이름이 있고, 성운 정보도 있을 때
+                if (page2Title) page2Title.textContent = `나의 싱크타입: ${displaySyncTypeName}`; // ★★★ 맞춤 이름으로 타이틀 표시 ★★★
 
                 if (page2ImageContainer && page2DescriptionContent) {
-                    const userSyncTypeKorean = userProfile.결정된싱크타입;
-                    const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[userSyncTypeKorean];
+                    // 데이터(카드ID, 설명)는 originalSyncTypeNameForData (주로 userProfile.결정된싱크타입) 기준으로 가져옴
+                    const syncTypeCardId = SYNC_TYPE_KOR_TO_ID_MAP[originalSyncTypeNameForData];
 
                     if (syncTypeCardId) {
                         const syncImg = document.createElement('img');
                         syncImg.src = `images/sync/${syncTypeCardId}.png`;
-                        syncImg.alt = `${userProfile.결정된싱크타입} 이미지`;
+                        syncImg.alt = `${displaySyncTypeName} 이미지`; // ★★★ 맞춤 이름으로 alt 텍스트 표시 ★★★
                         syncImg.dataset.action = "show_my_synctype_info";
                         page2ImageContainer.appendChild(syncImg);
 
-                        const syncDescText = SYNC_TYPE_DESCRIPTIONS[userProfile.결정된싱크타입] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
+                        // 설명은 originalSyncTypeNameForData(주로 결정된싱크타입) 기준으로 가져옴
+                        const syncDescText = SYNC_TYPE_DESCRIPTIONS[originalSyncTypeNameForData] || "이 싱크타입에 대한 설명이 아직 준비되지 않았어요.";
                         page2DescriptionContent.innerHTML = syncDescText.split('\n').map(line => `<p>${line || ' '}</p>`).join('');
                     } else {
                         page2ImageContainer.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">싱크타입 이미지를<br>표시할 수 없습니다.</p>';
                         page2DescriptionContent.innerHTML = '<p style="font-size:0.8em; color:#ccc; text-align:center; padding:10px;">세부 정보 없음</p>';
-                        console.warn(`[FloatingMenu] 싱크타입 '${userProfile.결정된싱크타입}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
+                        console.warn(`[FloatingMenu] 원본 싱크타입 '${originalSyncTypeNameForData}'에 대한 카드 ID를 SYNC_TYPE_KOR_TO_ID_MAP에서 찾지 못했습니다.`);
                     }
                 }
 
@@ -3851,17 +3870,16 @@ async function displayApiResponseElements(parsedResp) {
                     page2ButtonContainer.appendChild(retestButton);
                 }
 
-            } else { // 싱크타입 정보가 없을 때
+            } else { // 싱크타입 정보가 없을 때 (결정된싱크타입도, 맞춤싱크타입이름도 없을 때)
                 if (page2Title) page2Title.textContent = "나의 성운과 싱크타입";
                 if (page2ImageContainer && page2DescriptionContent) {
                     const defaultImg = document.createElement('img');
-                    // ★★★ 이미지 경로 및 alt, data-action 수정 ★★★
-                    defaultImg.src = "images/sync/Notsync.png"; // 여기에 새 이미지 경로 적용
-                    defaultImg.alt = "싱크타입을 아직 발견하지 못했어요. 테스트로 찾아보세요!"; // alt 텍스트 수정
-                    defaultImg.dataset.action = "start_sync_type_test_from_menu"; // data-action은 유지하거나 필요에 따라 변경
+                    defaultImg.src = "images/sync/Notsync.png";
+                    defaultImg.alt = "싱크타입을 아직 발견하지 못했어요. 테스트로 찾아보세요!";
+                    defaultImg.dataset.action = "start_sync_type_test_from_menu";
                     page2ImageContainer.appendChild(defaultImg);
 
-                    page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>'; // 설명 텍스트도 적절히 수정
+                    page2DescriptionContent.innerHTML = '<p>아직 당신의 싱크타입을 발견하지 못했어요.<br>테스트를 통해 특별한 당신을 찾아보세요!</p>';
                 }
             }
 
