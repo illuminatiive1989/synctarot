@@ -835,15 +835,21 @@ html, body {
     /* background-color: rgba(0, 0, 0, 0.15); */ /* 디버깅 또는 가독성을 위한 배경 (선택 사항) */
     border-radius: 8px; /* 이미지가 둥글다면 설명 오버레이도 맞춰줌 */
 }
+/* style.css 파일에서 이 부분을 찾아 아래 코드로 교체 */
 #floatingMenuPage2 .sync-type-description {
     font-size: 0.9em;
     color: #FFFFFF;
-    text-align: center;
-    line-height: 1.5;
-    width: 100%;
-    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8); /* 텍스트 가독성 향상 */
-    /* pointer-events: auto; wrapper에서 관리하므로 여기선 필요 없음 */
-    /* max-height 와 overflow-y는 wrapper로 이동 */
+    text-align: center; /* 또는 좌측 정렬 text-align: left; */
+    line-height: 1.5;   /* 이전 1.6에서 약간 줄여봄, 가독성 보고 조절 */
+    width: 100%;        /* 부모(.sync-type-description-wrapper)의 너비를 따름 */
+    text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.8);
+    pointer-events: auto; 
+    
+    /* ★★★ 줄바꿈을 위한 속성 추가/확인 ★★★ */
+    white-space: normal; /* 줄바꿈 허용 (기본값이지만 명시) */
+    word-wrap: break-word; /* 강제 줄바꿈 (구형 브라우저 호환) */
+    overflow-wrap: break-word; /* 강제 줄바꿈 (표준) */
+    padding: 0 5px; /* 좌우 약간의 내부 여백, 너무 크면 실제 너비 줄어듦 */
 }
 #floatingMenuPage2 .sync-type-description-wrapper::-webkit-scrollbar {
     width: 5px;
