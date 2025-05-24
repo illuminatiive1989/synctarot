@@ -673,17 +673,17 @@ html, body {
     padding: 0; 
 }
 
-/* ★★★ 모든 플로팅 메뉴 내부 스크롤 영역에 대한 공통 스크롤바 스타일 ★★★ */
+/* ★★★ 모든 플로팅 메뉴 내부 스크롤 가능 영역에 대한 공통 스크롤바 스타일 ★★★ */
 .page-content-area::-webkit-scrollbar,
 .sync-type-description-scroll-container::-webkit-scrollbar {
-    width: 6px;
+    width: 6px; 
 }
 .page-content-area::-webkit-scrollbar-track,
 .sync-type-description-scroll-container::-webkit-scrollbar-track {
     background: rgba(255,255,255,0.05); 
     border-radius: 3px;
-    margin-top: 5px; /* 스크롤 트랙의 상단 마진 */
-    margin-bottom: 5px; /* 스크롤 트랙의 하단 마진 */
+    /* margin-top: 5px; /* 스크롤 트랙의 상단 마진 -> 각 컨테이너의 padding으로 제어 */
+    /* margin-bottom: 5px; /* 스크롤 트랙의 하단 마진 -> 각 컨테이너의 padding으로 제어 */
 }
 .page-content-area::-webkit-scrollbar-thumb,
 .sync-type-description-scroll-container::-webkit-scrollbar-thumb {
@@ -709,7 +709,8 @@ html, body {
 .page-content-area { /* Page1, Page3의 콘텐츠 영역 */
     flex-grow: 1;
     overflow-y: auto;
-    padding: 0 15px 15px 15px; 
+    /* padding: 0 15px 15px 15px; /* 기존 패딩 유지. 스크롤바 위치는 스크롤바 스타일에서 margin으로 조정 불가 */
+    padding: 0 9px 15px 15px; /* ★★★ 오른쪽 패딩을 줄여 스크롤바 공간 확보 (15px - 6px = 9px) ★★★ */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -743,8 +744,8 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 15px 10px 15px; /* 상단 패딩 0, 좌우하단 패딩 */
-    overflow: hidden; /* 이 영역 자체의 스크롤은 없음 */
+    padding: 0 15px 10px 15px; 
+    overflow: hidden; 
     min-height: 0;
 }
 
@@ -777,7 +778,8 @@ html, body {
     width: 100%;
     height: 100%; 
     overflow-y: auto; 
-    padding: 15px; 
+    /* padding: 15px; /* 기존 패딩 유지. 스크롤바 위치는 스크롤바 스타일에서 margin으로 조정 불가 */
+    padding: 15px 9px 15px 15px; /* ★★★ 오른쪽 패딩을 줄여 스크롤바 공간 확보 (15px - 6px = 9px) ★★★ */
     display: flex;
     flex-direction: column;
     justify-content: center;
