@@ -1919,6 +1919,7 @@ function handleChatInput() {
     }
 
     // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
+    // ★★★ 신규 함수명 변경 및 로직 수정: 독립적인 싱크타입 재테스트 버튼 관리 ★★★
     function manageSyncRetestButtonVisibility() {
         const container = document.getElementById('syncRetestButtonContainer');
         if (!container) {
@@ -1930,67 +1931,67 @@ function handleChatInput() {
         container.style.bottom = `${section5Height}px`;
 
         let targetVisibleSlideIndexForPage2 = -1;
-        if (visibleFloatingMenuSlides === 3) {
-            targetVisibleSlideIndexForPage2 = 1; 
-        } else if (visibleFloatingMenuSlides === 2) {
-            targetVisibleSlideIndexForPage2 = 0; 
+        // visibleFloatingMenuSlides 값은 updateFloatingMenuVisibility 함수에서 설정됩니다.
+        if (visibleFloatingMenuSlides === 3) { // Page1, Page2, Page3 모두 보일 때
+            targetVisibleSlideIndexForPage2 = 1; // Page2는 두 번째 슬라이드 (보이는 인덱스 기준 1)
+        } else if (visibleFloatingMenuSlides === 2) { // Page1 숨겨지고 Page2, Page3만 보일 때
+            targetVisibleSlideIndexForPage2 = 0; // Page2는 첫 번째로 보이는 슬라이드 (보이는 인덱스 기준 0)
         }
-
-        const shouldShow = isFloatingMenuOpen &&
-                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
-                           currentConsultationStage === 10 &&
-                           userProfile.결정된싱크타입 &&
-                           userProfile.사용자소속성운;
+        
+        // ★★★ 핵심 조건 수정 ★★★
+        const shouldShow = isFloatingMenuOpen && // 1. 플로팅 메뉴가 열려 있어야 함
+                           currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 && // 2. 현재 보이는 슬라이드가 Page2여야 함
+                           currentConsultationStage === 10 && // 3. 상담 단계가 10단계여야 함
+                           userProfile.결정된싱크타입 &&    // 4. 싱크타입 정보가 있어야 함
+                           userProfile.사용자소속성운;      // 5. 성운 정보가 있어야 함
         
         let button = container.querySelector('.sync-retest-action-button');
 
         if (shouldShow) {
-            console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시/갱신 시도.");
-            if (!button) { // 버튼이 아예 없으면 새로 생성
-                console.log("[manageSyncRetestButtonVisibility] 버튼 없음. 새로 생성합니다.");
+            // console.log("[manageSyncRetestButtonVisibility] 조건 충족. 버튼 표시/갱신 시도.");
+            if (!button) { 
+                // console.log("[manageSyncRetestButtonVisibility] 버튼 없음. 새로 생성합니다.");
                 button = document.createElement('div');
                 button.classList.add('sync-retest-action-button');
                 button.textContent = "싱크타입 테스트 다시하고 싶어";
                 button.addEventListener('click', async () => {
                     if (isSessionTimedOut) return;
                     
-                    // 버튼 클릭 시 애니메이션과 함께 숨김 처리
                     button.style.opacity = '0';
                     button.style.transform = 'translateY(20px)';
                     setTimeout(() => {
                         if(container.classList.contains('visible')) container.classList.remove('visible');
-                    }, 300); // CSS transition과 일치
+                    }, 300); 
                     
-                    hideFloatingMenu(); // 플로팅 메뉴도 닫음
+                    hideFloatingMenu(); // 플로팅 메뉴도 닫음 (이때 manageSyncRetestButtonVisibility가 다시 호출되어 버튼 숨김)
                     await handleSyncTypeRetestRequest();
                 });
-                container.innerHTML = ''; // 기존 내용 확실히 비우기
+                container.innerHTML = ''; 
                 container.appendChild(button);
             }
             
-            // 버튼(재생성되었거나 기존 버튼)에 애니메이션 효과를 주며 보이게 함
-            // visible 클래스 추가 전에 opacity와 transform을 초기화해야 애니메이션이 반복됨
             button.style.opacity = '0';
             button.style.transform = 'translateY(20px)';
             
             if (!container.classList.contains('visible')) {
                 container.classList.add('visible');
             }
-            
+            // container가 visible로 설정된 후에 애니메이션을 위한 스타일 변경
             requestAnimationFrame(() => {
-                button.style.opacity = '1';
-                button.style.transform = 'translateY(0)';
+                if (button && container.classList.contains('visible')) { // 버튼과 컨테이너가 여전히 유효한지 확인
+                    button.style.opacity = '1';
+                    button.style.transform = 'translateY(0)';
+                }
             });
 
         } else {
             // console.log(`[manageSyncRetestButtonVisibility] 조건 미충족. 버튼 숨김. isFloatingMenuOpen: ${isFloatingMenuOpen}, currentSlide: ${currentFloatingMenuSlideIndex}, targetSlide: ${targetVisibleSlideIndexForPage2}, stage: ${currentConsultationStage}`);
             if (container.classList.contains('visible')) {
-                if (button) { // 버튼이 존재하면 숨김 애니메이션 적용
+                if (button) { 
                     button.style.opacity = '0';
                     button.style.transform = 'translateY(20px)';
                 }
                 setTimeout(() => {
-                    // shouldShow 조건을 다시 확인 (타이머 실행 시점에 상태가 바뀌었을 수 있으므로)
                     const recheckShouldShow = isFloatingMenuOpen &&
                                            currentFloatingMenuSlideIndex === targetVisibleSlideIndexForPage2 &&
                                            currentConsultationStage === 10 &&
@@ -1998,8 +1999,6 @@ function handleChatInput() {
                                            userProfile.사용자소속성운;
                     if (container && !recheckShouldShow) { 
                         container.classList.remove('visible');
-                        // 버튼 자체를 DOM에서 제거할 필요는 없음. 다음 표시 때 재사용.
-                        // container.innerHTML = ''; // 이 줄은 버튼을 계속 유지하기 위해 주석 처리
                     }
                 }, 300); 
             }
